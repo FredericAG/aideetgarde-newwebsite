@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1c2e3e;
+
+  /* Charte graphique Aide & Garde (2018) — couleurs exactes du document de marque */
+  --brand-teal: #376873; /* primaire — H1/H2/fond */
+  --brand-teal-tint: #7c9fa6; /* teinte claire du teal */
+  --brand-violet: #685c9b; /* primaire — H1/H2/fond */
+  --brand-violet-tint: #aebce1; /* teinte claire, proche du violet */
+  --brand-jaune: #f6ed78; /* primaire — fond uniquement */
+  --brand-gray: #7783a6; /* secondaire */
+  --brand-black: #1c2e3e; /* secondaire — texte */
+  --brand-sky-tint: #c1e0f8; /* 3e teinte claire */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-tint: var(--brand-teal-tint);
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-violet-tint: var(--brand-violet-tint);
+  --color-brand-jaune: var(--brand-jaune);
+  --color-brand-gray: var(--brand-gray);
+  --color-brand-black: var(--brand-black);
+  --color-brand-sky-tint: var(--brand-sky-tint);
+
+  /* Typographie de la charte : Corporative (texte courant, H3 bold) / Stevie Sans (H1, black, capitales) */
+  --font-sans: var(--font-corporative);
+  --font-display: var(--font-stevie-sans);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #14232b;
+    --foreground: #f4f1fb;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    var(--font-corporative),
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
