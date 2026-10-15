@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { MESSAGE_RESEAU, withTimeout } from "@/lib/with-timeout";
 
 export default function InscriptionPage() {
   const router = useRouter();
@@ -15,11 +16,13 @@ export default function InscriptionPage() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [accepteCgu, setAccepteCgu] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setInfo(null);
 
     if (password !== passwordConfirm) {
       setError("Les deux mots de passe ne correspondent pas.");
@@ -34,24 +37,46 @@ export default function InscriptionPage() {
 
     setLoading(true);
 
-    const supabase = createClient();
-    // Le profil (table `profiles`) est créé automatiquement par un trigger
-    // Postgres à partir de ces métadonnées (voir supabase/schema.sql) — pas
-    // besoin d'un appel séparé comme avec Firebase/Firestore.
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { prenom, nom } },
-    });
+    try {
+      const supabase = createClient();
+      // Le profil (table `profiles`) est créé automatiquement par un trigger
+      // Postgres à partir de ces métadonnées (voir supabase/schema.sql) — pas
+      // besoin d'un appel séparé comme avec Firebase/Firestore.
+      const { data, error: signUpError } = await withTimeout(
+        supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { prenom, nom } },
+        }),
+      );
 
-    if (signUpError) {
-      setError(authErrorMessage(signUpError));
+      if (signUpError) {
+        setError(authErrorMessage(signUpError));
+        setLoading(false);
+        return;
+      }
+
+      // Pas de session = la confirmation d'email est activée côté Supabase :
+      // le compte existe mais l'utilisateur doit d'abord cliquer sur le lien
+      // reçu par email.
+      if (!data.session) {
+        setInfo(
+          "Compte créé. Un email de confirmation vient de vous être envoyé : cliquez sur le lien qu'il contient, puis connectez-vous.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      router.push("/tableau-de-bord");
+      router.refresh();
+    } catch (e) {
+      // Variables d'environnement absentes, projet Supabase en pause,
+      // réseau coupé, délai dépassé… : on affiche toujours un message
+      // plutôt que de laisser le bouton figé.
+      console.error("Inscription impossible :", e);
+      setError(MESSAGE_RESEAU);
       setLoading(false);
-      return;
     }
-
-    router.push("/mon-compte");
-    router.refresh();
   }
 
   return (
@@ -140,6 +165,7 @@ export default function InscriptionPage() {
           </label>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {info && <p className="text-sm text-brand-teal">{info}</p>}
 
           <button
             type="submit"

@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { MESSAGE_RESEAU, withTimeout } from "@/lib/with-timeout";
 
 function ConnexionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/mon-compte";
+  const next = searchParams.get("next") ?? "/tableau-de-bord";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,20 +22,25 @@ function ConnexionForm() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }),
+      );
 
-    if (signInError) {
-      setError(authErrorMessage(signInError));
+      if (signInError) {
+        setError(authErrorMessage(signInError));
+        setLoading(false);
+        return;
+      }
+
+      router.push(next);
+      router.refresh();
+    } catch (e) {
+      console.error("Connexion impossible :", e);
+      setError(MESSAGE_RESEAU);
       setLoading(false);
-      return;
     }
-
-    router.push(next);
-    router.refresh();
   }
 
   return (

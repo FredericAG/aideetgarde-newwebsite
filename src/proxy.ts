@@ -60,7 +60,13 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isProtectedRoute = pathname.startsWith("/mon-compte");
+  // Espaces réservés aux personnes connectées. Pour /admin, le Proxy ne
+  // vérifie que la connexion : le rôle administrateur est contrôlé par la
+  // page elle-même (requireAdmin, src/lib/auth.ts), au plus près des données.
+  const isProtectedRoute =
+    pathname.startsWith("/mon-compte") ||
+    pathname.startsWith("/tableau-de-bord") ||
+    pathname.startsWith("/admin");
   const isAuthRoute =
     pathname.startsWith("/connexion") || pathname.startsWith("/inscription");
 
@@ -73,7 +79,7 @@ export async function proxy(request: NextRequest) {
 
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/mon-compte";
+    url.pathname = "/tableau-de-bord";
     url.search = "";
     return NextResponse.redirect(url);
   }

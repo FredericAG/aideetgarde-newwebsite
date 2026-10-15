@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
+import { getUserProfile } from "@/lib/user-profile";
 
 /**
  * En-tête commun à toutes les pages. `getUser()` revalide le jeton auprès
@@ -15,12 +16,19 @@ export async function SiteHeader() {
   // affiche simplement la navigation "déconnecté" plutôt que de planter
   // chaque page du site.
   let user = null;
+  let isAdmin = false;
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser();
     user = currentUser;
+    if (user) {
+      // Sert uniquement à afficher (ou non) le lien "Administration" ;
+      // l'accès réel est contrôlé par chaque page /admin et par la base.
+      const profile = await getUserProfile(supabase, user.id).catch(() => null);
+      isAdmin = profile?.role === "admin";
+    }
   }
 
   return (
@@ -40,6 +48,20 @@ export async function SiteHeader() {
         <nav className="flex items-center gap-4 text-sm">
           {user ? (
             <>
+              <Link
+                href="/tableau-de-bord"
+                className="font-medium text-brand-teal underline"
+              >
+                Tableau de bord
+              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="font-medium text-brand-violet underline"
+                >
+                  Administration
+                </Link>
+              )}
               <Link
                 href="/mon-compte"
                 className="font-medium text-brand-teal underline"
