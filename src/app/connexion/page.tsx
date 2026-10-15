@@ -11,6 +11,7 @@ function ConnexionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/tableau-de-bord";
+  const lienInvalide = searchParams.get("erreur") === "lien_invalide";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -52,6 +53,15 @@ function ConnexionForm() {
         <p className="mt-2 text-sm text-foreground/70">
           Espace employeur Aide &amp; Garde.
         </p>
+
+        {lienInvalide && (
+          <p className="mt-6 rounded-md border border-brand-gray/30 p-3 text-sm text-foreground/80">
+            Ce lien n&apos;est plus valable (déjà utilisé, expiré ou ouvert
+            dans un autre navigateur). Si vous venez de confirmer votre adresse
+            email, connectez-vous simplement ci-dessous. Sinon, recommencez
+            l&apos;opération pour recevoir un nouveau lien.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <label className="flex flex-col gap-1 text-sm font-medium">

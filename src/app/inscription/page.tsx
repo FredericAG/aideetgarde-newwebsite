@@ -46,7 +46,13 @@ export default function InscriptionPage() {
         supabase.auth.signUp({
           email,
           password,
-          options: { data: { prenom, nom } },
+          options: {
+            data: { prenom, nom },
+            // Le lien de confirmation renverra sur CE site (production ou
+            // prévisualisation), à condition que l'adresse figure dans
+            // Supabase > Authentication > URL Configuration > Redirect URLs.
+            emailRedirectTo: `${window.location.origin}/auth/confirm?next=/tableau-de-bord`,
+          },
         }),
       );
 
