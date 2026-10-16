@@ -50,6 +50,13 @@ Préparation côté admin (fiche du compte `client-test` dans `/admin`) :
 | 2.6 | Ajouter une 3ᵉ gestion de nouveau | Accepté (place libérée) | |
 | 2.7 | Rouvrir la gestion terminée alors que le quota est plein | **Refus** (quota) | |
 | 2.8 | Ajouter 2–3 documents (bulletin, période 2609, etc.) à une gestion | Documents listés ; période hors format AAMM refusée | |
+| 2.8b | Ajouter un document identique à un document existant (même type, même période, même titre — y compris en changeant seulement les majuscules ou en ajoutant un espace) | **Refus** : « Ce document existe déjà pour cette gestion… » | |
+| 2.8d | Déposer un 2ᵉ bulletin de salaire pour un mois qui en a déjà un, même avec un titre différent | **Refus** : « Un bulletin de salaire existe déjà pour ce mois… » ; après suppression de l'ancien, le dépôt est accepté | |
+| 2.8e | Déposer un bulletin sans période | **Refus** : la période est obligatoire pour un bulletin | |
+| 2.8f | Déposer un PDF par glisser-déposer (admin), puis le télécharger côté client depuis le tableau de bord et depuis le détail de la gestion | Le fichier se télécharge ; un lien copié ne fonctionne plus au bout d'une minute | |
+| 2.8g | Déposer un fichier qui n'est pas un PDF, ou de plus de 20 Mo | **Refus** avec message | |
+| 2.8h | Supprimer le document | Fiche et fichier supprimés (vérifiable dans Supabase > Storage > documents) | |
+| 2.8c | Saisir une période avec un mois invalide (ex. 2613 ou 2600) | **Refus** : message sur le format AAMM | |
 | 2.9 | Résilier l'abonnement | Statut « Résilié », **gestions en cours inchangées** ; impossible d'ajouter une gestion | |
 
 | # | Scénario (client, autre navigateur) | Ancien site (tableau de bord) | Résultat attendu | Statut |
@@ -72,5 +79,5 @@ Préparation côté admin (fiche du compte `client-test` dans `/admin`) :
 | Le client **demande la résiliation** de son abonnement (effet fin de mois), via un bouton avec confirmation | Admin seulement | Brique 5 (paiement/abonnement) |
 | Prix mensuel cumulé de plusieurs commandes | Un seul abonnement avec quota et tarif fixe | Décisions 3 et 9 (paliers) |
 | Accès aux coordonnées des membres (mise en relation) | Absent | Briques de mise en relation |
-| Documents : fichiers PDF téléchargeables | Métadonnées seulement | Brique de dépôt de PDF / migration (brique 13) |
+| Documents : dépôt **en masse** avec rattachement automatique par nom de fichier | Dépôt fichier par fichier (brique 2c) | Brique 4 ; reprise des PDF existants en brique 13 |
 | Espace « salarié / intervenant » qui voit les gestions où il est intervenant | Absent | Décisions 2 et 13 |

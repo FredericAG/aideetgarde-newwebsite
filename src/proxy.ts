@@ -66,7 +66,8 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith("/mon-compte") ||
     pathname.startsWith("/tableau-de-bord") ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/documents");
   const isAuthRoute =
     pathname.startsWith("/connexion") || pathname.startsWith("/inscription");
 

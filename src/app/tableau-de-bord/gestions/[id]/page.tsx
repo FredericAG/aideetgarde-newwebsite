@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TitreDocument } from "@/components/TitreDocument";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import {
@@ -37,7 +38,7 @@ export default async function DetailGestionPage({
 
   const { data: docs } = await supabase
     .from("documents")
-    .select("id, gestion_id, type_document, periode, titre, created_at")
+    .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
     .eq("gestion_id", id)
     .order("periode", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -73,7 +74,7 @@ export default async function DetailGestionPage({
                 key={d.id}
                 className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
               >
-                <span className="font-medium">{d.titre}</span>
+                <TitreDocument doc={d} />
                 <span className="text-foreground/60">
                   {TYPES_DOCUMENT[d.type_document]}
                   {d.periode ? ` · ${formatPeriode(d.periode)}` : ""}

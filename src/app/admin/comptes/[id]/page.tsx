@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { TitreDocument } from "@/components/TitreDocument";
+import { DepotDocument } from "./DepotDocument";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
@@ -15,7 +17,6 @@ import {
 } from "@/lib/data";
 import {
   creerAbonnement,
-  creerDocument,
   creerGestion,
   modifierAbonnement,
   resilierAbonnement,
@@ -88,7 +89,7 @@ export default async function FicheComptePage({
       .order("date_debut", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, created_at")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
       .eq("employeur_id", id)
       .order("periode", { ascending: false, nullsFirst: false }),
   ]);
@@ -363,7 +364,7 @@ export default async function FicheComptePage({
                         {docsGestion.map((d) => (
                           <li key={d.id} className="flex items-center justify-between gap-3 py-2">
                             <span>
-                              {d.titre}
+                              <TitreDocument doc={d} />
                               <span className="ml-2 text-foreground/60">
                                 {TYPES_DOCUMENT[d.type_document]}
                                 {d.periode ? ` · ${formatPeriode(d.periode)}` : ""}
@@ -379,37 +380,7 @@ export default async function FicheComptePage({
                           </li>
                         ))}
                       </ul>
-                      <form action={creerDocument} className="mt-3 flex flex-wrap items-end gap-3">
-                        <input type="hidden" name="compte_id" value={id} />
-                        <input type="hidden" name="gestion_id" value={g.id} />
-                        <label className="flex flex-col gap-1 text-xs font-medium">
-                          Type
-                          <select name="type_document" className={inputClass}>
-                            {Object.entries(TYPES_DOCUMENT).map(([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="flex flex-col gap-1 text-xs font-medium">
-                          Période (AAMM)
-                          <input
-                            type="text"
-                            name="periode"
-                            placeholder="2609"
-                            maxLength={4}
-                            className={`${inputClass} w-24`}
-                          />
-                        </label>
-                        <label className="flex flex-col gap-1 text-xs font-medium">
-                          Titre
-                          <input type="text" name="titre" required className={`${inputClass} w-56`} />
-                        </label>
-                        <button type="submit" className={btnLightClass}>
-                          Ajouter
-                        </button>
-                      </form>
+                      <DepotDocument compteId={id} gestionId={g.id} />
                     </details>
                   </li>
                 );

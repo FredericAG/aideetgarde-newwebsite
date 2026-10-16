@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TitreDocument } from "@/components/TitreDocument";
 import { requireUser } from "@/lib/auth";
 import {
   TYPES_DOCUMENT,
@@ -38,7 +39,7 @@ export default async function TableauDeBordPage() {
       .order("date_debut", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, created_at")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
       .eq("employeur_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -192,7 +193,7 @@ export default async function TableauDeBordPage() {
                     className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
                   >
                     <span>
-                      <span className="font-medium">{d.titre}</span>
+                      <TitreDocument doc={d} />
                       <span className="ml-2 text-foreground/60">
                         {TYPES_DOCUMENT[d.type_document]}
                         {d.periode ? ` · ${formatPeriode(d.periode)}` : ""}
@@ -207,8 +208,8 @@ export default async function TableauDeBordPage() {
             </ul>
           )}
           <p className="mt-2 text-xs text-foreground/50">
-            Le téléchargement des fichiers PDF arrivera dans une brique
-            ultérieure.
+            Cliquez sur un document pour le télécharger. Vos documents restent
+            disponibles en permanence dans votre espace.
           </p>
         </section>
       </div>

@@ -40,8 +40,15 @@ export interface DocumentRow {
   type_document: TypeDocument;
   periode: string | null;
   titre: string;
+  storage_path: string | null;
   created_at: string;
 }
+
+/** Nom de l'espace de stockage Supabase des PDF (voir brique2c_stockage_pdf.sql). */
+export const BUCKET = "documents";
+
+/** Taille maximale d'un PDF déposé (doit rester cohérente avec le script SQL). */
+export const TAILLE_MAX_PDF = 20 * 1024 * 1024;
 
 export const TYPES_GESTION: Record<TypeGestion, string> = {
   garde_enfants: "Garde d'enfants",

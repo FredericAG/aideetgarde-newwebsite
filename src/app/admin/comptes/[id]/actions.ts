@@ -1,8 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { TYPES_DOCUMENT, TYPES_GESTION, isUuid } from "@/lib/data";
+import { BUCKET, TYPES_DOCUMENT, TYPES_GESTION, isUuid } from "@/lib/data";
 
 /**
  * Actions serveur du back-office. Une action serveur est un point d'entrée
@@ -39,6 +40,23 @@ function messageErreur(error: { code?: string; message: string }): string {
   // P0001 = erreur levée volontairement par une règle de la base (quota...)
   // dont le message est déjà rédigé pour être lu.
   if (error.code === "P0001") return error.message;
+  // 23505 = violation d'une règle d'unicité posée dans la base.
+  if (error.code === "23505") {
+    if (error.message.includes("documents_un_bulletin_par_mois")) {
+      return "Un bulletin de salaire existe déjà pour ce mois dans cette gestion. Pour le remplacer, supprimez d'abord l'ancien, puis déposez le nouveau.";
+    }
+    if (error.message.includes("documents_sans_doublon")) {
+      return "Ce document existe déjà pour cette gestion (même type, même période et même titre).";
+    }
+    if (error.message.includes("abonnements_un_actif_par_employeur")) {
+      return "Ce compte a déjà un abonnement actif.";
+    }
+    return "Cet élément existe déjà.";
+  }
+  // 23514 = violation d'une règle de validité (ex. période au mauvais format).
+  if (error.code === "23514") {
+    return "Une valeur saisie n'est pas valide (vérifiez notamment la période : AAMM, mois de 01 à 12).";
+  }
   return `Erreur technique : ${error.message}`;
 }
 
@@ -147,46 +165,149 @@ export async function rouvrirGestion(fd: FormData) {
   retour(compteId, "ok", "Gestion rouverte.");
 }
 
-/** Suppression définitive (utile pour nettoyer des données de test). */
+/** Retire des fichiers du stockage ; renvoie un message d'erreur ou null. */
+async function supprimerFichiers(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  chemins: string[],
+): Promise<string | null> {
+  if (chemins.length === 0) return null;
+  const { error } = await supabase.storage.from(BUCKET).remove(chemins);
+  return error ? `Impossible de supprimer le fichier : ${error.message}` : null;
+}
+
+/**
+ * Suppression définitive (utile pour nettoyer des données de test).
+ * Les fichiers PDF des documents de la gestion sont supprimés AVANT les
+ * lignes de la base : en cas d'échec, rien n'est supprimé et aucun fichier
+ * ne reste orphelin dans le stockage.
+ */
 export async function supprimerGestion(fd: FormData) {
   const { supabase, compteId } = await contexte(fd);
+  const gestionId = texte(fd, "gestion_id");
+
+  const { data: docs } = await supabase
+    .from("documents")
+    .select("storage_path")
+    .eq("gestion_id", gestionId)
+    .eq("employeur_id", compteId);
+  const chemins = (docs ?? [])
+    .map((d) => d.storage_path as string | null)
+    .filter((c): c is string => Boolean(c));
+  const erreurFichiers = await supprimerFichiers(supabase, chemins);
+  if (erreurFichiers) retour(compteId, "erreur", erreurFichiers);
+
   const { error } = await supabase
     .from("gestions")
     .delete()
-    .eq("id", texte(fd, "gestion_id"))
+    .eq("id", gestionId)
     .eq("employeur_id", compteId);
   if (error) retour(compteId, "erreur", messageErreur(error));
-  retour(compteId, "ok", "Gestion et documents associés supprimés.");
+  retour(compteId, "ok", "Gestion, documents et fichiers associés supprimés.");
 }
 
-export async function creerDocument(fd: FormData) {
-  const { supabase, compteId } = await contexte(fd);
-  const type = texte(fd, "type_document");
-  const titre = texte(fd, "titre");
-  const periode = texte(fd, "periode");
-  if (!(type in TYPES_DOCUMENT)) retour(compteId, "erreur", "Type de document invalide.");
-  if (!titre) retour(compteId, "erreur", "Le titre du document est obligatoire.");
-  if (periode && !/^\d{4}$/.test(periode)) {
-    retour(compteId, "erreur", "La période doit être au format AAMM (ex. 2609).");
+export interface EnregistrerDocumentInput {
+  compteId: string;
+  gestionId: string;
+  documentId: string;
+  typeDocument: string;
+  periode: string;
+  titre: string;
+  storagePath: string;
+  nomFichier: string;
+}
+
+export interface ResultatAction {
+  ok: boolean;
+  message: string;
+}
+
+/**
+ * Deuxième temps du dépôt d'un PDF. Le navigateur de l'administrateur a
+ * déjà envoyé le fichier directement à Supabase Storage (sans passer par
+ * Vercel, dont les requêtes sont limitées à environ 4,5 Mo) ; on enregistre
+ * ici la fiche du document. Si l'enregistrement échoue (doublon, période
+ * invalide...), on supprime le fichier qui vient d'être envoyé pour ne
+ * laisser aucun fichier orphelin.
+ */
+export async function enregistrerDocument(
+  input: EnregistrerDocumentInput,
+): Promise<ResultatAction> {
+  const { compteId, gestionId, documentId } = input;
+  if (!isUuid(compteId) || !isUuid(gestionId) || !isUuid(documentId)) {
+    return { ok: false, message: "Identifiants invalides." };
+  }
+  const { supabase } = await requireAdmin(`/admin/comptes/${compteId}`);
+
+  const cheminAttendu = `${compteId}/${gestionId}/${documentId}.pdf`;
+  // Le chemin doit correspondre exactement à l'employeur et à la gestion :
+  // c'est lui qui détermine qui pourra lire le fichier.
+  if (input.storagePath !== cheminAttendu) {
+    return { ok: false, message: "Chemin de fichier inattendu, dépôt refusé." };
   }
 
+  const echec = async (message: string): Promise<ResultatAction> => {
+    await supprimerFichiers(supabase, [cheminAttendu]);
+    return { ok: false, message };
+  };
+
+  const titre = input.titre.trim();
+  const periode = input.periode.trim();
+  if (!(input.typeDocument in TYPES_DOCUMENT)) return echec("Type de document invalide.");
+  if (!titre) return echec("Le titre du document est obligatoire.");
+  if (input.typeDocument === "bulletin" && !periode) {
+    return echec("Un bulletin de salaire doit avoir une période (AAMM).");
+  }
+  if (periode && !/^\d{2}(0[1-9]|1[0-2])$/.test(periode)) {
+    return echec(
+      "La période doit être au format AAMM avec un mois de 01 à 12 (ex. 2609 pour septembre 2026).",
+    );
+  }
+
+  // La gestion appartient-elle bien à ce compte ?
+  const { data: gestion } = await supabase
+    .from("gestions")
+    .select("id")
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId)
+    .maybeSingle();
+  if (!gestion) return echec("Gestion introuvable pour ce compte.");
+
   const { error } = await supabase.from("documents").insert({
-    gestion_id: texte(fd, "gestion_id"),
-    type_document: type,
+    id: documentId,
+    gestion_id: gestionId,
+    type_document: input.typeDocument,
     titre,
     periode: periode || null,
+    storage_path: cheminAttendu,
+    nom_fichier_origine: input.nomFichier.slice(0, 255),
   });
-  if (error) retour(compteId, "erreur", messageErreur(error));
-  retour(compteId, "ok", "Document ajouté.");
+  if (error) return echec(messageErreur(error));
+
+  revalidatePath(`/admin/comptes/${compteId}`);
+  return { ok: true, message: "Document déposé." };
 }
 
+/** Supprime le fichier PDF puis la fiche du document. */
 export async function supprimerDocument(fd: FormData) {
   const { supabase, compteId } = await contexte(fd);
+  const documentId = texte(fd, "document_id");
+
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("storage_path")
+    .eq("id", documentId)
+    .eq("employeur_id", compteId)
+    .maybeSingle();
+  if (doc?.storage_path) {
+    const erreurFichier = await supprimerFichiers(supabase, [doc.storage_path as string]);
+    if (erreurFichier) retour(compteId, "erreur", erreurFichier);
+  }
+
   const { error } = await supabase
     .from("documents")
     .delete()
-    .eq("id", texte(fd, "document_id"))
+    .eq("id", documentId)
     .eq("employeur_id", compteId);
   if (error) retour(compteId, "erreur", messageErreur(error));
-  retour(compteId, "ok", "Document supprimé.");
+  retour(compteId, "ok", "Document et fichier supprimés.");
 }
