@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
+import { NotificationsPush } from "@/components/NotificationsPush";
 
 /**
  * Page protégée. Le Proxy (`src/proxy.ts`) redirige déjà les requêtes sans
@@ -34,6 +35,8 @@ export default async function MonComptePage() {
         <p className="mt-2 text-sm text-foreground/70">{user.email}</p>
 
         <ProfileForm profile={safeProfile} />
+
+        <NotificationsPush />
       </div>
     </div>
   );

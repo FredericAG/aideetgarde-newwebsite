@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# fichiers temporaires contenant des secrets, à supprimer après usage
+/A-SUPPRIMER-*

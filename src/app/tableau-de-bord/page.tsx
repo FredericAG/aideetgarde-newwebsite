@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { InfosDocument } from "@/components/TitreDocument";
+import { NotificationsPush } from "@/components/NotificationsPush";
 import { requireUser } from "@/lib/auth";
 import {
   TYPES_GESTION,
@@ -85,6 +86,8 @@ export default async function TableauDeBordPage() {
             dans un instant.
           </p>
         )}
+
+        <NotificationsPush compact />
 
         {/* --- Abonnement --- */}
         <section className="mt-8 rounded-lg border border-brand-teal/20 p-5">

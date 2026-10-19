@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { BUCKET, TYPES_DOCUMENT, TYPES_GESTION, isUuid } from "@/lib/data";
+import {
+  BUCKET,
+  TYPES_DOCUMENT,
+  TYPES_GESTION,
+  isUuid,
+  libelleMois,
+  type TypeDocument,
+} from "@/lib/data";
+import { notifierUtilisateur } from "@/lib/push";
 import { cheminStockage } from "@/lib/nom-fichier";
 
 /**
@@ -359,6 +367,17 @@ export async function enregistrerDocument(
     nom_fichier_origine: m.nomFichier.slice(0, 255),
   });
   if (error) return echec(messageErreur(error));
+
+  // Prévenir l'abonné sur ses appareils. Le message reste volontairement
+  // général (pas de nom, pas de montant) : il peut s'afficher sur un écran
+  // verrouillé.
+  const libelle = TYPES_DOCUMENT[m.typeDocument as TypeDocument] ?? "Document";
+  await notifierUtilisateur(supabase, m.compteId, {
+    title: "Nouveau document disponible",
+    body: periode ? `${libelle} de ${libelleMois(periode)}` : libelle,
+    url: `/tableau-de-bord/gestions/${m.gestionId}`,
+    tag: `document-${m.documentId}`,
+  });
 
   revalidatePath(`/admin/comptes/${m.compteId}`);
   return { ok: true, message: "Document déposé." };
