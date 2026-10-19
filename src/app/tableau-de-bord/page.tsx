@@ -5,7 +5,9 @@ import {
   TYPES_GESTION,
   formatDate,
   formatEuros,
+  libelleMois,
   nomSalarie,
+  periodesDeclarables,
   type Abonnement,
   type DocumentRow,
   type Gestion,
@@ -24,7 +26,9 @@ import {
 export default async function TableauDeBordPage() {
   const { supabase, user, profile } = await requireUser("/tableau-de-bord");
 
-  const [abosRes, gestionsRes, docsRes] = await Promise.all([
+  const moisCourant = periodesDeclarables().parDefaut;
+
+  const [abosRes, gestionsRes, docsRes, declsRes] = await Promise.all([
     supabase
       .from("abonnements")
       .select("*")
@@ -41,9 +45,16 @@ export default async function TableauDeBordPage() {
       .eq("employeur_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("declarations_mensuelles")
+      .select("gestion_id, statut")
+      .eq("employeur_id", user.id)
+      .eq("periode", moisCourant),
   ]);
 
   const erreur = abosRes.error || gestionsRes.error || docsRes.error;
+  // declsRes.error n'est pas bloquant : sans le script brique7a, la
+  // colonne « déclaration » affiche simplement le bouton.
   const abonnements = (abosRes.data ?? []) as Abonnement[];
   const gestions = (gestionsRes.data ?? []) as Gestion[];
   const documents = (docsRes.data ?? []) as DocumentRow[];
@@ -53,6 +64,9 @@ export default async function TableauDeBordPage() {
   const enCours = gestions.filter((g) => g.statut === "en_cours");
   const terminees = gestions.filter((g) => g.statut === "terminee");
   const gestionParId = new Map(gestions.map((g) => [g.id, g]));
+  const statutDeclaration = new Map(
+    (declsRes.data ?? []).map((d) => [d.gestion_id as string, d.statut as string]),
+  );
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
@@ -124,27 +138,38 @@ export default async function TableauDeBordPage() {
             </p>
           ) : (
             <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-gray/20">
-              {enCours.map((g) => (
-                <li key={g.id}>
-                  <Link
-                    href={`/tableau-de-bord/gestions/${g.id}`}
-                    className="flex items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-brand-sky-tint/20"
-                  >
-                    <span>
+              {enCours.map((g) => {
+                const statut = statutDeclaration.get(g.id);
+                return (
+                  <li key={g.id} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                    <Link
+                      href={`/tableau-de-bord/gestions/${g.id}`}
+                      className="flex-1 hover:underline"
+                    >
                       <span className="font-medium">{nomSalarie(g)}</span>
-                      <span className="ml-2 font-mono text-xs text-foreground/50">
-                        {g.reference}
-                      </span>
                       <span className="ml-2 text-foreground/60">
-                        {TYPES_GESTION[g.type_gestion]}
+                        {TYPES_GESTION[g.type_gestion]} · depuis le {formatDate(g.date_debut)}
                       </span>
-                    </span>
-                    <span className="text-foreground/60">
-                      depuis le {formatDate(g.date_debut)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+                    </Link>
+                    {statut === "traitee" ? (
+                      <span className="text-brand-teal">
+                        Bulletin de {libelleMois(moisCourant)} établi
+                      </span>
+                    ) : statut === "envoyee" ? (
+                      <span className="text-foreground/70">
+                        {libelleMois(moisCourant)} : déclaration envoyée
+                      </span>
+                    ) : (
+                      <Link
+                        href={`/tableau-de-bord/gestions/${g.id}#declaration`}
+                        className="rounded-md bg-brand-violet px-3 py-2 text-center font-semibold text-white"
+                      >
+                        Déclarer {libelleMois(moisCourant)}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 

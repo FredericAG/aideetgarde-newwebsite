@@ -13,7 +13,7 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 | Le pointeur de la souris devient une main sur tout élément cliquable : boutons, liens, textes d'action (« Supprimer », « Terminer la gestion »…), zone de dépôt, menus déroulants, éléments repliables. Sur un bouton désactivé, il indique que l'action est impossible. | En place (19/10) |
 | Les mentions d'aide (« Cliquez sur un document pour le télécharger… ») sont placées **avant** la liste qu'elles concernent, jamais après : avec beaucoup d'éléments, une mention en bas de liste n'est plus visible. | En place (19/10) |
 | Chaque action qui échoue affiche un message en français qui dit quoi faire, jamais un écran figé ou une erreur technique brute. | En place |
-| Réactivité : chaque clic produit un effet visible immédiat (bouton qui passe en « Suppression… », indicateur « Chargement… » au changement de page), même si le résultat prend quelques centaines de millisecondes. Les serveurs du site et la base de données sont dans la même région (Europe) pour limiter les temps de réponse. | En place (19/10) |
+| **Fluidité de navigation : exigence majeure.** Mesure du 19/10 (serveurs à Paris) : changements de page servis en 90 à 110 ms environ ; les requêtes plus longues (jusqu'à ~290 ms) sont surtout des préchargements en arrière-plan ou des premiers appels après une période d'inactivité. Les pages déjà visitées sont gardées 30 secondes dans le navigateur pour un retour instantané. Chaque clic produit un effet visible immédiat (bouton qui passe en « Suppression… », indicateur « Chargement… » au changement de page). Objectifs : seuils « bons » des Core Web Vitals de Google sur mobile (contenu principal affiché en 2,5 s au plus, réaction à une action en 200 ms au plus, pas de décalage visuel pendant le chargement). Serveurs du site et base de données à Paris. | En place (retour visuel, serveurs à Paris) ; mesure chez les utilisateurs à faire |
 
 ## 2. Comptes et rôles
 
@@ -121,21 +121,73 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 3. Les envois se font en parallèle avec une barre de progression ; un échec sur un fichier n'interrompt pas les autres, et le récapitulatif final liste les échecs à reprendre.
 4. Les règles anti-doublons (5.2) s'appliquent exactement comme au dépôt unitaire.
 
-**Proposition de convention de nommage (À trancher)**
+**Convention de nommage — validée sur le principe le 19/10/2026** (Frédéric peut adapter son logiciel de paie pour produire les noms choisis)
 
-Les noms et prénoms ne suffisent pas à garantir l'absence de doute : homonymes, accents, noms composés, changement de nom après mariage, plusieurs gestions entre les mêmes personnes au fil des années. La proposition est donc d'attribuer à chaque gestion une **référence unique et définitive**, courte et lisible (par exemple `AG01234`), affichée dans l'espace Administration et dans l'espace de l'abonné (utile aussi pour les échanges par téléphone ou email). Le nom de fichier commencerait par cette référence :
+Les noms et prénoms ne suffisent pas à garantir l'absence de doute : homonymes, accents, noms composés, changement de nom après mariage, plusieurs gestions entre les mêmes personnes au fil des années. La proposition est donc retenue : chaque gestion a une **référence unique et définitive** (`AG00001`, `AG00002`…), attribuée automatiquement, impossible à modifier — **En place** (script `brique2f`). **Elle reste une référence d'administration** : affichée dans l'espace Administration uniquement, jamais dans l'espace de l'abonné (décision de Frédéric, 19/10). Le nom de fichier commence par cette référence :
 
-`AG01234_BPG_2605.pdf` → gestion AG01234, bulletin de paie, mai 2026.
+`AG00123_BPG_2605.pdf` → gestion AG00123, bulletin de paie, mai 2026.
 
 Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre éventuel (noms, mentions) étant ignoré pour le rangement. Codes types : ceux du tableau 5.1.
 
 **Questions ouvertes pour Frédéric**
 
-- Le logiciel de paie peut-il produire des noms de fichiers contenant une telle référence (saisie une fois par salarié/employeur dans le logiciel) ?
+- ~~Le logiciel de paie peut-il produire ces noms ?~~ Oui (Frédéric, 19/10). Il faudra y reporter la référence de chaque gestion : l'admin proposera une liste exportable des références.
 - Validation des codes proposés pour les types qui n'en ont pas encore (CTRA, AV, LIC, RUPT, LET).
 - Pour la reprise des PDF existants (brique 13), qui n'ont pas de référence : rapprochement par noms, avec la même règle (aucun rangement en cas de doute, liste des cas ambigus à valider à la main).
 
-## 6. Historique de ce document
+## 6. Déclaration mensuelle et version mobile
 
+### 6.1 Déclaration du mois par l'abonné
+
+| Règle | Statut |
+|---|---|
+| Pour chaque gestion en cours, l'abonné déclare un mois (mois en cours ou les deux précédents ; par défaut, le mois précédent jusqu'au 10, puis le mois en cours) : heures travaillées (facultatif) et commentaire libre (absences, congés, heures en plus…). | En place (19/10) |
+| L'envoi signale au back-office que le bulletin peut être établi. Le bouton le dit explicitement : « Envoyer : le bulletin peut être établi ». | En place |
+| L'abonné peut corriger sa déclaration tant que le bulletin n'est pas en ligne ; ensuite elle est verrouillée. | En place |
+| Dépôt du bulletin du mois par l'admin → la déclaration passe automatiquement à « traitée » et l'abonné voit « Bulletin de … établi ». | En place |
+| Impossible de déclarer un mois dont le bulletin est déjà en ligne, ou pour une gestion terminée. | En place |
+| Tableau de bord : pour chaque gestion en cours, l'état du mois (« Déclarer octobre 2026 » / « déclaration envoyée » / « bulletin établi »). | En place |
+| Espace admin : liste « Déclarations à traiter », de la plus ancienne à la plus récente, avec lien vers la fiche du compte ; détail des déclarations dans chaque gestion. | En place |
+| Contenu complet de la déclaration (heures majorées, absences, congés, frais…) — à définir avec Frédéric. | À trancher (brique 7) |
+| Email à l'administrateur à chaque nouvelle déclaration ; email à l'abonné à chaque bulletin mis en ligne. | À faire |
+
+### 6.2 Version mobile
+
+| Règle | Statut |
+|---|---|
+| Un seul site pour l'ordinateur et le téléphone : mêmes comptes, mêmes données, en temps réel. | En place |
+| Installable sur l'écran d'accueil (Android : menu du navigateur « Installer l'application » ; iPhone : Partager → « Sur l'écran d'accueil »), ouverture plein écran sur le tableau de bord. | En place (19/10) |
+| Menu adapté au téléphone (bouton « Menu », grands liens faciles à toucher). | En place |
+| Formulaires pensés pour le doigt : grands champs, clavier numérique pour les heures, bouton pleine largeur. | En place (déclaration) ; à généraliser |
+| Notifications sur le téléphone, fonctionnement hors connexion. | À faire (brique 9) — l'email reste le canal fiable (réserve iPhone, décision 1) |
+
+## 7. Hébergement et localisation des données
+
+| Règle | Statut |
+|---|---|
+| Héberger autant que possible en France, à Paris, pour des raisons pratiques et légales. | Règle permanente |
+| Base de données et fichiers PDF : Supabase, région Paris (`eu-west-3`, centre de données AWS en Île-de-France). | En place |
+| Serveurs du site : Vercel, région Paris (`cdg1`). | En place (19/10) |
+| Emails : Brevo (société française). | En place |
+| Opérateur d'hébergement : rester sur Supabase + Vercel, à Paris (analyse dans `Hebergement_operateur_francais_analyse.md`). | Décidé (Frédéric, 19/10/2026) |
+| Les échanges avec les API Urssaf (Cesu, Pajemploi) partent du serveur du site à Paris, sont journalisés, et leurs identifiants d'accès restent des secrets serveur. | À faire (brique 0bis) |
+
+## 8. Référencement (moteurs de recherche et réponses générées par IA)
+
+**Objectif (Frédéric, 19/10/2026)** : que le site ressorte, et soit cité, quand un particulier employeur pose une question sur l'emploi d'un salarié à domicile — dans les résultats classiques comme dans les réponses rédigées par l'IA de Google ou par les assistants conversationnels. C'est une exigence de construction, pas une finition.
+
+| Règle | Statut |
+|---|---|
+| Pages publiques « Conseils » qui répondent directement aux questions fréquentes (déclarer une garde d'enfants ou une aide à domicile, Cesu / Pajemploi, coût réel et crédit d'impôt, contrat, congés payés, rupture conventionnelle, licenciement, fin de contrat…) : réponse claire en tête de page, puis détail, date de mise à jour, auteur identifié, renvois vers les sources officielles. | À faire (brique 10, priorité relevée) |
+| Le simulateur de coûts est la page de référence sur la question du coût. | À faire (brique 11) |
+| Pages rapides et rendues côté serveur (le texte est lisible par les robots sans exécuter de JavaScript), adresses propres et stables, titres et descriptions travaillés, données structurées (organisation, service, FAQ, article), plan du site `sitemap.xml`. | Socle technique en place ; à appliquer à chaque page publique |
+| Robots des moteurs et des IA autorisés sur les pages publiques, interdits sur les espaces privés (administration, tableau de bord, compte, documents). | Prêt (s'active avec l'indexation) |
+| **Site de test non indexé** : tant que le site est sur son adresse provisoire, aucune page ne doit apparaître dans les moteurs (concurrence avec le vrai site, pages inachevées). L'indexation s'ouvre uniquement sur le domaine définitif (`NEXT_PUBLIC_INDEXATION=oui` dans Vercel). | En place (19/10) |
+| Google Search Console et fiche Google Business Profile dès la bascule du domaine. | À faire |
+
+## 9. Historique de ce document
+
+- 19/10/2026 — Déclaration mensuelle de l'abonné (première version) et socle mobile (PWA).
+- 19/10/2026 — Fluidité (objectifs chiffrés), hébergement à Paris, référencement moteurs + IA, convention de nommage validée et référence de gestion en place.
 - 19/10/2026 — Liste complète des types de documents et codes de fichiers ; règle de réactivité.
 - 19/10/2026 — Création. Intègre les retours de recette de Frédéric : curseur main, mentions avant les listes, ordre type/période/lien, tri des documents côté abonné, préremplissage depuis le nom de fichier, noms lisibles dans le stockage, objectif et exigences du dépôt en masse, règle « un seul bulletin par mois ».

@@ -168,3 +168,63 @@ export function trierDocuments<T extends DocumentRow>(docs: T[], tri: TriDocumen
       return copie.sort(recent);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Déclarations mensuelles (brique 7a, voir supabase/brique7a_...sql)
+// ---------------------------------------------------------------------------
+
+export interface Declaration {
+  id: string;
+  gestion_id: string;
+  periode: string; // AAMM
+  heures: number | null;
+  commentaire: string;
+  statut: "envoyee" | "traitee";
+  envoyee_le: string;
+  traitee_le: string | null;
+}
+
+const MOIS = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+
+/** "2610" → "octobre 2026" */
+export function libelleMois(aamm: string): string {
+  const mois = Number(aamm.slice(2, 4));
+  return `${MOIS[mois - 1] ?? "?"} 20${aamm.slice(0, 2)}`;
+}
+
+function aamm(date: Date): string {
+  return `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Mois proposés à la déclaration : le mois en cours et les deux précédents.
+ * Mois sélectionné par défaut : le mois précédent jusqu'au 10 (période
+ * habituelle de déclaration du mois écoulé), le mois en cours ensuite.
+ */
+export function periodesDeclarables(aujourdhui = new Date()): {
+  options: { valeur: string; libelle: string }[];
+  parDefaut: string;
+} {
+  const options = [0, 1, 2].map((decalage) => {
+    const d = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - decalage, 1);
+    const valeur = aamm(d);
+    return { valeur, libelle: libelleMois(valeur) };
+  });
+  const parDefaut = aujourdhui.getDate() <= 10 ? options[1].valeur : options[0].valeur;
+  return { options, parDefaut };
+}
+
+/** "151,5" ou "151.5" → 151.5 ; vide → null ; invalide → NaN */
+export function lireHeures(texte: string): number | null {
+  const t = texte.trim().replace(",", ".");
+  if (!t) return null;
+  return /^\d{1,3}(\.\d{1,2})?$/.test(t) ? Number(t) : Number.NaN;
+}
+
+export function formatHeures(h: number | null): string {
+  if (h === null || h === undefined) return "—";
+  return `${String(Number(h)).replace(".", ",")} h`;
+}

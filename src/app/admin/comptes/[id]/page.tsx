@@ -8,10 +8,13 @@ import {
   TYPES_GESTION,
   formatDate,
   formatEuros,
+  formatHeures,
   isUuid,
+  libelleMois,
   nomSalarie,
   trierDocuments,
   type Abonnement,
+  type Declaration,
   type DocumentRow,
   type Gestion,
 } from "@/lib/data";
@@ -69,7 +72,7 @@ export default async function FicheComptePage({
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
-  const [compteRes, abosRes, gestionsRes, docsRes] = await Promise.all([
+  const [compteRes, abosRes, gestionsRes, docsRes, declsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -92,7 +95,13 @@ export default async function FicheComptePage({
       .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
       .eq("employeur_id", id)
       .order("periode", { ascending: false, nullsFirst: false }),
+    supabase
+      .from("declarations_mensuelles")
+      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le")
+      .eq("employeur_id", id)
+      .order("periode", { ascending: false }),
   ]);
+  const declarations = (declsRes.data ?? []) as Declaration[];
 
   const compte = compteRes.data;
   if (!compte) notFound();
@@ -363,6 +372,33 @@ Supprimer définitivement
                         </details>
                       </div>
                     </div>
+
+                    {/* Déclarations mensuelles envoyées par l'abonné */}
+                    {declarations.some((d) => d.gestion_id === g.id) && (
+                      <details className="mt-3" open={declarations.some((d) => d.gestion_id === g.id && d.statut === "envoyee")}>
+                        <summary className="text-sm text-brand-violet">
+                          Déclarations de l&apos;abonné (
+                          {declarations.filter((d) => d.gestion_id === g.id && d.statut === "envoyee").length}{" "}
+                          à traiter)
+                        </summary>
+                        <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
+                          {declarations
+                            .filter((d) => d.gestion_id === g.id)
+                            .map((d) => (
+                              <li key={d.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2">
+                                <span className="w-32 shrink-0">{libelleMois(d.periode)}</span>
+                                <span className="w-20 shrink-0 tabular-nums">{formatHeures(d.heures)}</span>
+                                <span className="min-w-0 flex-1 text-foreground/70">{d.commentaire || "—"}</span>
+                                <span className={`shrink-0 text-xs ${d.statut === "envoyee" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
+                                  {d.statut === "envoyee"
+                                    ? `à traiter (envoyée le ${formatDate(d.envoyee_le)})`
+                                    : `traitée le ${formatDate(d.traitee_le)}`}
+                                </span>
+                              </li>
+                            ))}
+                        </ul>
+                      </details>
+                    )}
 
                     {/* Documents de la gestion */}
                     <details className="mt-3">

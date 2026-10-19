@@ -2,13 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { InfosDocument } from "@/components/TitreDocument";
 import { requireUser } from "@/lib/auth";
+import { DeclarationMois } from "./DeclarationMois";
 import {
   LIBELLES_TRI,
   TYPES_GESTION,
   formatDate,
   isUuid,
   nomSalarie,
+  periodesDeclarables,
   trierDocuments,
+  type Declaration,
   type DocumentRow,
   type Gestion,
   type TriDocuments,
@@ -49,10 +52,19 @@ export default async function DetailGestionPage({
 
   if (!gestion) notFound();
 
-  const { data: docs } = await supabase
-    .from("documents")
-    .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
-    .eq("gestion_id", id);
+  const [{ data: docs }, { data: decls }] = await Promise.all([
+    supabase
+      .from("documents")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
+      .eq("gestion_id", id),
+    supabase
+      .from("declarations_mensuelles")
+      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le")
+      .eq("gestion_id", id)
+      .eq("employeur_id", user.id),
+  ]);
+  const declarations = (decls ?? []) as Declaration[];
+  const { options, parDefaut } = periodesDeclarables();
 
   const documents = trierDocuments((docs ?? []) as DocumentRow[], tri);
 
@@ -67,12 +79,20 @@ export default async function DetailGestionPage({
           {nomSalarie(gestion)}
         </h1>
         <p className="mt-2 text-sm text-foreground/70">
-          Référence <span className="font-mono">{gestion.reference}</span> ·{" "}
           {TYPES_GESTION[gestion.type_gestion]} ·{" "}
           {gestion.statut === "en_cours"
             ? `en cours depuis le ${formatDate(gestion.date_debut)}`
             : `terminée (du ${formatDate(gestion.date_debut)} au ${formatDate(gestion.date_fin)})`}
         </p>
+
+        {gestion.statut === "en_cours" && (
+          <DeclarationMois
+            gestionId={gestion.id}
+            options={options}
+            parDefaut={parDefaut}
+            declarations={declarations}
+          />
+        )}
 
         <h2 className="mt-8 font-bold text-brand-teal">
           Documents ({documents.length})

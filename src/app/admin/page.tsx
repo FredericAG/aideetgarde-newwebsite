@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { formatDate } from "@/lib/data";
+import { formatDate, formatHeures, libelleMois } from "@/lib/data";
+
+interface DeclarationATraiter {
+  id: string;
+  periode: string;
+  heures: number | null;
+  commentaire: string;
+  envoyee_le: string;
+  employeur_id: string;
+  gestion: { reference: string; prenom_salarie: string; nom_salarie: string } | null;
+  employeur: { prenom: string; nom: string } | null;
+}
 
 interface CompteRow {
   id: string;
@@ -19,7 +30,7 @@ interface CompteRow {
 export default async function AdminPage() {
   const { supabase } = await requireAdmin("/admin");
 
-  const [comptesRes, abosRes, gestionsRes] = await Promise.all([
+  const [comptesRes, abosRes, gestionsRes, declsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, role, prenom, nom, created_at")
@@ -29,7 +40,19 @@ export default async function AdminPage() {
       .select("employeur_id, quota_gestions")
       .eq("statut", "actif"),
     supabase.from("gestions").select("employeur_id").eq("statut", "en_cours"),
+    // Déclarations envoyées par les abonnés, en attente de bulletin
+    // (la plus ancienne en premier : c'est elle qui attend depuis le plus
+    // longtemps).
+    supabase
+      .from("declarations_mensuelles")
+      .select(
+        "id, periode, heures, commentaire, envoyee_le, employeur_id, gestion:gestions(reference, prenom_salarie, nom_salarie), employeur:profiles(prenom, nom)",
+      )
+      .eq("statut", "envoyee")
+      .order("envoyee_le", { ascending: true })
+      .limit(200),
   ]);
+  const aTraiter = (declsRes.data ?? []) as unknown as DeclarationATraiter[];
 
   const comptes = (comptesRes.data ?? []) as CompteRow[];
   const quotaParCompte = new Map(
@@ -47,7 +70,7 @@ export default async function AdminPage() {
     <div className="flex flex-1 justify-center px-6 py-12">
       <div className="w-full max-w-4xl">
         <h1 className="font-display font-black text-2xl text-brand-teal">
-          Administration — comptes
+          Administration
         </h1>
         <p className="mt-2 text-sm text-foreground/70">
           {comptes.length} compte(s). Cliquez sur un compte pour gérer son
@@ -61,7 +84,49 @@ export default async function AdminPage() {
           </p>
         )}
 
-        <div className="mt-6 overflow-x-auto rounded-lg border border-brand-gray/20">
+        <section className="mt-8">
+          <h2 className="font-bold text-brand-violet">
+            Déclarations à traiter ({aTraiter.length})
+          </h2>
+          <p className="mt-1 text-xs text-foreground/60">
+            Envoyées par les abonnés, en attente du bulletin. Une déclaration
+            disparaît d&apos;elle-même de cette liste dès que le bulletin du
+            mois est déposé pour la gestion concernée.
+          </p>
+          {aTraiter.length === 0 ? (
+            <p className="mt-3 text-sm text-foreground/70">Rien en attente.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-violet/30">
+              {aTraiter.map((d) => (
+                <li key={d.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-4">
+                  <span className="w-20 shrink-0 font-mono text-xs text-foreground/60">
+                    {d.gestion?.reference}
+                  </span>
+                  <span className="flex-1">
+                    <Link
+                      href={`/admin/comptes/${d.employeur_id}`}
+                      className="font-medium text-brand-teal underline"
+                    >
+                      {`${d.employeur?.prenom ?? ""} ${d.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
+                    </Link>
+                    {" → "}
+                    {`${d.gestion?.prenom_salarie ?? ""} ${d.gestion?.nom_salarie ?? ""}`.trim()}
+                    <span className="block text-foreground/70">
+                      {libelleMois(d.periode)} · {formatHeures(d.heures)}
+                      {d.commentaire ? ` · « ${d.commentaire} »` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-foreground/60">
+                    envoyée le {formatDate(d.envoyee_le)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <h2 className="mt-10 font-bold text-brand-teal">Comptes</h2>
+        <div className="mt-3 overflow-x-auto rounded-lg border border-brand-gray/20">
           <table className="w-full text-left text-sm">
             <thead className="bg-brand-sky-tint/30 text-brand-black">
               <tr>

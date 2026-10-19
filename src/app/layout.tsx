@@ -1,9 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { corporative, stevieSans } from "@/fonts";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  // Couleur de la barre du navigateur / de l'application installée.
+  themeColor: "#376873",
+};
+
 export const metadata: Metadata = {
+  // Une fois installé sur l'écran d'accueil d'un iPhone, le site s'ouvre
+  // en plein écran avec ce nom sous l'icône.
+  appleWebApp: { capable: true, title: "Aide & Garde", statusBarStyle: "default" },
   title: "Aide & Garde",
   description:
     "Aide & Garde — mandataire en emploi direct : garde d'enfants, auxiliaires de vie, employés de maison.",

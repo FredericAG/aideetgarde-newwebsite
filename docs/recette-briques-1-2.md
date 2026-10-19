@@ -81,3 +81,21 @@ Préparation côté admin (fiche du compte `client-test` dans `/admin`) :
 | Accès aux coordonnées des membres (mise en relation) | Absent | Briques de mise en relation |
 | Documents : dépôt **en masse** avec rattachement automatique par nom de fichier | Dépôt fichier par fichier (brique 2c) | Brique 4 ; reprise des PDF existants en brique 13 |
 | Espace « salarié / intervenant » qui voit les gestions où il est intervenant | Absent | Décisions 2 et 13 |
+
+## Briques 7a et 9 (socle) — Déclaration du mois et téléphone
+
+Préparation : exécuter `supabase/brique7a_declarations_mensuelles.sql`. Tester avec le compte client **sur un téléphone** (adresse du site de test) et le compte admin sur l'ordinateur.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 7.1 | Téléphone : se connecter, ouvrir le menu « Menu ☰ » | Liens Tableau de bord / Mon compte / Se déconnecter, faciles à toucher ; le menu se referme après un choix | |
+| 7.2 | Téléphone : installer le site sur l'écran d'accueil (Android : « Installer l'application » ; iPhone : Partager → « Sur l'écran d'accueil ») | Icône Aide & Garde ; ouverture plein écran sur le tableau de bord | |
+| 7.3 | Tableau de bord : une gestion en cours sans déclaration | Bouton « Déclarer [mois] » | |
+| 7.4 | Ouvrir la gestion, saisir 151,67 h et un commentaire, envoyer | Message « Déclaration … envoyée » ; le tableau de bord affiche « déclaration envoyée » | |
+| 7.5 | Admin (ordinateur) : ouvrir Administration | La déclaration apparaît dans « Déclarations à traiter » avec heures et commentaire | |
+| 7.6 | Client : corriger la déclaration (ex. 160 h) | « mise à jour » ; l'admin voit la nouvelle valeur | |
+| 7.7 | Saisir des heures invalides (ex. « abc ») | Refus avec message | |
+| 7.8 | Admin : déposer le bulletin de ce mois pour cette gestion | La déclaration disparaît de « à traiter » ; côté client : « Bulletin de … établi », formulaire verrouillé | |
+| 7.9 | Client : tenter de déclarer un mois dont le bulletin est déjà en ligne | Refus : « Le bulletin de ce mois est déjà en ligne… » | |
+| 7.10 | Téléphone : télécharger un bulletin | Le PDF s'ouvre ou se télécharge correctement | |
+| 7.11 | Déclarer depuis le téléphone, vérifier immédiatement sur l'ordinateur (et inversement) | Même information des deux côtés | |
