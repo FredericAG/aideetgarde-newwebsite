@@ -57,10 +57,16 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
   const clePublique = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   useEffect(() => {
-    // L'abonné consulte son espace : on retire la pastille de l'icône.
+    // L'abonné consulte son espace : on retire la pastille de l'icône et on
+    // remet à zéro son compteur (tenu par le service worker, public/sw.js).
     if ("clearAppBadge" in navigator) {
       (navigator as Navigator & { clearAppBadge: () => Promise<void> })
         .clearAppBadge()
+        .catch(() => {});
+    }
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready
+        .then((r) => r.active?.postMessage("effacer-pastille"))
         .catch(() => {});
     }
     (async () => {
