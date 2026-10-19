@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InfosDocument } from "@/components/TitreDocument";
 import { DepotDocument } from "./DepotDocument";
+import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
@@ -66,16 +67,16 @@ export default async function FicheComptePage({
 
   const { supabase } = await requireAdmin(`/admin/comptes/${id}`);
 
-  const { data: compte } = await supabase
-    .from("profiles")
-    .select(
-      "id, email, role, prenom, nom, telephone, adresse, code_postal, ville, created_at",
-    )
-    .eq("id", id)
-    .maybeSingle<CompteRow>();
-  if (!compte) notFound();
-
-  const [abosRes, gestionsRes, docsRes] = await Promise.all([
+  // Toutes les lectures partent en même temps (un seul aller-retour réseau
+  // au lieu de deux à la suite).
+  const [compteRes, abosRes, gestionsRes, docsRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "id, email, role, prenom, nom, telephone, adresse, code_postal, ville, created_at",
+      )
+      .eq("id", id)
+      .maybeSingle<CompteRow>(),
     supabase
       .from("abonnements")
       .select("*")
@@ -92,6 +93,9 @@ export default async function FicheComptePage({
       .eq("employeur_id", id)
       .order("periode", { ascending: false, nullsFirst: false }),
   ]);
+
+  const compte = compteRes.data;
+  if (!compte) notFound();
 
   const abonnements = (abosRes.data ?? []) as Abonnement[];
   const gestions = (gestionsRes.data ?? []) as Gestion[];
@@ -174,9 +178,9 @@ export default async function FicheComptePage({
                     className={`${inputClass} w-28`}
                   />
                 </label>
-                <button type="submit" className={btnLightClass}>
-                  Enregistrer
-                </button>
+                <BoutonEnvoi className={btnLightClass} enCours="Enregistrement…">
+Enregistrer
+</BoutonEnvoi>
               </form>
 
               <details className="mt-4">
@@ -190,9 +194,9 @@ export default async function FicheComptePage({
                     Motif (facultatif)
                     <input type="text" name="motif_fin" className={`${inputClass} w-72`} />
                   </label>
-                  <button type="submit" className={btnDangerClass}>
-                    Confirmer la résiliation
-                  </button>
+                  <BoutonEnvoi className={btnDangerClass} enCours="Résiliation…">
+Confirmer la résiliation
+</BoutonEnvoi>
                 </form>
                 <p className="mt-2 text-xs text-foreground/60">
                   Résilier n&apos;arrête pas les gestions en cours : ce sont
@@ -236,9 +240,9 @@ export default async function FicheComptePage({
                     className={inputClass}
                   />
                 </label>
-                <button type="submit" className={btnClass}>
-                  Créer l&apos;abonnement
-                </button>
+                <BoutonEnvoi className={btnClass} enCours="Création…">
+Créer l&apos;abonnement
+</BoutonEnvoi>
               </form>
             </>
           )}
@@ -289,9 +293,9 @@ export default async function FicheComptePage({
                 Début
                 <input type="date" name="date_debut" defaultValue={today} className={inputClass} />
               </label>
-              <button type="submit" className={btnClass}>
-                Ajouter la gestion
-              </button>
+              <BoutonEnvoi className={btnClass} enCours="Création…">
+Ajouter la gestion
+</BoutonEnvoi>
             </form>
           )}
           {!actif && (
@@ -314,6 +318,9 @@ export default async function FicheComptePage({
                   <li key={g.id} className="rounded-lg border border-brand-gray/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="text-sm">
+                        <span className="mr-2 rounded bg-brand-sky-tint/40 px-1.5 py-0.5 font-mono text-xs text-brand-black">
+                          {g.reference}
+                        </span>
                         <span className="font-medium">{nomSalarie(g)}</span>
                         <span className="ml-2 text-foreground/60">
                           {TYPES_GESTION[g.type_gestion]} ·{" "}
@@ -329,17 +336,17 @@ export default async function FicheComptePage({
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
                             <input type="date" name="date_fin" defaultValue={today} className={inputClass} />
-                            <button type="submit" className={btnLightClass}>
-                              Terminer la gestion
-                            </button>
+                            <BoutonEnvoi className={btnLightClass} enCours="Enregistrement…">
+Terminer la gestion
+</BoutonEnvoi>
                           </form>
                         ) : (
                           <form action={rouvrirGestion}>
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
-                            <button type="submit" className={btnLightClass}>
-                              Rouvrir
-                            </button>
+                            <BoutonEnvoi className={btnLightClass} enCours="Enregistrement…">
+Rouvrir
+</BoutonEnvoi>
                           </form>
                         )}
                         <details>
@@ -349,9 +356,9 @@ export default async function FicheComptePage({
                           <form action={supprimerGestion} className="mt-2">
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
-                            <button type="submit" className={btnDangerClass}>
-                              Supprimer définitivement
-                            </button>
+                            <BoutonEnvoi className={btnDangerClass} enCours="Suppression…">
+Supprimer définitivement
+</BoutonEnvoi>
                           </form>
                         </details>
                       </div>
@@ -369,9 +376,9 @@ export default async function FicheComptePage({
                             <form action={supprimerDocument}>
                               <input type="hidden" name="compte_id" value={id} />
                               <input type="hidden" name="document_id" value={d.id} />
-                              <button type="submit" className="text-xs text-red-700 underline">
-                                Supprimer
-                              </button>
+                              <BoutonEnvoi className="text-xs text-red-700 underline" enCours="Suppression…">
+Supprimer
+</BoutonEnvoi>
                             </form>
                           </li>
                         ))}

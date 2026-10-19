@@ -1,4 +1,4 @@
-import { TYPES_DOCUMENT, formatPeriode, type TypeDocument } from "@/lib/data";
+import { CODES_TYPES, TYPES_DOCUMENT, formatPeriode, type TypeDocument } from "@/lib/data";
 
 /**
  * Outils autour des noms de fichiers des documents.
@@ -31,13 +31,28 @@ export function analyserNomFichier(nom: string): AnalyseNomFichier {
     if (anneeMois) periode = `${anneeMois[1].slice(2)}${anneeMois[2]}`;
   }
 
-  // Type : codes repérables même collés à un nom ("BOBOLABPG225").
+  // Type. D'abord les codes repérables même collés à un nom
+  // ("BOBOLABPG225"), puis les codes isolés ("DUPONT CT 01-2024"), puis
+  // les mots en toutes lettres.
   let type: TypeDocument | null = null;
-  if (/BPG|BULLETIN/.test(base)) type = "bulletin";
-  else if (/STC|SOLDE/.test(base)) type = "solde_tout_compte";
-  else if (/AVENANT|(?:^|[^A-Z])AV(?:[^A-Z]|$)/.test(base)) type = "avenant";
-  else if (/CONTRAT|(?:^|[^A-Z])CT(?:[^A-Z]|$)/.test(base)) type = "contrat";
-  else if (/ATTESTATION|(?:^|[^A-Z])ATT(?:[^A-Z]|$)/.test(base)) type = "attestation";
+  const mots = base.split(/[^A-Z0-9]+/).filter(Boolean);
+  if (base.includes("BPG")) type = "bulletin";
+  else if (base.includes("ATTHON")) type = "attestation_honneur";
+  else if (base.includes("STC")) type = "solde_tout_compte";
+  else {
+    const code = mots.find((m) => m in CODES_TYPES);
+    if (code) type = CODES_TYPES[code];
+    else if (/BULLETIN/.test(base)) type = "bulletin";
+    else if (/SOLDE/.test(base)) type = "solde_tout_compte";
+    else if (/CERTIFICAT/.test(base)) type = "certificat_travail";
+    else if (/FRANCE ?TRAVAIL|POLE ?EMPLOI/.test(base)) type = "attestation_france_travail";
+    else if (/HONNEUR/.test(base)) type = "attestation_honneur";
+    else if (/AVENANT/.test(base)) type = "avenant";
+    else if (/CONTRAT/.test(base)) type = "contrat";
+    else if (/LICENCIEMENT/.test(base)) type = "licenciement";
+    else if (/RUPTURE/.test(base)) type = "rupture_conventionnelle";
+    else if (/ATTESTATION/.test(base)) type = "attestation";
+  }
 
   return { type, periode };
 }

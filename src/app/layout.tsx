@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "Aide & Garde",
   description:
     "Aide & Garde — mandataire en emploi direct : garde d'enfants, auxiliaires de vie, employés de maison.",
+  // Site de test : aucune page ne doit apparaître dans les moteurs de
+  // recherche tant que NEXT_PUBLIC_INDEXATION ne vaut pas "oui" (voir
+  // src/app/robots.ts).
+  robots:
+    process.env.NEXT_PUBLIC_INDEXATION === "oui"
+      ? undefined
+      : { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

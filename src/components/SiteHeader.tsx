@@ -1,35 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
-import { getUserProfile } from "@/lib/user-profile";
+import { getSessionCourante } from "@/lib/auth";
 
-/**
- * En-tête commun à toutes les pages. `getUser()` revalide le jeton auprès
- * de Supabase — un peu plus coûteux qu'une simple lecture de cookie, mais
- * reste raisonnable ici (Next.js dé-duplique les appels identiques dans une
- * même requête) et évite d'afficher "Se connecter" à quelqu'un dont la
- * session vient d'expirer.
- */
+/** En-tête commun à toutes les pages. */
 export async function SiteHeader() {
-  // Avant que le projet Supabase soit configuré (voir .env.example), on
-  // affiche simplement la navigation "déconnecté" plutôt que de planter
-  // chaque page du site.
-  let user = null;
-  let isAdmin = false;
-  if (isSupabaseConfigured()) {
-    const supabase = await createClient();
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
-    user = currentUser;
-    if (user) {
-      // Sert uniquement à afficher (ou non) le lien "Administration" ;
-      // l'accès réel est contrôlé par chaque page /admin et par la base.
-      const profile = await getUserProfile(supabase, user.id).catch(() => null);
-      isAdmin = profile?.role === "admin";
-    }
-  }
+  // Identité partagée avec la page (un seul appel par affichage, voir
+  // src/lib/auth.ts). Avant que Supabase soit configuré, user vaut null et
+  // l'en-tête affiche simplement la navigation "déconnecté".
+  const { user, profile } = await getSessionCourante();
+  const isAdmin = profile?.role === "admin";
 
   return (
     <header className="border-b border-brand-gray/15">

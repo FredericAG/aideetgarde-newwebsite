@@ -1,27 +1,52 @@
+import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getUserProfile, type UserProfile } from "@/lib/user-profile";
 
 /**
- * Garde-fous côté serveur, à appeler en tête de chaque page protégée.
- * Le Proxy (src/proxy.ts) filtre déjà les requêtes sans session, mais on
- * revérifie ici avec `getUser()` : c'est cette vérification, au plus près
- * des données, qui fait foi. Et même si elle avait un défaut, la base de
- * données (RLS, voir supabase/brique2.sql) refuserait quand même de livrer
- * des données qui ne sont pas au bon utilisateur.
+ * Identité de la personne connectée, calculée UNE SEULE FOIS par affichage
+ * de page (grâce à `cache` de React), puis partagée entre l'en-tête du site
+ * et la page elle-même. Avant, chacun la redemandait à Supabase de son côté.
+ *
+ * `getClaims()` vérifie la signature du jeton de session localement (clés
+ * publiques Supabase mises en cache) au lieu d'interroger le serveur
+ * d'authentification à chaque fois comme `getUser()` : c'est un aller-retour
+ * réseau de moins par page, recommandé par Supabase. La sécurité reste
+ * assurée : un jeton falsifié est rejeté, et la base (RLS) revérifie le
+ * jeton à chaque lecture de données.
  */
-export async function requireUser(nextPath: string) {
+export const getSessionCourante = cache(async () => {
   if (!isSupabaseConfigured()) {
-    redirect(`/connexion?next=${encodeURIComponent(nextPath)}`);
+    return { supabase: null, user: null, profile: null } as const;
   }
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) {
+    return { supabase, user: null, profile: null } as const;
+  }
+  const user = {
+    id: claims.sub as string,
+    email: (claims.email as string | undefined) ?? null,
+  };
+  const profile = await getUserProfile(supabase, user.id).catch(() => null);
+  return { supabase, user, profile };
+});
+
+/**
+ * Garde-fou côté serveur, à appeler en tête de chaque page protégée.
+ * Le Proxy (src/proxy.ts) filtre déjà les requêtes sans session ; la base
+ * de données (RLS) constitue la dernière barrière.
+ */
+export async function requireUser(nextPath: string): Promise<{
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  user: { id: string; email: string | null };
+  profile: UserProfile | null;
+}> {
+  const { supabase, user, profile } = await getSessionCourante();
+  if (!supabase || !user) {
     redirect(`/connexion?next=${encodeURIComponent(nextPath)}`);
   }
-  const profile = await getUserProfile(supabase, user.id);
   return { supabase, user, profile };
 }
 

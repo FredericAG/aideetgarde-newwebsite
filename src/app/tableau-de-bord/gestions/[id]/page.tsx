@@ -67,6 +67,7 @@ export default async function DetailGestionPage({
           {nomSalarie(gestion)}
         </h1>
         <p className="mt-2 text-sm text-foreground/70">
+          Référence <span className="font-mono">{gestion.reference}</span> ·{" "}
           {TYPES_GESTION[gestion.type_gestion]} ·{" "}
           {gestion.statut === "en_cours"
             ? `en cours depuis le ${formatDate(gestion.date_debut)}`

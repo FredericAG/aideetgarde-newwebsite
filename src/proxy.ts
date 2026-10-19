@@ -10,10 +10,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * matcher couvre donc quasiment toutes les routes, pas seulement les pages
  * d'authentification.
  *
- * `supabase.auth.getUser()` (jamais `getSession()`) revérifie le jeton
- * auprès du serveur Supabase à chaque appel : c'est ce qui rend ce contrôle
- * fiable pour protéger une route, contrairement à une simple lecture locale
- * du cookie.
+ * La vérification du jeton se fait avec `getClaims()` (signature vérifiée
+ * localement) ; les pages refont leur propre contrôle (src/lib/auth.ts) et
+ * la base de données revérifie le jeton à chaque lecture (RLS).
  */
 export async function proxy(request: NextRequest) {
   // Tant que le projet Supabase n'est pas configuré (variables d'env
@@ -55,9 +54,13 @@ export async function proxy(request: NextRequest) {
   // Ne rien exécuter entre createServerClient et getUser() : c'est la
   // recommandation officielle Supabase, pour éviter des déconnexions
   // aléatoires difficiles à diagnostiquer.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  //
+  // getClaims() vérifie le jeton localement (clés publiques mises en cache)
+  // et rafraîchit la session si besoin, sans interroger le serveur
+  // d'authentification à chaque requête comme le faisait getUser() : c'est
+  // la méthode recommandée par Supabase, et un aller-retour réseau de moins.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   // Espaces réservés aux personnes connectées. Pour /admin, le Proxy ne

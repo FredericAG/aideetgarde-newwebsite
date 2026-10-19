@@ -8,7 +8,14 @@ export type TypeDocument =
   | "bulletin"
   | "contrat"
   | "avenant"
+  | "certificat_travail"
   | "solde_tout_compte"
+  | "attestation_france_travail"
+  | "attestation_salaire"
+  | "attestation_honneur"
+  | "licenciement"
+  | "rupture_conventionnelle"
+  | "courrier"
   | "attestation"
   | "autre";
 
@@ -27,6 +34,7 @@ export interface Gestion {
   id: string;
   employeur_id: string;
   abonnement_id: string;
+  reference: string;
   type_gestion: TypeGestion;
   prenom_salarie: string;
   nom_salarie: string;
@@ -57,13 +65,45 @@ export const TYPES_GESTION: Record<TypeGestion, string> = {
   employe_maison: "Employé de maison",
 };
 
+/**
+ * Types de documents, dans l'ordre utilisé pour le tri « Par type ».
+ * Les clés sont enregistrées en base (voir les scripts supabase/) : ne pas
+ * les renommer, seulement les libellés.
+ */
 export const TYPES_DOCUMENT: Record<TypeDocument, string> = {
   bulletin: "Bulletin de salaire",
-  contrat: "Contrat",
+  contrat: "Contrat de travail",
   avenant: "Avenant",
+  certificat_travail: "Certificat de travail",
   solde_tout_compte: "Solde de tout compte",
-  attestation: "Attestation",
+  attestation_france_travail: "Attestation France Travail",
+  attestation_salaire: "Attestation de salaire",
+  attestation_honneur: "Attestation sur l'honneur",
+  licenciement: "Courrier de licenciement",
+  rupture_conventionnelle: "Rupture conventionnelle",
+  courrier: "Courrier / lettre",
+  attestation: "Autre attestation",
   autre: "Autre",
+};
+
+/**
+ * Codes de type utilisés dans les noms de fichiers. Les six premiers sont
+ * ceux déjà employés par Frédéric ; les suivants sont des propositions à
+ * valider (dépôt en masse, brique 4).
+ */
+export const CODES_TYPES: Record<string, TypeDocument> = {
+  BPG: "bulletin",
+  STC: "solde_tout_compte",
+  CT: "certificat_travail",
+  FT: "attestation_france_travail",
+  AS: "attestation_salaire",
+  ATTHON: "attestation_honneur",
+  // Propositions, à valider :
+  CTRA: "contrat",
+  AV: "avenant",
+  LIC: "licenciement",
+  RUPT: "rupture_conventionnelle",
+  LET: "courrier",
 };
 
 /** "2026-10-15" → "15/10/2026" (sans passer par Date : pas de décalage de fuseau). */

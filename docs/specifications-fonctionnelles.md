@@ -13,6 +13,7 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 | Le pointeur de la souris devient une main sur tout élément cliquable : boutons, liens, textes d'action (« Supprimer », « Terminer la gestion »…), zone de dépôt, menus déroulants, éléments repliables. Sur un bouton désactivé, il indique que l'action est impossible. | En place (19/10) |
 | Les mentions d'aide (« Cliquez sur un document pour le télécharger… ») sont placées **avant** la liste qu'elles concernent, jamais après : avec beaucoup d'éléments, une mention en bas de liste n'est plus visible. | En place (19/10) |
 | Chaque action qui échoue affiche un message en français qui dit quoi faire, jamais un écran figé ou une erreur technique brute. | En place |
+| Réactivité : chaque clic produit un effet visible immédiat (bouton qui passe en « Suppression… », indicateur « Chargement… » au changement de page), même si le résultat prend quelques centaines de millisecondes. Les serveurs du site et la base de données sont dans la même région (Europe) pour limiter les temps de réponse. | En place (19/10) |
 
 ## 2. Comptes et rôles
 
@@ -46,7 +47,25 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 
 ### 5.1 Types de documents
 
-Bulletin de salaire, contrat, avenant, solde de tout compte, attestation, autre. **En place** (le solde de tout compte a été ajouté le 19/10). La liste pourra être complétée : la signification de tous les codes utilisés dans les noms de fichiers actuels reste à confirmer (voir 5.6).
+Liste confirmée par Frédéric le 19/10/2026. **En place** (script `brique2e_types_documents.sql`).
+
+| Type | Code dans les noms de fichiers |
+|---|---|
+| Bulletin de salaire | BPG |
+| Contrat de travail | CTRA (proposition) |
+| Avenant | AV (proposition) |
+| Certificat de travail | CT |
+| Solde de tout compte | STC |
+| Attestation France Travail | FT |
+| Attestation de salaire | AS |
+| Attestation sur l'honneur | ATTHON |
+| Courrier de licenciement | LIC (proposition) |
+| Procédure de rupture conventionnelle | RUPT (proposition) |
+| Courrier / lettre (démission, engagement d'un mineur, attestation d'emploi…) | LET (proposition) |
+| Autre attestation | — |
+| Autre | — |
+
+Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « propositions » sont à valider. Pour les courriers, le titre précise la nature de la lettre ; si certains courriers reviennent souvent et doivent être triés à part (par exemple les démissions), ils pourront devenir des types distincts.
 
 ### 5.2 Règles anti-doublons
 
@@ -108,14 +127,15 @@ Les noms et prénoms ne suffisent pas à garantir l'absence de doute : homonymes
 
 `AG01234_BPG_2605.pdf` → gestion AG01234, bulletin de paie, mai 2026.
 
-Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre éventuel (noms, mentions) étant ignoré pour le rangement. Codes types proposés : BPG = bulletin de paie, CT = contrat, AV = avenant, STC = solde de tout compte, ATT = attestation.
+Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre éventuel (noms, mentions) étant ignoré pour le rangement. Codes types : ceux du tableau 5.1.
 
 **Questions ouvertes pour Frédéric**
 
 - Le logiciel de paie peut-il produire des noms de fichiers contenant une telle référence (saisie une fois par salarié/employeur dans le logiciel) ?
-- Signification des codes déjà utilisés dans les noms actuels (BPG, CT, FT, STC…) et liste complète des types à prévoir.
+- Validation des codes proposés pour les types qui n'en ont pas encore (CTRA, AV, LIC, RUPT, LET).
 - Pour la reprise des PDF existants (brique 13), qui n'ont pas de référence : rapprochement par noms, avec la même règle (aucun rangement en cas de doute, liste des cas ambigus à valider à la main).
 
 ## 6. Historique de ce document
 
+- 19/10/2026 — Liste complète des types de documents et codes de fichiers ; règle de réactivité.
 - 19/10/2026 — Création. Intègre les retours de recette de Frédéric : curseur main, mentions avant les listes, ordre type/période/lien, tri des documents côté abonné, préremplissage depuis le nom de fichier, noms lisibles dans le stockage, objectif et exigences du dépôt en masse, règle « un seul bulletin par mois ».

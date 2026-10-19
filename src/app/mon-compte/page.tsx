@@ -1,32 +1,14 @@
-import { redirect } from "next/navigation";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { getUserProfile, type UserProfile } from "@/lib/user-profile";
+import { requireUser } from "@/lib/auth";
+import { type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
 
 /**
  * Page protégée. Le Proxy (`src/proxy.ts`) redirige déjà les requêtes sans
- * session, mais on revérifie ici avec `getUser()` (qui revalide le jeton
- * auprès de Supabase, contrairement à `getSession()`) avant d'exposer la
- * moindre donnée — même principe de double vérification que sous Firebase.
+ * session ; `requireUser` revérifie ici avant d'exposer la moindre donnée
+ * (double vérification), et la base (RLS) reste la dernière barrière.
  */
 export default async function MonComptePage() {
-  // Avant que le projet Supabase soit configuré (voir .env.example),
-  // personne ne peut être authentifié : autant rediriger proprement que
-  // planter la page.
-  if (!isSupabaseConfigured()) {
-    redirect("/connexion?next=/mon-compte");
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/connexion?next=/mon-compte");
-  }
-
-  const profile = await getUserProfile(supabase, user.id);
+  const { user, profile } = await requireUser("/mon-compte");
 
   // Ne devrait pas arriver (le profil est créé par un trigger Postgres à
   // l'inscription, voir supabase/schema.sql), mais on reste défensif plutôt

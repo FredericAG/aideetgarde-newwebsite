@@ -62,7 +62,7 @@ export default async function TableauDeBordPage() {
         </h1>
         <p className="mt-2 text-sm text-foreground/70">
           Bonjour {profile?.prenom || user.email} · inscrit le{" "}
-          {formatDate(user.created_at)}.
+          {formatDate(profile?.created_at)}.
         </p>
 
         {erreur && (
@@ -132,6 +132,9 @@ export default async function TableauDeBordPage() {
                   >
                     <span>
                       <span className="font-medium">{nomSalarie(g)}</span>
+                      <span className="ml-2 font-mono text-xs text-foreground/50">
+                        {g.reference}
+                      </span>
                       <span className="ml-2 text-foreground/60">
                         {TYPES_GESTION[g.type_gestion]}
                       </span>
