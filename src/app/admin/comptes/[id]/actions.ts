@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { BUCKET, TYPES_DOCUMENT, TYPES_GESTION, isUuid } from "@/lib/data";
+import { cheminStockage } from "@/lib/nom-fichier";
 
 /**
  * Actions serveur du back-office. Une action serveur est un point d'entrée
@@ -205,15 +206,12 @@ export async function supprimerGestion(fd: FormData) {
   retour(compteId, "ok", "Gestion, documents et fichiers associés supprimés.");
 }
 
-export interface EnregistrerDocumentInput {
+export interface MetaDocument {
   compteId: string;
   gestionId: string;
-  documentId: string;
   typeDocument: string;
   periode: string;
   titre: string;
-  storagePath: string;
-  nomFichier: string;
 }
 
 export interface ResultatAction {
@@ -221,69 +219,148 @@ export interface ResultatAction {
   message: string;
 }
 
+export interface ResultatPreparation extends ResultatAction {
+  documentId?: string;
+  chemin?: string;
+}
+
+type ClientAdmin = Awaited<ReturnType<typeof requireAdmin>>["supabase"];
+
+/** Contrôles communs aux deux temps du dépôt ; renvoie un message d'erreur ou null. */
+function controlerMeta(m: MetaDocument): string | null {
+  if (!isUuid(m.compteId) || !isUuid(m.gestionId)) return "Identifiants invalides.";
+  if (!(m.typeDocument in TYPES_DOCUMENT)) return "Type de document invalide.";
+  if (!m.titre.trim()) return "Le titre du document est obligatoire.";
+  const periode = m.periode.trim();
+  if (periode && !/^\d{2}(0[1-9]|1[0-2])$/.test(periode)) {
+    return "La période doit être au format AAMM avec un mois de 01 à 12 (ex. 2609 pour septembre 2026).";
+  }
+  if (m.typeDocument === "bulletin" && !periode) {
+    return "Un bulletin de salaire doit avoir une période (AAMM).";
+  }
+  return null;
+}
+
+/** Calcule le chemin lisible du fichier à partir des données en base. */
+async function calculerChemin(
+  supabase: ClientAdmin,
+  m: MetaDocument,
+  documentId: string,
+): Promise<string | null> {
+  const [{ data: employeur }, { data: gestion }] = await Promise.all([
+    supabase.from("profiles").select("id, nom, prenom").eq("id", m.compteId).maybeSingle(),
+    supabase
+      .from("gestions")
+      .select("id, nom_salarie, prenom_salarie")
+      .eq("id", m.gestionId)
+      .eq("employeur_id", m.compteId)
+      .maybeSingle(),
+  ]);
+  if (!employeur || !gestion) return null;
+  return cheminStockage({
+    employeur: {
+      id: employeur.id as string,
+      nom: (employeur.nom as string) ?? "",
+      prenom: (employeur.prenom as string) ?? "",
+    },
+    gestion: {
+      id: gestion.id as string,
+      nom_salarie: (gestion.nom_salarie as string) ?? "",
+      prenom_salarie: (gestion.prenom_salarie as string) ?? "",
+    },
+    documentId,
+    type: m.typeDocument,
+    periode: m.periode.trim(),
+    titre: m.titre.trim(),
+  });
+}
+
 /**
- * Deuxième temps du dépôt d'un PDF. Le navigateur de l'administrateur a
- * déjà envoyé le fichier directement à Supabase Storage (sans passer par
- * Vercel, dont les requêtes sont limitées à environ 4,5 Mo) ; on enregistre
- * ici la fiche du document. Si l'enregistrement échoue (doublon, période
- * invalide...), on supprime le fichier qui vient d'être envoyé pour ne
- * laisser aucun fichier orphelin.
+ * Premier temps du dépôt d'un PDF : vérifie les informations saisies et
+ * les doublons AVANT l'envoi du fichier (on évite d'envoyer 10 Mo pour
+ * rien), puis fournit au navigateur l'identifiant et le chemin lisible
+ * sous lequel il doit ranger le fichier.
+ */
+export async function preparerDepot(m: MetaDocument): Promise<ResultatPreparation> {
+  const erreur = controlerMeta(m);
+  if (erreur) return { ok: false, message: erreur };
+  const { supabase } = await requireAdmin(`/admin/comptes/${m.compteId}`);
+
+  const periode = m.periode.trim();
+  const { data: existants } = await supabase
+    .from("documents")
+    .select("type_document, periode, titre")
+    .eq("gestion_id", m.gestionId)
+    .eq("employeur_id", m.compteId);
+  for (const d of existants ?? []) {
+    const memePeriode = (d.periode ?? "") === periode;
+    if (m.typeDocument === "bulletin" && d.type_document === "bulletin" && memePeriode) {
+      return {
+        ok: false,
+        message:
+          "Un bulletin de salaire existe déjà pour ce mois dans cette gestion. Pour le remplacer, supprimez d'abord l'ancien, puis déposez le nouveau.",
+      };
+    }
+    if (
+      d.type_document === m.typeDocument &&
+      memePeriode &&
+      String(d.titre).trim().toLowerCase() === m.titre.trim().toLowerCase()
+    ) {
+      return {
+        ok: false,
+        message: "Ce document existe déjà pour cette gestion (même type, même période et même titre).",
+      };
+    }
+  }
+
+  const documentId = crypto.randomUUID();
+  const chemin = await calculerChemin(supabase, m, documentId);
+  if (!chemin) return { ok: false, message: "Gestion introuvable pour ce compte." };
+  return { ok: true, message: "", documentId, chemin };
+}
+
+/**
+ * Deuxième temps : le navigateur a envoyé le fichier directement à
+ * Supabase Storage (sans passer par Vercel, dont les requêtes sont
+ * limitées à environ 4,5 Mo) ; on enregistre la fiche du document. En cas
+ * d'échec, on supprime le fichier envoyé pour ne laisser aucun orphelin.
  */
 export async function enregistrerDocument(
-  input: EnregistrerDocumentInput,
+  m: MetaDocument & { documentId: string; storagePath: string; nomFichier: string },
 ): Promise<ResultatAction> {
-  const { compteId, gestionId, documentId } = input;
-  if (!isUuid(compteId) || !isUuid(gestionId) || !isUuid(documentId)) {
-    return { ok: false, message: "Identifiants invalides." };
-  }
-  const { supabase } = await requireAdmin(`/admin/comptes/${compteId}`);
-
-  const cheminAttendu = `${compteId}/${gestionId}/${documentId}.pdf`;
-  // Le chemin doit correspondre exactement à l'employeur et à la gestion :
-  // c'est lui qui détermine qui pourra lire le fichier.
-  if (input.storagePath !== cheminAttendu) {
-    return { ok: false, message: "Chemin de fichier inattendu, dépôt refusé." };
-  }
+  if (!isUuid(m.documentId)) return { ok: false, message: "Identifiants invalides." };
+  const { supabase } = await requireAdmin(`/admin/comptes/${m.compteId}`);
 
   const echec = async (message: string): Promise<ResultatAction> => {
-    await supprimerFichiers(supabase, [cheminAttendu]);
+    // Ne supprimer que le fichier de CE dépôt (son nom finit par son identifiant).
+    if (m.storagePath.endsWith(`__${m.documentId}.pdf`)) {
+      await supprimerFichiers(supabase, [m.storagePath]);
+    }
     return { ok: false, message };
   };
 
-  const titre = input.titre.trim();
-  const periode = input.periode.trim();
-  if (!(input.typeDocument in TYPES_DOCUMENT)) return echec("Type de document invalide.");
-  if (!titre) return echec("Le titre du document est obligatoire.");
-  if (input.typeDocument === "bulletin" && !periode) {
-    return echec("Un bulletin de salaire doit avoir une période (AAMM).");
-  }
-  if (periode && !/^\d{2}(0[1-9]|1[0-2])$/.test(periode)) {
-    return echec(
-      "La période doit être au format AAMM avec un mois de 01 à 12 (ex. 2609 pour septembre 2026).",
-    );
+  const erreur = controlerMeta(m);
+  if (erreur) return echec(erreur);
+
+  const cheminAttendu = await calculerChemin(supabase, m, m.documentId);
+  if (!cheminAttendu) return echec("Gestion introuvable pour ce compte.");
+  if (m.storagePath !== cheminAttendu) {
+    return echec("Chemin de fichier inattendu, dépôt refusé.");
   }
 
-  // La gestion appartient-elle bien à ce compte ?
-  const { data: gestion } = await supabase
-    .from("gestions")
-    .select("id")
-    .eq("id", gestionId)
-    .eq("employeur_id", compteId)
-    .maybeSingle();
-  if (!gestion) return echec("Gestion introuvable pour ce compte.");
-
+  const periode = m.periode.trim();
   const { error } = await supabase.from("documents").insert({
-    id: documentId,
-    gestion_id: gestionId,
-    type_document: input.typeDocument,
-    titre,
+    id: m.documentId,
+    gestion_id: m.gestionId,
+    type_document: m.typeDocument,
+    titre: m.titre.trim(),
     periode: periode || null,
     storage_path: cheminAttendu,
-    nom_fichier_origine: input.nomFichier.slice(0, 255),
+    nom_fichier_origine: m.nomFichier.slice(0, 255),
   });
   if (error) return echec(messageErreur(error));
 
-  revalidatePath(`/admin/comptes/${compteId}`);
+  revalidatePath(`/admin/comptes/${m.compteId}`);
   return { ok: true, message: "Document déposé." };
 }
 

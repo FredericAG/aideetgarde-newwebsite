@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { TitreDocument } from "@/components/TitreDocument";
+import { InfosDocument } from "@/components/TitreDocument";
 import { requireUser } from "@/lib/auth";
 import {
-  TYPES_DOCUMENT,
   TYPES_GESTION,
   formatDate,
   formatEuros,
-  formatPeriode,
   nomSalarie,
   type Abonnement,
   type DocumentRow,
@@ -179,6 +177,11 @@ export default async function TableauDeBordPage() {
         {/* --- Derniers documents --- */}
         <section className="mt-8">
           <h2 className="font-bold text-brand-teal">Derniers documents</h2>
+          <p className="mt-1 text-xs text-foreground/60">
+            Cliquez sur un document pour le télécharger. Vos documents restent
+            disponibles en permanence dans votre espace ; retrouvez-les tous
+            dans le détail de chaque gestion.
+          </p>
           {documents.length === 0 ? (
             <p className="mt-3 text-sm text-foreground/70">
               Aucun document pour le moment.
@@ -192,14 +195,8 @@ export default async function TableauDeBordPage() {
                     key={d.id}
                     className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
                   >
-                    <span>
-                      <TitreDocument doc={d} />
-                      <span className="ml-2 text-foreground/60">
-                        {TYPES_DOCUMENT[d.type_document]}
-                        {d.periode ? ` · ${formatPeriode(d.periode)}` : ""}
-                      </span>
-                    </span>
-                    <span className="text-foreground/60">
+                    <InfosDocument doc={d} />
+                    <span className="shrink-0 text-foreground/60">
                       {g ? nomSalarie(g) : ""}
                     </span>
                   </li>
@@ -207,10 +204,6 @@ export default async function TableauDeBordPage() {
               })}
             </ul>
           )}
-          <p className="mt-2 text-xs text-foreground/50">
-            Cliquez sur un document pour le télécharger. Vos documents restent
-            disponibles en permanence dans votre espace.
-          </p>
         </section>
       </div>
     </div>

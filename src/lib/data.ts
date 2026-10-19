@@ -8,6 +8,7 @@ export type TypeDocument =
   | "bulletin"
   | "contrat"
   | "avenant"
+  | "solde_tout_compte"
   | "attestation"
   | "autre";
 
@@ -60,6 +61,7 @@ export const TYPES_DOCUMENT: Record<TypeDocument, string> = {
   bulletin: "Bulletin de salaire",
   contrat: "Contrat",
   avenant: "Avenant",
+  solde_tout_compte: "Solde de tout compte",
   attestation: "Attestation",
   autre: "Autre",
 };
@@ -90,4 +92,39 @@ export function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     value,
   );
+}
+
+export type TriDocuments = "recent" | "ancien" | "alpha" | "type";
+
+export const LIBELLES_TRI: Record<TriDocuments, string> = {
+  recent: "Plus récents",
+  ancien: "Plus anciens",
+  alpha: "Ordre alphabétique",
+  type: "Par type",
+};
+
+/** Clé de date d'un document : sa période AAMM si elle existe, sinon sa date de dépôt. */
+function cleDate(d: Pick<DocumentRow, "periode" | "created_at">): string {
+  return d.periode ? `20${d.periode}` : d.created_at.slice(0, 7).replace("-", "");
+}
+
+/** Trie une liste de documents (copie) selon le critère choisi par l'utilisateur. */
+export function trierDocuments<T extends DocumentRow>(docs: T[], tri: TriDocuments): T[] {
+  const ordreTypes = Object.keys(TYPES_DOCUMENT);
+  const recent = (a: T, b: T) =>
+    cleDate(b).localeCompare(cleDate(a)) || b.created_at.localeCompare(a.created_at);
+  const copie = [...docs];
+  switch (tri) {
+    case "ancien":
+      return copie.sort((a, b) => -recent(a, b));
+    case "alpha":
+      return copie.sort((a, b) => a.titre.localeCompare(b.titre, "fr", { sensitivity: "base" }));
+    case "type":
+      return copie.sort(
+        (a, b) =>
+          ordreTypes.indexOf(a.type_document) - ordreTypes.indexOf(b.type_document) || recent(a, b),
+      );
+    default:
+      return copie.sort(recent);
+  }
 }

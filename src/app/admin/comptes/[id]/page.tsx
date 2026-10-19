@@ -1,16 +1,15 @@
 import Link from "next/link";
-import { TitreDocument } from "@/components/TitreDocument";
+import { InfosDocument } from "@/components/TitreDocument";
 import { DepotDocument } from "./DepotDocument";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
-  TYPES_DOCUMENT,
   TYPES_GESTION,
   formatDate,
   formatEuros,
-  formatPeriode,
   isUuid,
   nomSalarie,
+  trierDocuments,
   type Abonnement,
   type DocumentRow,
   type Gestion,
@@ -307,7 +306,10 @@ export default async function FicheComptePage({
           ) : (
             <ul className="mt-4 space-y-4">
               {gestions.map((g) => {
-                const docsGestion = documents.filter((d) => d.gestion_id === g.id);
+                const docsGestion = trierDocuments(
+                  documents.filter((d) => d.gestion_id === g.id),
+                  "recent",
+                );
                 return (
                   <li key={g.id} className="rounded-lg border border-brand-gray/20 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -363,13 +365,7 @@ export default async function FicheComptePage({
                       <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
                         {docsGestion.map((d) => (
                           <li key={d.id} className="flex items-center justify-between gap-3 py-2">
-                            <span>
-                              <TitreDocument doc={d} />
-                              <span className="ml-2 text-foreground/60">
-                                {TYPES_DOCUMENT[d.type_document]}
-                                {d.periode ? ` · ${formatPeriode(d.periode)}` : ""}
-                              </span>
-                            </span>
+                            <InfosDocument doc={d} />
                             <form action={supprimerDocument}>
                               <input type="hidden" name="compte_id" value={id} />
                               <input type="hidden" name="document_id" value={d.id} />

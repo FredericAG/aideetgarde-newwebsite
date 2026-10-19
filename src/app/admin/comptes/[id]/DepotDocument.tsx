@@ -4,7 +4,8 @@ import { useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BUCKET, TAILLE_MAX_PDF, TYPES_DOCUMENT } from "@/lib/data";
-import { enregistrerDocument } from "./actions";
+import { analyserNomFichier, titreParDefaut } from "@/lib/nom-fichier";
+import { enregistrerDocument, preparerDepot } from "./actions";
 
 const inputClass =
   "rounded-md border border-brand-gray/40 bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-teal";
@@ -12,11 +13,16 @@ const inputClass =
 /**
  * Dépôt d'un PDF sur une gestion (glisser-déposer ou clic).
  *
- * Deux temps :
- * 1. le navigateur envoie le fichier DIRECTEMENT à Supabase Storage (la base
+ * À la sélection du fichier, le type, la période et le titre sont
+ * préremplis d'après son nom (modifiables avant validation).
+ *
+ * Trois temps :
+ * 1. le serveur vérifie les informations et les doublons, et fournit le
+ *    chemin lisible sous lequel ranger le fichier ;
+ * 2. le navigateur envoie le fichier DIRECTEMENT à Supabase Storage (la base
  *    vérifie que l'utilisateur connecté est administrateur) ;
- * 2. une action serveur enregistre la fiche du document ; si elle échoue
- *    (doublon...), elle supprime le fichier envoyé.
+ * 3. le serveur enregistre la fiche du document ; s'il échoue, il supprime
+ *    le fichier envoyé.
  */
 export function DepotDocument({
   compteId,
@@ -49,8 +55,15 @@ export function DepotDocument({
       return;
     }
     setFichier(f);
-    // Titre proposé par défaut : le nom du fichier sans ".pdf".
-    if (!titre) setTitre(f.name.replace(/\.pdf$/i, ""));
+    // Préremplissage d'après le nom du fichier (à vérifier avant de déposer).
+    const analyse = analyserNomFichier(f.name);
+    if (analyse.type) setType(analyse.type);
+    setPeriode(analyse.periode ?? "");
+    setTitre(
+      analyse.type
+        ? titreParDefaut(analyse.type, analyse.periode)
+        : f.name.replace(/\.pdf$/i, ""),
+    );
   }
 
   function onDrop(e: DragEvent<HTMLDivElement>) {
@@ -75,8 +88,13 @@ export function DepotDocument({
     setEnvoi(true);
     setMessage(null);
     try {
-      const documentId = crypto.randomUUID();
-      const chemin = `${compteId}/${gestionId}/${documentId}.pdf`;
+      const meta = { compteId, gestionId, typeDocument: type, periode, titre };
+      const preparation = await preparerDepot(meta);
+      if (!preparation.ok || !preparation.documentId || !preparation.chemin) {
+        setMessage({ ok: false, texte: preparation.message });
+        return;
+      }
+      const { documentId, chemin } = preparation;
 
       const supabase = createClient();
       const { error: erreurEnvoi } = await supabase.storage
@@ -86,18 +104,14 @@ export function DepotDocument({
         console.error("Envoi du fichier impossible :", erreurEnvoi);
         setMessage({
           ok: false,
-          texte: "L'envoi du fichier a échoué. Réessayez ; si le problème continue, vérifiez que le script brique2c a bien été exécuté.",
+          texte: "L'envoi du fichier a échoué. Réessayez ; si le problème continue, vérifiez que les scripts brique2c et brique2d ont bien été exécutés.",
         });
         return;
       }
 
       const resultat = await enregistrerDocument({
-        compteId,
-        gestionId,
+        ...meta,
         documentId,
-        typeDocument: type,
-        periode,
-        titre,
         storagePath: chemin,
         nomFichier: fichier.name,
       });

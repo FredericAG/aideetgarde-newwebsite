@@ -1,4 +1,4 @@
-import type { DocumentRow } from "@/lib/data";
+import { TYPES_DOCUMENT, formatPeriode, type DocumentRow } from "@/lib/data";
 
 /**
  * Titre d'un document : lien de téléchargement s'il a un fichier PDF,
@@ -24,5 +24,26 @@ export function TitreDocument({
     >
       {doc.titre}
     </a>
+  );
+}
+
+/**
+ * Début d'une ligne de document, dans l'ordre demandé : type, période, puis
+ * lien de téléchargement. Les deux premières colonnes ont une largeur fixe
+ * pour que les listes restent alignées et faciles à parcourir.
+ */
+export function InfosDocument({ doc }: { doc: DocumentRow }) {
+  return (
+    <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-1">
+      <span className="w-40 shrink-0 text-foreground/70">
+        {TYPES_DOCUMENT[doc.type_document] ?? doc.type_document}
+      </span>
+      <span className="w-16 shrink-0 tabular-nums text-foreground/70">
+        {doc.periode ? formatPeriode(doc.periode) : "—"}
+      </span>
+      <span className="min-w-0 break-words">
+        <TitreDocument doc={doc} />
+      </span>
+    </span>
   );
 }

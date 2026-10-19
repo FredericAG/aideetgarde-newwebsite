@@ -52,3 +52,23 @@ body {
     Arial,
     sans-serif;
 }
+
+/*
+ * Main (pointeur) sur tout élément cliquable. Tailwind v4 laisse le curseur
+ * par défaut (flèche) sur les boutons : on rétablit la main partout où une
+ * action est possible, et un curseur « interdit » sur un bouton désactivé.
+ */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+select:not(:disabled),
+input[type="date"]:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+label:has(> input[type="checkbox"]),
+a[href] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
