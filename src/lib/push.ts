@@ -34,22 +34,47 @@ export interface MessagePush {
   tag?: string;
 }
 
+export interface BilanPush {
+  appareils: number;
+  envoyes: number;
+  echecs: string[]; // codes d'erreur renvoyés par les services d'acheminement
+  perimes: number;
+  nonConfigure: boolean;
+}
+
+/** Résumé lisible du bilan d'envoi, affiché à l'administrateur après un dépôt. */
+export function resumerBilan(b: BilanPush): string {
+  if (b.nonConfigure) return "notifications non configurées sur le serveur (clés VAPID absentes)";
+  if (b.appareils === 0) return "aucun appareil de l'abonné n'a activé les notifications";
+  const morceaux = [`notification envoyée à ${b.envoyes} appareil(s) sur ${b.appareils}`];
+  if (b.perimes) morceaux.push(`${b.perimes} appareil(s) désabonné(s) retiré(s)`);
+  if (b.echecs.length) morceaux.push(`échec : ${b.echecs.join(", ")}`);
+  return morceaux.join(" ; ");
+}
+
 /** Envoie un message à tous les appareils enregistrés d'un utilisateur. */
 export async function notifierUtilisateur(
   supabase: SupabaseClient,
   userId: string,
   message: MessagePush,
-): Promise<void> {
+): Promise<BilanPush> {
+  const bilan: BilanPush = { appareils: 0, envoyes: 0, echecs: [], perimes: 0, nonConfigure: false };
   try {
     if (!configurer()) {
       console.warn("Notifications push non configurées (clés VAPID absentes).");
-      return;
+      bilan.nonConfigure = true;
+      return bilan;
     }
-    const { data: appareils } = await supabase
+    const { data: appareils, error } = await supabase
       .from("notifications_push")
       .select("id, endpoint, p256dh, auth")
       .eq("user_id", userId);
-    if (!appareils?.length) return;
+    if (error) {
+      bilan.echecs.push(`lecture des appareils impossible (${error.code ?? error.message})`);
+      return bilan;
+    }
+    if (!appareils?.length) return bilan;
+    bilan.appareils = appareils.length;
 
     const charge = JSON.stringify(message);
     const perimes: string[] = [];
@@ -59,20 +84,27 @@ export async function notifierUtilisateur(
           await webpush.sendNotification(
             { endpoint: a.endpoint as string, keys: { p256dh: a.p256dh as string, auth: a.auth as string } },
             charge,
-            { TTL: 60 * 60 * 24 * 7, urgency: "normal", timeout: 5000 },
+            { TTL: 60 * 60 * 24 * 7, urgency: "high", timeout: 5000 },
           );
+          bilan.envoyes++;
         } catch (e) {
-          const code = (e as { statusCode?: number }).statusCode;
+          const err = e as { statusCode?: number; body?: string };
           // 404 / 410 : l'appareil s'est désabonné ou l'abonnement a expiré.
-          if (code === 404 || code === 410) perimes.push(a.id as string);
-          else console.error("Échec d'envoi d'une notification :", code ?? e);
+          if (err.statusCode === 404 || err.statusCode === 410) perimes.push(a.id as string);
+          else {
+            bilan.echecs.push(String(err.statusCode ?? "réseau"));
+            console.error("Échec d'envoi d'une notification :", err.statusCode, err.body ?? e);
+          }
         }
       }),
     );
     if (perimes.length) {
+      bilan.perimes = perimes.length;
       await supabase.from("notifications_push").delete().in("id", perimes);
     }
   } catch (e) {
     console.error("Notifications push : erreur inattendue", e);
+    bilan.echecs.push("erreur inattendue");
   }
+  return bilan;
 }

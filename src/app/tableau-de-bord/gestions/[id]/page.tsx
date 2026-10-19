@@ -59,7 +59,7 @@ export default async function DetailGestionPage({
       .eq("gestion_id", id),
     supabase
       .from("declarations_mensuelles")
-      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le")
+      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le, motif_modification, modification_demandee_le")
       .eq("gestion_id", id)
       .eq("employeur_id", user.id),
   ]);
@@ -91,6 +91,9 @@ export default async function DetailGestionPage({
             options={options}
             parDefaut={parDefaut}
             declarations={declarations}
+            periodesAvecBulletin={documents
+              .filter((d) => d.type_document === "bulletin" && d.periode)
+              .map((d) => d.periode as string)}
           />
         )}
 

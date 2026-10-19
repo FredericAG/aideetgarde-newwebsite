@@ -99,7 +99,7 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Ordre des informations sur chaque ligne de document : **type**, puis **période**, puis le **titre cliquable** (lien de téléchargement). Colonnes alignées. | En place (19/10) |
 | Tri par défaut : du plus récent au plus ancien (période, puis date de dépôt). | En place |
 | L'abonné peut changer le tri dans le détail d'une gestion : plus récents, plus anciens, ordre alphabétique, par type (bulletins, contrats, avenants, soldes de tout compte…). Le tri choisi reste dans l'adresse de la page (il survit au rafraîchissement). | En place (19/10) |
-| Le tableau de bord affiche les cinq derniers documents, tous salariés confondus, avec le nom du salarié concerné. | En place |
+| Le tableau de bord affiche **uniquement les 5 derniers documents** (« Vos 5 derniers documents »), tous salariés confondus, avec le nom du salarié ; la liste complète est dans le détail de chaque gestion. | En place |
 
 ### 5.5 Dépôt d'un document par l'administrateur (fichier par fichier)
 
@@ -147,7 +147,12 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 | Dépôt du bulletin du mois par l'admin → la déclaration passe automatiquement à « traitée » et l'abonné voit « Bulletin de … établi ». | En place |
 | Impossible de déclarer un mois dont le bulletin est déjà en ligne, ou pour une gestion terminée. | En place |
 | Tableau de bord : pour chaque gestion en cours, l'état du mois (« Déclarer octobre 2026 » / « déclaration envoyée » / « bulletin établi »). | En place |
-| Espace admin : liste « Déclarations à traiter », de la plus ancienne à la plus récente, avec lien vers la fiche du compte ; détail des déclarations dans chaque gestion. | En place |
+| Espace admin : liste « Déclarations à traiter », de la plus ancienne à la plus récente. Chaque ligne a un bouton **« Déposer le bulletin »** qui mène **directement à la zone de dépôt de la bonne gestion** (gestion mise en évidence, bloc documents ouvert). | En place (20/10) |
+| Dans la zone de dépôt, **pré-renseignés et modifiables** : type « Bulletin de salaire », mois de la déclaration (ex. 2610 pour octobre 2026), titre « Nom Prénom de l'employeur – Nom Prénom du salarié ». Le nom du fichier déposé ne remplace pas ces valeurs ; il complète seulement ce qui est vide. Sans déclaration en attente, le mois et le type sont déduits du nom du fichier quand c'est possible. | En place (20/10) |
+| Toute gestion avec une déclaration en attente est encadrée en violet dans la fiche du compte. | En place (20/10) |
+| **Demande de modification d'un bulletin** : quand le bulletin d'un mois est en ligne, l'abonné peut cliquer sur « Demander une modification du bulletin » et indiquer ce qui doit être corrigé (obligatoire). La demande revient dans « Déclarations à traiter » côté admin, avec le motif, et un bouton « Déposer le bulletin corrigé ». | En place (20/10) |
+| Dépôt d'un bulletin corrigé : case « Remplacer le bulletin déjà en ligne pour ce mois » (cochée d'office quand une modification est demandée). L'ancien fichier est supprimé, la fiche du document est mise à jour, l'abonné reçoit « Bulletin corrigé disponible ». La règle « un seul bulletin par mois » est respectée. | En place (20/10) |
+| Si l'admin supprime le bulletin d'un mois, la déclaration de ce mois redevient « à traiter » (corrige l'affichage « bulletin établi » sans bulletin en ligne constaté le 20/10). | En place (20/10) |
 | Contenu complet de la déclaration (heures majorées, absences, congés, frais…) — à définir avec Frédéric. | À trancher (brique 7) |
 | Email à l'administrateur à chaque nouvelle déclaration ; email à l'abonné à chaque bulletin mis en ligne. | À faire |
 
@@ -159,7 +164,12 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 | Installable sur l'écran d'accueil (Android : menu du navigateur « Installer l'application » ; iPhone : Partager → « Sur l'écran d'accueil »), ouverture plein écran sur le tableau de bord. | En place (19/10) |
 | Menu adapté au téléphone (bouton « Menu », grands liens faciles à toucher). | En place |
 | Formulaires pensés pour le doigt : grands champs, clavier numérique pour les heures, bouton pleine largeur. | En place (déclaration) ; à généraliser |
-| Notifications sur le téléphone, fonctionnement hors connexion. | À faire (brique 9) — l'email reste le canal fiable (réserve iPhone, décision 1) |
+| **Notification à la mise en ligne d'un document** : dès qu'un PDF est déposé pour un abonné, chacun de ses appareils où les notifications sont activées reçoit « Nouveau document disponible — Bulletin de salaire d'octobre 2026 ». Un toucher ouvre la gestion concernée. Le message ne contient ni nom ni montant (il peut s'afficher sur un écran verrouillé) ; il est chiffré de bout en bout. | En place (19/10) |
+| L'abonné peut **refuser** : bouton « Non merci » sur la carte du tableau de bord (choix mémorisé sur l'appareil) ; les notifications restent activables plus tard depuis « Mon compte ». | En place (20/10) |
+| Activation par l'abonné, appareil par appareil : carte « Notifications » sur le tableau de bord (tant qu'elles ne sont pas activées) et dans « Mon compte » (activer / désactiver). Sur iPhone, il faut d'abord installer l'espace sur l'écran d'accueil (iOS 16.4 minimum) : la carte l'explique. | En place (19/10) |
+| Un appareil partagé n'est rattaché qu'au dernier compte qui y a activé les notifications. | En place |
+| Doublure par email de chaque mise en ligne (pour les abonnés sans notifications ou sur iPhone non installé). | À faire — l'email reste le canal fiable |
+| Fonctionnement hors connexion. | À faire (brique 9) |
 
 ## 7. Hébergement et localisation des données
 
@@ -187,6 +197,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 19/10/2026 — Notifications push à la mise en ligne d'un document.
 - 19/10/2026 — Déclaration mensuelle de l'abonné (première version) et socle mobile (PWA).
 - 19/10/2026 — Fluidité (objectifs chiffrés), hébergement à Paris, référencement moteurs + IA, convention de nommage validée et référence de gestion en place.
 - 19/10/2026 — Liste complète des types de documents et codes de fichiers ; règle de réactivité.

@@ -179,9 +179,11 @@ export interface Declaration {
   periode: string; // AAMM
   heures: number | null;
   commentaire: string;
-  statut: "envoyee" | "traitee";
+  statut: "envoyee" | "traitee" | "modification";
   envoyee_le: string;
   traitee_le: string | null;
+  motif_modification?: string | null;
+  modification_demandee_le?: string | null;
 }
 
 const MOIS = [

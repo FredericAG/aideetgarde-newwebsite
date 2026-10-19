@@ -158,6 +158,10 @@ export default async function TableauDeBordPage() {
                       <span className="text-brand-teal">
                         Bulletin de {libelleMois(moisCourant)} établi
                       </span>
+                    ) : statut === "modification" ? (
+                      <span className="text-foreground/70">
+                        {libelleMois(moisCourant)} : modification demandée
+                      </span>
                     ) : statut === "envoyee" ? (
                       <span className="text-foreground/70">
                         {libelleMois(moisCourant)} : déclaration envoyée
@@ -207,7 +211,7 @@ export default async function TableauDeBordPage() {
 
         {/* --- Derniers documents --- */}
         <section className="mt-8">
-          <h2 className="font-bold text-brand-teal">Derniers documents</h2>
+          <h2 className="font-bold text-brand-teal">Vos 5 derniers documents</h2>
           <p className="mt-1 text-xs text-foreground/60">
             Cliquez sur un document pour le télécharger. Vos documents restent
             disponibles en permanence dans votre espace ; retrouvez-les tous

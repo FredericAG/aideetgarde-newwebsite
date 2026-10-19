@@ -67,6 +67,11 @@ export default async function FicheComptePage({
   const sp = await searchParams;
   const ok = one(sp.ok);
   const erreur = one(sp.erreur);
+  // Arrivée depuis « Déclarations à traiter » : gestion et mois du dépôt
+  // attendu (?depot=<id gestion>&periode=AAMM).
+  const depotCible = one(sp.depot);
+  const periodeCible = one(sp.periode);
+  const remplacerCible = one(sp.remplacer) === "1";
 
   const { supabase } = await requireAdmin(`/admin/comptes/${id}`);
 
@@ -97,7 +102,7 @@ export default async function FicheComptePage({
       .order("periode", { ascending: false, nullsFirst: false }),
     supabase
       .from("declarations_mensuelles")
-      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le")
+      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le, motif_modification, modification_demandee_le")
       .eq("employeur_id", id)
       .order("periode", { ascending: false }),
   ]);
@@ -323,8 +328,33 @@ Ajouter la gestion
                   documents.filter((d) => d.gestion_id === g.id),
                   "recent",
                 );
+                // Mois à préremplir dans le dépôt : celui demandé par le lien,
+                // sinon la plus ancienne déclaration de l'abonné en attente.
+                const enAttente = declarations
+                  .filter((d) => d.gestion_id === g.id && d.statut !== "traitee")
+                  .sort((a, b) => a.periode.localeCompare(b.periode));
+                const cible = depotCible === g.id;
+                const periodeDepot =
+                  cible && periodeCible && /^\d{4}$/.test(periodeCible)
+                    ? periodeCible
+                    : (enAttente[0]?.periode ?? "");
+                // Bulletin corrigé attendu → le dépôt remplacera l'ancien.
+                const remplacerDepot =
+                  (cible && remplacerCible) ||
+                  enAttente.find((d) => d.periode === periodeDepot)?.statut === "modification";
+                const titreDepot = `${compte.nom} ${compte.prenom} – ${g.nom_salarie} ${g.prenom_salarie}`
+                  .replace(/\s+/g, " ")
+                  .trim();
                 return (
-                  <li key={g.id} className="rounded-lg border border-brand-gray/20 p-4">
+                  <li
+                    key={g.id}
+                    id={`gestion-${g.id}`}
+                    className={`scroll-mt-4 rounded-lg border p-4 ${
+                      cible || enAttente.length
+                        ? "border-brand-violet ring-2 ring-brand-violet/30"
+                        : "border-brand-gray/20"
+                    }`}
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="text-sm">
                         <span className="mr-2 rounded bg-brand-sky-tint/40 px-1.5 py-0.5 font-mono text-xs text-brand-black">
@@ -375,10 +405,10 @@ Supprimer définitivement
 
                     {/* Déclarations mensuelles envoyées par l'abonné */}
                     {declarations.some((d) => d.gestion_id === g.id) && (
-                      <details className="mt-3" open={declarations.some((d) => d.gestion_id === g.id && d.statut === "envoyee")}>
+                      <details className="mt-3" open={enAttente.length > 0}>
                         <summary className="text-sm text-brand-violet">
                           Déclarations de l&apos;abonné (
-                          {declarations.filter((d) => d.gestion_id === g.id && d.statut === "envoyee").length}{" "}
+                          {enAttente.length}{" "}
                           à traiter)
                         </summary>
                         <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
@@ -389,11 +419,21 @@ Supprimer définitivement
                                 <span className="w-32 shrink-0">{libelleMois(d.periode)}</span>
                                 <span className="w-20 shrink-0 tabular-nums">{formatHeures(d.heures)}</span>
                                 <span className="min-w-0 flex-1 text-foreground/70">{d.commentaire || "—"}</span>
-                                <span className={`shrink-0 text-xs ${d.statut === "envoyee" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
+                                <span className={`shrink-0 text-xs ${d.statut !== "traitee" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
                                   {d.statut === "envoyee"
                                     ? `à traiter (envoyée le ${formatDate(d.envoyee_le)})`
-                                    : `traitée le ${formatDate(d.traitee_le)}`}
+                                    : d.statut === "modification"
+                                      ? `modification demandée le ${formatDate(d.modification_demandee_le)} : « ${d.motif_modification ?? ""} »`
+                                      : `traitée le ${formatDate(d.traitee_le)}`}
                                 </span>
+                                {d.statut !== "traitee" && (
+                                  <Link
+                                    href={`/admin/comptes/${id}?depot=${g.id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${g.id}`}
+                                    className="shrink-0 rounded-md bg-brand-violet px-2 py-1 text-xs font-semibold text-white"
+                                  >
+                                    {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
+                                  </Link>
+                                )}
                               </li>
                             ))}
                         </ul>
@@ -401,7 +441,7 @@ Supprimer définitivement
                     )}
 
                     {/* Documents de la gestion */}
-                    <details className="mt-3">
+                    <details className="mt-3" open={cible || enAttente.length > 0}>
                       <summary className="cursor-pointer text-sm text-brand-teal">
                         Documents ({docsGestion.length})
                       </summary>
@@ -419,7 +459,17 @@ Supprimer
                           </li>
                         ))}
                       </ul>
-                      <DepotDocument compteId={id} gestionId={g.id} />
+                      <div id={`depot-${g.id}`} className="scroll-mt-4">
+                        <DepotDocument
+                          key={`${g.id}-${periodeDepot}`}
+                          compteId={id}
+                          gestionId={g.id}
+                          typeInitial="bulletin"
+                          periodeInitiale={periodeDepot}
+                          titreInitial={titreDepot}
+                          remplacerInitial={remplacerDepot}
+                        />
+                      </div>
                     </details>
                   </li>
                 );

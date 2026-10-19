@@ -12,6 +12,11 @@ self.addEventListener("push", (event) => {
     data = { body: event.data ? event.data.text() : "" };
   }
   const title = data.title || "Aide & Garde";
+  // Pastille sur l'icône de l'application (iPhone et Android, application
+  // installée) : elle s'efface quand l'abonné ouvre son tableau de bord.
+  if (self.navigator && "setAppBadge" in self.navigator) {
+    self.navigator.setAppBadge().catch(() => {});
+  }
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || "Du nouveau dans votre espace.",

@@ -9,6 +9,9 @@ interface DeclarationATraiter {
   commentaire: string;
   envoyee_le: string;
   employeur_id: string;
+  gestion_id: string;
+  statut: "envoyee" | "modification";
+  motif_modification: string | null;
   gestion: { reference: string; prenom_salarie: string; nom_salarie: string } | null;
   employeur: { prenom: string; nom: string } | null;
 }
@@ -46,9 +49,9 @@ export default async function AdminPage() {
     supabase
       .from("declarations_mensuelles")
       .select(
-        "id, periode, heures, commentaire, envoyee_le, employeur_id, gestion:gestions(reference, prenom_salarie, nom_salarie), employeur:profiles(prenom, nom)",
+        "id, gestion_id, periode, heures, commentaire, statut, motif_modification, envoyee_le, employeur_id, gestion:gestions(reference, prenom_salarie, nom_salarie), employeur:profiles(prenom, nom)",
       )
-      .eq("statut", "envoyee")
+      .in("statut", ["envoyee", "modification"])
       .order("envoyee_le", { ascending: true })
       .limit(200),
   ]);
@@ -104,7 +107,7 @@ export default async function AdminPage() {
                   </span>
                   <span className="flex-1">
                     <Link
-                      href={`/admin/comptes/${d.employeur_id}`}
+                      href={`/admin/comptes/${d.employeur_id}?depot=${d.gestion_id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${d.gestion_id}`}
                       className="font-medium text-brand-teal underline"
                     >
                       {`${d.employeur?.prenom ?? ""} ${d.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
@@ -115,9 +118,20 @@ export default async function AdminPage() {
                       {libelleMois(d.periode)} · {formatHeures(d.heures)}
                       {d.commentaire ? ` · « ${d.commentaire} »` : ""}
                     </span>
+                    {d.statut === "modification" && (
+                      <span className="mt-1 block rounded bg-brand-jaune/40 px-2 py-1 text-brand-black">
+                        Modification demandée : « {d.motif_modification} »
+                      </span>
+                    )}
                   </span>
-                  <span className="shrink-0 text-xs text-foreground/60">
+                  <span className="flex shrink-0 flex-col items-start gap-1 text-xs text-foreground/60 sm:items-end">
                     envoyée le {formatDate(d.envoyee_le)}
+                    <Link
+                      href={`/admin/comptes/${d.employeur_id}?depot=${d.gestion_id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${d.gestion_id}`}
+                      className="rounded-md bg-brand-violet px-3 py-1.5 font-semibold text-white"
+                    >
+                      {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
+                    </Link>
                   </span>
                 </li>
               ))}

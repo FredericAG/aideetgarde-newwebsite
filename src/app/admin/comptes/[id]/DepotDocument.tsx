@@ -27,16 +27,29 @@ const inputClass =
 export function DepotDocument({
   compteId,
   gestionId,
+  typeInitial = "bulletin",
+  periodeInitiale = "",
+  titreInitial = "",
+  remplacerInitial = false,
 }: {
   compteId: string;
   gestionId: string;
+  /** Type proposé d'office (bulletin de salaire par défaut). */
+  typeInitial?: string;
+  /** Mois proposé d'office (AAMM), ex. celui de la déclaration à traiter. */
+  periodeInitiale?: string;
+  /** Titre proposé d'office : « nom de l'employeur – nom du salarié ». */
+  titreInitial?: string;
+  /** Bulletin corrigé attendu : le dépôt remplace le bulletin déjà en ligne. */
+  remplacerInitial?: boolean;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [fichier, setFichier] = useState<File | null>(null);
-  const [type, setType] = useState("bulletin");
-  const [periode, setPeriode] = useState("");
-  const [titre, setTitre] = useState("");
+  const [type, setType] = useState(typeInitial);
+  const [periode, setPeriode] = useState(periodeInitiale);
+  const [titre, setTitre] = useState(titreInitial);
+  const [remplacer, setRemplacer] = useState(remplacerInitial);
   const [survol, setSurvol] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
@@ -55,15 +68,19 @@ export function DepotDocument({
       return;
     }
     setFichier(f);
-    // Préremplissage d'après le nom du fichier (à vérifier avant de déposer).
+    // Les valeurs déjà proposées (mois de la déclaration à traiter, titre
+    // « employeur – salarié ») sont prioritaires ; le nom du fichier ne sert
+    // qu'à compléter ce qui est encore vide. Tout reste modifiable.
     const analyse = analyserNomFichier(f.name);
-    if (analyse.type) setType(analyse.type);
-    setPeriode(analyse.periode ?? "");
-    setTitre(
-      analyse.type
-        ? titreParDefaut(analyse.type, analyse.periode)
-        : f.name.replace(/\.pdf$/i, ""),
-    );
+    if (!periode && analyse.periode) setPeriode(analyse.periode);
+    if (!periodeInitiale && analyse.type) setType(analyse.type);
+    if (!titre) {
+      setTitre(
+        analyse.type
+          ? titreParDefaut(analyse.type, analyse.periode)
+          : f.name.replace(/\.pdf$/i, ""),
+      );
+    }
   }
 
   function onDrop(e: DragEvent<HTMLDivElement>) {
@@ -88,7 +105,14 @@ export function DepotDocument({
     setEnvoi(true);
     setMessage(null);
     try {
-      const meta = { compteId, gestionId, typeDocument: type, periode, titre };
+      const meta = {
+        compteId,
+        gestionId,
+        typeDocument: type,
+        periode,
+        titre,
+        remplacer: type === "bulletin" && remplacer,
+      };
       const preparation = await preparerDepot(meta);
       if (!preparation.ok || !preparation.documentId || !preparation.chemin) {
         setMessage({ ok: false, texte: preparation.message });
@@ -118,8 +142,10 @@ export function DepotDocument({
       setMessage({ ok: resultat.ok, texte: resultat.message });
       if (resultat.ok) {
         setFichier(null);
-        setTitre("");
+        setTitre(titreInitial);
         setPeriode("");
+        setType(typeInitial);
+        setRemplacer(false);
         if (inputRef.current) inputRef.current.value = "";
         router.refresh();
       }
@@ -214,6 +240,23 @@ export function DepotDocument({
           {envoi ? "Envoi en cours…" : "Déposer le document"}
         </button>
       </div>
+
+      {type === "bulletin" && (
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={remplacer}
+            onChange={(e) => setRemplacer(e.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            Remplacer le bulletin déjà en ligne pour ce mois (bulletin corrigé).
+            <span className="block text-xs text-foreground/60">
+              L&apos;ancien fichier est supprimé ; l&apos;abonné est prévenu qu&apos;un bulletin corrigé est disponible.
+            </span>
+          </span>
+        </label>
+      )}
 
       {message && (
         <p

@@ -99,3 +99,34 @@ Préparation : exécuter `supabase/brique7a_declarations_mensuelles.sql`. Tester
 | 7.9 | Client : tenter de déclarer un mois dont le bulletin est déjà en ligne | Refus : « Le bulletin de ce mois est déjà en ligne… » | |
 | 7.10 | Téléphone : télécharger un bulletin | Le PDF s'ouvre ou se télécharge correctement | |
 | 7.11 | Déclarer depuis le téléphone, vérifier immédiatement sur l'ordinateur (et inversement) | Même information des deux côtés | |
+
+## Brique 9a — Notifications à la mise en ligne d'un document
+
+Préparation : exécuter `supabase/brique9a_notifications_push.sql` ; renseigner les deux clés VAPID dans Vercel, puis redéployer.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 9.1 | iPhone : ouvrir le site dans Safari (non installé) | Carte « Notifications » expliquant qu'il faut d'abord installer l'espace sur l'écran d'accueil | |
+| 9.2 | Téléphone (application installée) : tableau de bord → « Activer les notifications » → autoriser | « Notifications activées sur cet appareil » ; la carte disparaît du tableau de bord | |
+| 9.3 | Admin (ordinateur) : déposer un bulletin pour ce compte | En quelques secondes, le téléphone affiche « Nouveau document disponible — Bulletin de salaire de [mois] », même application fermée | |
+| 9.4 | Toucher la notification | L'application s'ouvre sur la gestion concernée, le document est dans la liste | |
+| 9.5 | Vérifier le contenu affiché sur l'écran verrouillé | Ni nom de salarié, ni montant | |
+| 9.6 | Mon compte → « Désactiver sur cet appareil », puis nouveau dépôt | Plus de notification sur cet appareil | |
+| 9.7 | Ordinateur (Chrome/Edge/Firefox) : activer aussi, puis nouveau dépôt | Notification reçue sur l'ordinateur et sur le téléphone | |
+| 9.8 | Refuser l'autorisation lors de la demande | Message expliquant comment réautoriser dans les réglages ; le dépôt du document fonctionne normalement | |
+
+## Brique 7b — Demande de modification, refus des notifications
+
+Préparation : exécuter `supabase/brique7b_modification_bulletin.sql`.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 7b.1 | Client : tableau de bord, carte Notifications → « Non merci » | La carte disparaît et ne revient pas sur cet appareil ; « Mon compte » permet toujours d'activer | |
+| 7b.2 | Tableau de bord avec plus de 5 documents | Seuls les 5 plus récents sont affichés | |
+| 7b.3 | Client : gestion avec bulletin du mois en ligne | « Le bulletin de … est en ligne » + bouton « Demander une modification du bulletin » | |
+| 7b.4 | Envoyer une demande sans motif | Refus : motif obligatoire | |
+| 7b.5 | Envoyer une demande avec motif | Message de confirmation ; la carte affiche « Modification … demandée le … » ; tableau de bord : « modification demandée » | |
+| 7b.6 | Admin : Administration | La demande apparaît dans « Déclarations à traiter » avec le motif et le bouton « Déposer le bulletin corrigé » | |
+| 7b.7 | Cliquer sur « Déposer le bulletin corrigé », déposer un PDF | Arrivée directe sur la bonne gestion ; case « Remplacer » cochée ; message « Bulletin remplacé — … » ; un seul bulletin pour le mois ; l'ancien fichier a disparu de Supabase > Storage | |
+| 7b.8 | Client : vérifier | Nouveau bulletin téléchargeable ; notification « Bulletin corrigé disponible » si activée ; la demande disparaît de « à traiter » | |
+| 7b.9 | Admin : supprimer un bulletin pour lequel une déclaration existe | La déclaration redevient « à traiter » ; côté client, le formulaire de déclaration réapparaît | |

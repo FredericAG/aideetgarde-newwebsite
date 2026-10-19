@@ -11,7 +11,7 @@ import {
   libelleMois,
   type TypeDocument,
 } from "@/lib/data";
-import { notifierUtilisateur } from "@/lib/push";
+import { notifierUtilisateur, resumerBilan } from "@/lib/push";
 import { cheminStockage } from "@/lib/nom-fichier";
 
 /**
@@ -220,6 +220,8 @@ export interface MetaDocument {
   typeDocument: string;
   periode: string;
   titre: string;
+  /** Bulletin corrigé : remplace le bulletin déjà en ligne pour ce mois. */
+  remplacer?: boolean;
 }
 
 export interface ResultatAction {
@@ -302,7 +304,7 @@ export async function preparerDepot(m: MetaDocument): Promise<ResultatPreparatio
     .eq("employeur_id", m.compteId);
   for (const d of existants ?? []) {
     const memePeriode = (d.periode ?? "") === periode;
-    if (m.typeDocument === "bulletin" && d.type_document === "bulletin" && memePeriode) {
+    if (m.typeDocument === "bulletin" && d.type_document === "bulletin" && memePeriode && !m.remplacer) {
       return {
         ok: false,
         message:
@@ -310,6 +312,7 @@ export async function preparerDepot(m: MetaDocument): Promise<ResultatPreparatio
       };
     }
     if (
+      !(m.remplacer && m.typeDocument === "bulletin") &&
       d.type_document === m.typeDocument &&
       memePeriode &&
       String(d.titre).trim().toLowerCase() === m.titre.trim().toLowerCase()
@@ -357,30 +360,69 @@ export async function enregistrerDocument(
   }
 
   const periode = m.periode.trim();
-  const { error } = await supabase.from("documents").insert({
-    id: m.documentId,
-    gestion_id: m.gestionId,
-    type_document: m.typeDocument,
-    titre: m.titre.trim(),
-    periode: periode || null,
-    storage_path: cheminAttendu,
-    nom_fichier_origine: m.nomFichier.slice(0, 255),
-  });
+
+  // Bulletin corrigé : on remplace le fichier et la fiche du bulletin déjà
+  // en ligne (même mois, même gestion) au lieu d'en créer un second, ce que
+  // la règle « un seul bulletin par mois » interdirait.
+  let ancienFichier: string | null = null;
+  let remplacement = false;
+  if (m.remplacer && m.typeDocument === "bulletin") {
+    const { data: existant } = await supabase
+      .from("documents")
+      .select("id, storage_path")
+      .eq("gestion_id", m.gestionId)
+      .eq("employeur_id", m.compteId)
+      .eq("type_document", "bulletin")
+      .eq("periode", periode)
+      .maybeSingle();
+    if (existant) {
+      remplacement = true;
+      ancienFichier = (existant.storage_path as string | null) ?? null;
+      const { error: errMaj } = await supabase
+        .from("documents")
+        .update({
+          titre: m.titre.trim(),
+          storage_path: cheminAttendu,
+          nom_fichier_origine: m.nomFichier.slice(0, 255),
+          created_at: new Date().toISOString(),
+        })
+        .eq("id", existant.id);
+      if (errMaj) return echec(messageErreur(errMaj));
+      if (ancienFichier && ancienFichier !== cheminAttendu) {
+        await supprimerFichiers(supabase, [ancienFichier]);
+      }
+    }
+  }
+
+  const { error } = remplacement
+    ? { error: null }
+    : await supabase.from("documents").insert({
+        id: m.documentId,
+        gestion_id: m.gestionId,
+        type_document: m.typeDocument,
+        titre: m.titre.trim(),
+        periode: periode || null,
+        storage_path: cheminAttendu,
+        nom_fichier_origine: m.nomFichier.slice(0, 255),
+      });
   if (error) return echec(messageErreur(error));
 
   // Prévenir l'abonné sur ses appareils. Le message reste volontairement
   // général (pas de nom, pas de montant) : il peut s'afficher sur un écran
   // verrouillé.
   const libelle = TYPES_DOCUMENT[m.typeDocument as TypeDocument] ?? "Document";
-  await notifierUtilisateur(supabase, m.compteId, {
-    title: "Nouveau document disponible",
+  const bilan = await notifierUtilisateur(supabase, m.compteId, {
+    title: remplacement ? "Bulletin corrigé disponible" : "Nouveau document disponible",
     body: periode ? `${libelle} de ${libelleMois(periode)}` : libelle,
     url: `/tableau-de-bord/gestions/${m.gestionId}`,
     tag: `document-${m.documentId}`,
   });
 
   revalidatePath(`/admin/comptes/${m.compteId}`);
-  return { ok: true, message: "Document déposé." };
+  return {
+    ok: true,
+    message: `${remplacement ? "Bulletin remplacé" : "Document déposé"} — ${resumerBilan(bilan)}.`,
+  };
 }
 
 /** Supprime le fichier PDF puis la fiche du document. */
