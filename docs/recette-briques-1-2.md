@@ -181,3 +181,16 @@ Aucun script SQL.
 | R.9 | Mon compte, notifications bloquées dans le navigateur | Encadré ouvert avec les étapes pour ce navigateur et cet appareil (vérifier sur l'iPhone installé, Android, et l'ordinateur) | |
 | R.10 | Suivre les étapes, puis « J'ai modifié le réglage : vérifier » | La page se recharge ; le bouton « Activer les notifications » réapparaît | |
 
+## Retours du 20/10 (suite) — Documents par catégories côté abonné
+
+Aucun script SQL.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| C.1 | Client : détail d'une gestion (ordinateur) | Trois catégories ; tableaux avec ligne de titres colorée (violet / turquoise / orange) : Type / Période / Document / Mis en ligne le ; bouton « Télécharger » sur chaque ligne ; aucune poubelle | |
+| C.2 | Cliquer « Télécharger » sur un document « Nouveau » | Le PDF se télécharge ; la pastille disparaît 1 à 2 s plus tard | |
+| C.3 | Changer de tri (Plus anciens, Ordre alphabétique, Par type) | Le tri s'applique dans chaque catégorie | |
+| C.4 | Même page sur téléphone | Une fiche par document, alternance blanc / gris, bouton « Télécharger » pleine largeur, carré de couleur devant chaque catégorie | |
+| C.5 | Admin : tableaux de documents | Mêmes couleurs de lignes de titres que côté client | |
+| C.6 | Admin : « Terminer la gestion » | Plus de champ de date ; confirmation Oui/Non ; la gestion est terminée à la date du jour | |
+

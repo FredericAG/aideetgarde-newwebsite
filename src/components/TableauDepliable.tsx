@@ -14,6 +14,8 @@ export function TableauDepliable({
   lignes,
   visibles = 5,
   colonnes,
+  classeTable = "",
+  classeEntete = "",
 }: {
   /** Ligne d'en-tête (<tr> avec des <th>). */
   entete: React.ReactNode;
@@ -22,6 +24,10 @@ export function TableauDepliable({
   visibles?: number;
   /** Largeurs des colonnes (<col>), pour garder l'alignement. */
   colonnes: React.ReactNode;
+  /** Classes ajoutées au <table> (ex. « tableau-adaptatif » côté abonné). */
+  classeTable?: string;
+  /** Classes de la ligne de titres (couleur de la catégorie). */
+  classeEntete?: string;
 }) {
   const [deplie, setDeplie] = useState(false);
   const reste = lignes.length - visibles;
@@ -30,17 +36,13 @@ export function TableauDepliable({
   return (
     <div>
       <div
-        className={
-          defilement
-            ? "max-h-[27rem] overflow-y-auto rounded-lg border border-brand-gray/20"
-            : ""
-        }
+        className={`overflow-hidden rounded-lg border border-brand-gray/20 ${
+          defilement ? "max-h-[27rem] overflow-y-auto" : ""
+        }`}
       >
-        <table className="w-full table-fixed border-collapse text-left text-sm">
+        <table className={`w-full table-fixed border-collapse text-left text-sm ${classeTable}`}>
           <colgroup>{colonnes}</colgroup>
-          <thead className="sticky top-0 z-10 bg-white text-xs text-brand-teal">
-            {entete}
-          </thead>
+          <thead className={`sticky top-0 z-10 text-xs ${classeEntete}`}>{entete}</thead>
           <tbody>{deplie ? lignes : lignes.slice(0, visibles)}</tbody>
         </table>
       </div>

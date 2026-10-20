@@ -41,6 +41,15 @@
   color-scheme: light;
   --carte: #f1f1f1; /* gris clair des blocs de l'ancien site */
   --violet-fonce: #574b88; /* survol des boutons violets */
+  /*
+   * Couleur des lignes de titres par catégorie de documents, inspirée de
+   * l'ancien espace client (violet / turquoise / orange). Turquoise et
+   * orange sont foncés par rapport à l'ancien site pour que le texte blanc
+   * reste lisible (contraste ≥ 4,5:1, norme d'accessibilité).
+   */
+  --cat-contractuel: #685c9b;
+  --cat-bulletin: #0b7f79;
+  --cat-autre: #c25a0c;
 }
 
 body {
@@ -158,6 +167,23 @@ button:disabled {
     border-radius: 0.75rem;
   }
 
+  /* Lignes de titres colorées des tableaux de documents. */
+  thead.entete-contractuel th,
+  thead.entete-bulletin th,
+  thead.entete-autre th {
+    color: #fff;
+    font-weight: 700;
+  }
+  .entete-contractuel {
+    background: var(--cat-contractuel);
+  }
+  .entete-bulletin {
+    background: var(--cat-bulletin);
+  }
+  .entete-autre {
+    background: var(--cat-autre);
+  }
+
   /* Pastille « Nouveau » : jaune de la marque, bien visible. */
   .pastille-nouveau {
     display: inline-block;
@@ -198,12 +224,9 @@ button:disabled {
     background: #f7f7f7;
   }
   @media (max-width: 639px) {
+    /* Les intitulés sont répétés dans chaque fiche (data-label). */
     .tableau-adaptatif thead {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
+      display: none;
     }
     .tableau-adaptatif,
     .tableau-adaptatif tbody,

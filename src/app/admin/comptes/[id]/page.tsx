@@ -390,12 +390,11 @@ Ajouter la gestion
                           <form action={terminerGestion} className="flex items-center gap-2">
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
-                            <input type="date" name="date_fin" defaultValue={today} className={inputClass} />
                             <BoutonConfirme
                               className={btnLightClass}
                               enCours="Enregistrement…"
                               question={`Terminer la gestion de ${nomSalarie(g)} ?`}
-                              precision="La gestion passera en « terminée » à la date indiquée et libérera une place dans le quota de l'abonnement. Les documents restent consultables ; vous pourrez la rouvrir."
+                              precision="La gestion passera en « terminée » à la date du jour et libérera une place dans le quota de l'abonnement. Les documents restent consultables ; vous pourrez la rouvrir."
                               oui="Oui, terminer"
                             >
                               Terminer la gestion
