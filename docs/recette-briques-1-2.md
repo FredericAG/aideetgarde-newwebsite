@@ -300,3 +300,16 @@ Vérification préalable faite par Claude sur une base de test de **3 000 compte
 | 2g.8 | Deux comptes avec le même prénom et nom | — | Pastille « Homonyme ×2 » ; références client différentes ; la référence apparaît aussi en tête de la fiche du compte | |
 | 2g.9 | Plus de 50 comptes | — | Pagination « Suivants → » | |
 
+## Navigation administrateur — Comptes, Abonnements, Archivés
+
+Préparation : **relancer** `supabase/brique2g_liste_comptes_admin.sql` (mis à jour le 21/10 : tarif, dates et dépassement de quota dans la vue, chiffres de l'onglet Abonnements).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| N.1 | Se connecter avec le compte administrateur (ordinateur) | En-tête : Comptes (pastille d'actions), Abonnements, Archivés, Mon compte, Se déconnecter ; plus de Tableau de bord, Documents ni Aide | |
+| N.2 | Même chose sur téléphone | Barre du bas : Comptes / Abonnements / Archivés / Compte | |
+| N.3 | Administrateur : ouvrir /tableau-de-bord, ou cliquer le logo | Retour à l'administration | |
+| N.4 | Onglet Abonnements | Chiffres clés, filtres Actifs / Quota dépassé / Sans gestion / Résiliés avec leurs compteurs, tableau ; encadré « Paiements refusés et relances » annoncé pour plus tard | |
+| N.5 | Onglet Archivés | Comptes inactifs uniquement, avec recherche et tri | |
+| N.6 | Compte abonné | Navigation inchangée (Tableau de bord, Documents, Mon compte, Aide) | |
+

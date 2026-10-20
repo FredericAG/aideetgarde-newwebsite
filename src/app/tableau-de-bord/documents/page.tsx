@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { DocumentsParCategorie } from "@/components/DocumentsParCategorie";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
@@ -26,7 +27,9 @@ export default async function MesDocumentsPage({
   const sp = await searchParams;
   const filtre = Array.isArray(sp.salarie) ? sp.salarie[0] : sp.salarie;
 
-  const { supabase, user } = await requireUser("/tableau-de-bord/documents");
+  const { supabase, user, profile } = await requireUser("/tableau-de-bord/documents");
+  // L'administrateur n'a pas d'espace abonné : on l'envoie à l'administration.
+  if (profile?.role === "admin") redirect("/admin");
 
   const [gestionsRes, docsRes] = await Promise.all([
     supabase

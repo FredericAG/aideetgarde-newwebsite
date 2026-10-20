@@ -45,6 +45,18 @@ const icones = {
       <path d="m9 12 2 2 4-4" />
     </svg>
   ),
+  abonnements: (
+    <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18M7 15h4" />
+    </svg>
+  ),
+  archives: (
+    <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="5" rx="1" />
+      <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" />
+    </svg>
+  ),
   compte: (
     <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
@@ -60,7 +72,34 @@ const icones = {
  */
 export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; actionsAdmin?: number }) {
   const chemin = usePathname();
-  const onglets: Onglet[] = [
+  const ongletsAdmin: Onglet[] = [
+    {
+      href: "/admin",
+      libelle: "Comptes",
+      actif: (p) => p === "/admin" || p.startsWith("/admin/comptes"),
+      icone: icones.admin,
+      pastille: actionsAdmin,
+    },
+    {
+      href: "/admin/abonnements",
+      libelle: "Abonnements",
+      actif: (p) => p.startsWith("/admin/abonnements"),
+      icone: icones.abonnements,
+    },
+    {
+      href: "/admin/archives",
+      libelle: "Archivés",
+      actif: (p) => p.startsWith("/admin/archives"),
+      icone: icones.archives,
+    },
+    {
+      href: "/mon-compte",
+      libelle: "Compte",
+      actif: (p) => p.startsWith("/mon-compte"),
+      icone: icones.compte,
+    },
+  ];
+  const ongletsAbonne: Onglet[] = [
     {
       href: "/tableau-de-bord",
       libelle: "Accueil",
@@ -73,9 +112,7 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
       actif: (p) => p.startsWith("/tableau-de-bord/documents"),
       icone: icones.documents,
     },
-    isAdmin
-      ? { href: "/admin", libelle: "Admin", actif: (p) => p.startsWith("/admin"), icone: icones.admin, pastille: actionsAdmin }
-      : { href: "/aide", libelle: "Aide", actif: (p) => p.startsWith("/aide"), icone: icones.aide },
+    { href: "/aide", libelle: "Aide", actif: (p) => p.startsWith("/aide"), icone: icones.aide },
     {
       href: "/mon-compte",
       libelle: "Compte",
@@ -83,6 +120,8 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
       icone: icones.compte,
     },
   ];
+
+  const onglets = isAdmin ? ongletsAdmin : ongletsAbonne;
 
   return (
     <nav

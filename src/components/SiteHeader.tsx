@@ -17,7 +17,7 @@ export async function SiteHeader() {
   return (
     <header className="border-b border-brand-gray/15 bg-white">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={isAdmin ? "/admin" : "/"} className="flex items-center gap-2">
           <Image
             src="/aide-et-garde-logo.svg"
             alt="Aide & Garde"
@@ -32,31 +32,46 @@ export async function SiteHeader() {
           <>
             {/* Ordinateur et tablette */}
             <nav className="hidden items-center gap-2 whitespace-nowrap sm:flex">
-              <Link href="/tableau-de-bord" className="btn btn-secondaire btn-sm">
-                Tableau de bord
-              </Link>
-              <Link href="/tableau-de-bord/documents" className="btn btn-secondaire btn-sm">
-                Documents
-              </Link>
-              {isAdmin && (
-                <Link href="/admin" className="btn btn-primaire btn-sm">
-                  Administration
-                  {actions > 0 && (
-                    <span
-                      className="ml-1 rounded-full bg-brand-jaune px-1.5 text-xs text-brand-black"
-                      aria-label={`${actions} action(s) à effectuer`}
-                    >
-                      {actions}
-                    </span>
-                  )}
-                </Link>
+              {isAdmin ? (
+                /* Administrateur : onglets de gestion, pas ceux d'un abonné. */
+                <>
+                  <Link href="/admin" className="btn btn-secondaire btn-sm">
+                    Comptes
+                    {actions > 0 && (
+                      <span
+                        className="ml-1 rounded-full bg-brand-violet px-1.5 text-xs text-white"
+                        aria-label={`${actions} action(s) à effectuer`}
+                      >
+                        {actions}
+                      </span>
+                    )}
+                  </Link>
+                  <Link href="/admin/abonnements" className="btn btn-secondaire btn-sm">
+                    Abonnements
+                  </Link>
+                  <Link href="/admin/archives" className="btn btn-secondaire btn-sm">
+                    Archivés
+                  </Link>
+                  <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
+                    Mon compte
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/tableau-de-bord" className="btn btn-secondaire btn-sm">
+                    Tableau de bord
+                  </Link>
+                  <Link href="/tableau-de-bord/documents" className="btn btn-secondaire btn-sm">
+                    Documents
+                  </Link>
+                  <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
+                    Mon compte
+                  </Link>
+                  <Link href="/aide" className="btn btn-secondaire btn-sm">
+                    Aide
+                  </Link>
+                </>
               )}
-              <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
-                Mon compte
-              </Link>
-              <Link href="/aide" className="btn btn-secondaire btn-sm">
-                Aide
-              </Link>
               <DeconnexionButton className="ml-2 text-sm font-medium text-brand-teal underline disabled:opacity-60" />
             </nav>
             {/* Téléphone : navigation par la barre d'onglets en bas de

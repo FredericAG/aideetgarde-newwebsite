@@ -3,7 +3,8 @@
 -- de comptes
 --
 -- À exécuter UNE FOIS dans Supabase > SQL Editor, APRÈS brique3c
--- (peut être relancé sans danger).
+-- (peut être relancé sans danger ; à relancer après la mise à jour du
+-- 21/10 qui ajoute le tarif et les dates d'abonnement à la vue).
 --
 -- 1. Référence client (C00001, C00002…) : attribuée une fois pour toutes,
 --    visible de l'administrateur seulement. Elle départage les homonymes au
@@ -65,6 +66,7 @@ as $$
     'aaaaaaceeeeiiiinooooouuuuyyoa');
 $$;
 
+drop view if exists public.admin_abonnements_resume;
 drop view if exists public.admin_comptes_resume;
 drop view if exists public.admin_comptes;
 create view public.admin_comptes
@@ -85,11 +87,17 @@ select
   public.texte_recherche(trim(p.nom) || ' ' || trim(p.prenom)) as nom_tri,
   abo.statut          as abonnement_statut,
   abo.quota_gestions  as quota,
+  abo.tarif_mensuel   as tarif_mensuel,
+  abo.date_debut      as abonnement_debut,
+  abo.date_fin        as abonnement_fin,
   coalesce(g.en_cours, 0)   as nb_en_cours,
   coalesce(g.envoyees, 0)   as nb_envoyees,
   coalesce(g.brouillons, 0) as nb_brouillons,
   coalesce(g.terminees, 0)  as nb_terminees,
   coalesce(g.salaries, '')  as salaries,
+  coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0) as places_utilisees,
+  (abo.statut = 'actif'
+   and coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0) > abo.quota_gestions) as quota_depasse,
   coalesce(g.envoyees, 0) + coalesce(d.nb, 0) + coalesce(av.nb, 0) as nb_actions,
   -- Catégorie de suivi :
   --  actif       : au moins une gestion en cours ou en attente de validation
@@ -111,7 +119,7 @@ select
   ) as recherche
 from public.profiles p
 left join lateral (
-  select a.statut, a.quota_gestions
+  select a.statut, a.quota_gestions, a.tarif_mensuel, a.date_debut, a.date_fin
     from public.abonnements a
    where a.employeur_id = p.id
    order by (a.statut = 'actif') desc, a.date_debut desc
@@ -153,3 +161,20 @@ select categorie, count(*) as nb_comptes, sum(nb_actions) as nb_actions
 
 revoke all on public.admin_comptes_resume from anon;
 grant select on public.admin_comptes_resume to authenticated;
+
+-- Chiffres clés de l'onglet « Abonnements ».
+create view public.admin_abonnements_resume
+with (security_invoker = true)
+as
+select
+  count(*) filter (where abonnement_statut = 'actif')                          as nb_actifs,
+  coalesce(sum(tarif_mensuel) filter (where abonnement_statut = 'actif'), 0)  as total_mensuel,
+  coalesce(sum(places_utilisees) filter (where abonnement_statut = 'actif'), 0) as places_utilisees,
+  coalesce(sum(quota) filter (where abonnement_statut = 'actif'), 0)          as places_totales,
+  count(*) filter (where quota_depasse)                                         as nb_depassement,
+  count(*) filter (where categorie = 'a_surveiller')                            as nb_sans_gestion,
+  count(*) filter (where abonnement_statut = 'resilie')                         as nb_resilies
+from public.admin_comptes;
+
+revoke all on public.admin_abonnements_resume from anon;
+grant select on public.admin_abonnements_resume to authenticated;

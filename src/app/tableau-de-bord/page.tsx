@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { TitreDocument } from "@/components/TitreDocument";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
@@ -37,6 +38,8 @@ export default async function TableauDeBordPage({
   const sp = await searchParams;
   const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
   const { supabase, user, profile } = await requireUser("/tableau-de-bord");
+  // L'administrateur n'a pas d'espace abonné : on l'envoie à l'administration.
+  if (profile?.role === "admin") redirect("/admin");
 
   const moisCourant = periodesDeclarables().parDefaut;
 
