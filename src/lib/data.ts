@@ -38,9 +38,46 @@ export interface Gestion {
   type_gestion: TypeGestion;
   prenom_salarie: string;
   nom_salarie: string;
-  statut: "en_cours" | "terminee";
+  statut: StatutGestion;
   date_debut: string;
   date_fin: string | null;
+  // Informations du contrat saisies par l'abonné (brique 3). Facultatives
+  // dans le type : absentes tant que le script brique3 n'a pas été exécuté.
+  type_contrat?: "CDI" | "CDD" | null;
+  date_fin_prevue?: string | null;
+  heures?: number | null;
+  unite_heures?: "semaine" | "mois" | null;
+  salaire_horaire_net?: number | null;
+  precisions?: string;
+  envoyee_le?: string | null;
+  validee_le?: string | null;
+  /** Ce que l'administrateur demande de compléter (gestion renvoyée). */
+  motif_retour?: string | null;
+}
+
+/**
+ * Cycle de vie d'une gestion (brique 3) :
+ * brouillon → envoyee → en_cours → terminee (voir brique3_gestions_abonne.sql).
+ */
+export type StatutGestion = "brouillon" | "envoyee" | "en_cours" | "terminee";
+
+export const LIBELLES_STATUT_GESTION: Record<StatutGestion, string> = {
+  brouillon: "Brouillon",
+  envoyee: "Envoyée, en attente de validation",
+  en_cours: "En cours",
+  terminee: "Terminée",
+};
+
+/** « 20 h par semaine », « 86,67 h par mois ». */
+export function formatDuree(g: Pick<Gestion, "heures" | "unite_heures">): string {
+  if (g.heures == null || !g.unite_heures) return "—";
+  return `${String(g.heures).replace(".", ",")} h par ${g.unite_heures}`;
+}
+
+/** 12.5 → « 12,50 € net / heure ». */
+export function formatSalaireHoraire(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return `${Number(v).toFixed(2).replace(".", ",")} € net / heure`;
 }
 
 export interface DocumentRow {

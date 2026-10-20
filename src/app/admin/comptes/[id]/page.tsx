@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DocumentsGestion } from "./DocumentsGestion";
+import { RecapGestion } from "@/components/RecapGestion";
 import { DepotDocument } from "./DepotDocument";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
@@ -25,7 +26,9 @@ import {
   creerGestion,
   modifierAbonnement,
   resilierAbonnement,
+  renvoyerGestion,
   rouvrirGestion,
+  validerGestion,
   supprimerGestion,
   terminerGestion,
 } from "./actions";
@@ -115,13 +118,15 @@ export default async function FicheComptePage({
 
   const actif = abonnements.find((a) => a.statut === "actif") ?? null;
   const anciens = abonnements.filter((a) => a.statut !== "actif");
-  const enCours = gestions.filter((g) => g.statut === "en_cours");
+  // Places occupées : gestions en cours + envoyées (brique 3).
+  const enCours = gestions.filter((g) => g.statut === "en_cours" || g.statut === "envoyee");
   const today = new Date().toISOString().slice(0, 10);
   // Une seule gestion dépliée à la fois (les autres gardent un cadre gris
   // clair) : celle visée par le lien « Déposer le bulletin », sinon la
   // première qui attend une action.
   const gestionOuverte =
     (depotCible && gestions.some((g) => g.id === depotCible) ? depotCible : null) ??
+    gestions.find((g) => g.statut === "envoyee")?.id ??
     gestions.find((g) =>
       declarations.some((d) => d.gestion_id === g.id && d.statut !== "traitee"),
     )?.id ??
@@ -173,7 +178,7 @@ export default async function FicheComptePage({
               <p className="mt-2 text-sm">
                 Actif depuis le {formatDate(actif.date_debut)} ·{" "}
                 {formatEuros(actif.tarif_mensuel)} / mois · {enCours.length} /{" "}
-                {actif.quota_gestions} gestions en cours.
+                {actif.quota_gestions} places utilisées (gestions en cours ou à valider).
               </p>
 
               <form action={modifierAbonnement} className="mt-4 flex flex-wrap items-end gap-3">
@@ -374,19 +379,25 @@ Ajouter la gestion
                           {TYPES_GESTION[g.type_gestion]} ·{" "}
                           {g.statut === "en_cours"
                             ? `en cours depuis le ${formatDate(g.date_debut)}`
-                            : `terminée (${formatDate(g.date_debut)} → ${formatDate(g.date_fin)})`}
+                            : g.statut === "terminee"
+                              ? `terminée (${formatDate(g.date_debut)} → ${formatDate(g.date_fin)})`
+                              : g.statut === "envoyee"
+                                ? `envoyée par l'abonné le ${formatDate(g.envoyee_le)}`
+                                : "brouillon de l'abonné (pas encore envoyé)"}
                         </span>
-                        {enAttente.length > 0 && (
+                        {enAttente.length + (g.statut === "envoyee" ? 1 : 0) > 0 && (
                           <span className="ml-2 inline-block rounded-full bg-brand-violet px-2 py-0.5 text-xs font-bold text-white">
-                            {enAttente.length === 1
-                              ? "1 action à faire"
-                              : `${enAttente.length} actions à faire`}
+                            {g.statut === "envoyee"
+                              ? "À valider"
+                              : enAttente.length === 1
+                                ? "1 action à faire"
+                                : `${enAttente.length} actions à faire`}
                           </span>
                         )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
-                        {g.statut === "en_cours" ? (
+                        {g.statut === "en_cours" && (
                           <form action={terminerGestion} className="flex items-center gap-2">
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
@@ -400,13 +411,29 @@ Ajouter la gestion
                               Terminer la gestion
                             </BoutonConfirme>
                           </form>
-                        ) : (
+                        )}
+                        {g.statut === "terminee" && (
                           <form action={rouvrirGestion}>
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
                             <BoutonEnvoi className={btnLightClass} enCours="Enregistrement…">
 Rouvrir
 </BoutonEnvoi>
+                          </form>
+                        )}
+                        {g.statut === "envoyee" && (
+                          <form action={validerGestion}>
+                            <input type="hidden" name="compte_id" value={id} />
+                            <input type="hidden" name="gestion_id" value={g.id} />
+                            <BoutonConfirme
+                              className={btnClass}
+                              enCours="Validation…"
+                              question={`Valider la gestion de ${nomSalarie(g)} ?`}
+                              precision="Elle passe « en cours » et l'abonné est prévenu (notification et email). Vérifiez avant les informations du contrat dans le détail."
+                              oui="Oui, valider"
+                            >
+                              Valider et démarrer
+                            </BoutonConfirme>
                           </form>
                         )}
                         <form action={supprimerGestion}>
@@ -441,6 +468,40 @@ Rouvrir
                           </span>
                         )}
                       </summary>
+
+                      {(g.type_contrat || g.statut === "brouillon" || g.statut === "envoyee") && (
+                        <section className="mt-3 rounded-lg bg-[var(--carte)] p-3" aria-label="Informations du contrat">
+                          <h3 className="mb-2 text-sm font-bold text-brand-teal">Informations du contrat</h3>
+                          <RecapGestion gestion={g} />
+                          {g.motif_retour && g.statut === "brouillon" && (
+                            <p className="mt-2 text-xs text-foreground/70">
+                              Renvoyée à l&apos;abonné : « {g.motif_retour} »
+                            </p>
+                          )}
+                          {g.statut === "envoyee" && (
+                            <details className="mt-3">
+                              <summary className="text-sm font-medium text-brand-violet">
+                                Renvoyer à l&apos;abonné pour qu&apos;il complète…
+                              </summary>
+                              <form action={renvoyerGestion} className="mt-2 flex flex-col gap-2">
+                                <input type="hidden" name="compte_id" value={id} />
+                                <input type="hidden" name="gestion_id" value={g.id} />
+                                <textarea
+                                  name="motif_retour"
+                                  required
+                                  minLength={3}
+                                  rows={2}
+                                  placeholder="ex. merci de préciser les horaires et le nombre d'enfants gardés"
+                                  className={`${inputClass} w-full`}
+                                />
+                                <BoutonEnvoi className={`${btnLightClass} self-start`} enCours="Envoi…">
+                                  Renvoyer à l&apos;abonné
+                                </BoutonEnvoi>
+                              </form>
+                            </details>
+                          )}
+                        </section>
+                      )}
 
                       {declarations.some((d) => d.gestion_id === g.id) && (
                         <section className="mt-3" aria-label="Déclarations de l'abonné">

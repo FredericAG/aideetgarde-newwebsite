@@ -49,3 +49,29 @@ export async function updateProfileAction(
   revalidatePath("/mon-compte");
   return { status: "success", message: "Profil mis à jour." };
 }
+
+/** Copie des notifications par email : oui / non (voir brique9b). */
+export async function enregistrerPreferenceEmail(
+  actif: boolean,
+): Promise<{ ok: boolean; message: string }> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const uid = data?.claims?.sub;
+  if (!uid) return { ok: false, message: "Session expirée, reconnectez-vous." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ notifications_email: Boolean(actif) })
+    .eq("id", uid);
+  if (error) {
+    return {
+      ok: false,
+      message: "Impossible d'enregistrer ce choix pour le moment. Réessayez dans un instant.",
+    };
+  }
+  revalidatePath("/mon-compte");
+  return {
+    ok: true,
+    message: actif ? "Vous recevrez aussi les notifications par email." : "Plus d'email de notification.",
+  };
+}

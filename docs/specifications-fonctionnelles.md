@@ -45,8 +45,11 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 |---|---|
 | Une gestion = un salarié employé par l'abonné : type (garde d'enfants, aide à domicile, employé de maison), nom et prénom du salarié, dates de début et de fin, statut. | En place |
 | L'abonné voit ses gestions en cours ; les gestions terminées sont regroupées dans un bloc repliable. | En place |
-| L'abonné crée lui-même une nouvelle gestion, dans la limite de son quota. | À faire (brique 3) |
-| Cycle de vie complet de l'ancien site (brouillon → soumis → validé → en cours → terminé) ou simplifié. | À trancher (avant brique 3) |
+| **L'abonné crée lui-même une gestion** (bouton « + Créer une gestion » du tableau de bord, abonnement actif requis). Formulaire en deux blocs : *Le salarié* (emploi, prénom, nom) et *Le contrat* (date de début, CDI/CDD, date de fin si CDD, durée de travail en heures par semaine ou par mois, salaire horaire net, précisions libres). | En place (20/10, brique 3) — à recetter |
+| **Cycle de vie** (décision de Frédéric du 20/10) : **brouillon → envoyée → en cours → terminée**. Brouillon : saisie libre, modifiable, supprimable, ne compte pas dans le quota (5 brouillons au plus). Envoyée : plus modifiable par l'abonné (sauf « Annuler l'envoi »), occupe une place du quota, attend la validation d'Aide & Garde. Pour envoyer, il faut : prénom, nom, type de contrat (et date de fin si CDD), durée de travail, salaire horaire net. | En place (20/10) |
+| Côté administration : liste « Gestions à valider » en tête de l'espace admin ; dans la fiche du compte, pastille « À valider », récapitulatif des informations du contrat, boutons **« Valider et démarrer »** (confirmation) ou **« Renvoyer à l'abonné pour qu'il complète »** avec un message. L'abonné est prévenu dans les deux cas (notification + email) ; le message de retour s'affiche en haut de son brouillon. Un email avertit aussi Aide & Garde à chaque gestion envoyée. | En place (20/10) |
+| Toutes les écritures de l'abonné passent par des fonctions de la base qui vérifient elles-mêmes qui fait quoi (l'abonné n'a aucun droit d'écriture directe sur les gestions). Le quota compte les gestions envoyées et en cours (« places utilisées »). | En place (20/10) |
+| Champs détaillés du contrat (une soixantaine, selon le service : indemnités, conditions d'accueil, agrément…) dans la couche configurable, et données sensibles du salarié (n° de Sécurité sociale, pièce d'identité) : **non collectés pour l'instant**, en attente des réponses aux 5 questions de `Champs_gestion_et_modele_configurable.md` (notamment information du salarié et durée de conservation). | À venir |
 
 ## 5. Documents
 
@@ -159,6 +162,14 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 - Validation des codes proposés pour les types qui n'en ont pas encore (CTRA, AV, LIC, RUPT, LET).
 - Pour la reprise des PDF existants (brique 13), qui n'ont pas de référence : rapprochement par noms, avec la même règle (aucun rangement en cas de doute, liste des cas ambigus à valider à la main).
 
+### 5.7 Copie des notifications par email (brique 9b)
+
+| Règle | Statut |
+|---|---|
+| À chaque nouveau document (ou bulletin corrigé) et à chaque étape d'une gestion (validée, à compléter), l'abonné reçoit, en plus de la notification sur ses appareils, un **email** : type et mois du document, nom du salarié, bouton vers son espace. **Jamais de pièce jointe ni de montant** : le document se télécharge depuis l'espace sécurisé. | En place (20/10) — à recetter |
+| Activé par défaut, désactivable dans « Mon compte » (case « Emails », enregistrée immédiatement). | En place (20/10) |
+| Envoi par l'API Brevo, expéditeur `contact@aideetgarde.fr` (déjà vérifié, domaine authentifié). Un email qui ne part pas ne bloque jamais l'action ; l'administrateur voit le bilan (« email envoyé à … » ou la raison). Variables Vercel : `BREVO_API_KEY` (Secret), facultatives `EMAIL_EXPEDITEUR`, `EMAIL_ADMIN`. | En place (20/10) |
+
 ### 5.8 Notifications : aide à la réactivation
 
 | Règle | Statut |
@@ -233,6 +244,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 20/10/2026 — Brique 3 (création de gestion par l'abonné, cycle brouillon → envoyée → en cours → terminée, validation par l'administrateur) et brique 9b (copie des notifications par email).
 - 20/10/2026 — Barre d'onglets sur téléphone, page « Mes documents », page « Aide et contact », documents compacts sur téléphone, gestions repliées sur fond gris côté admin.
 - 20/10/2026 — Documents par catégories côté abonné avec bouton Télécharger ; lignes de titres colorées (violet / turquoise / orange) ; « Terminer la gestion » sans saisie de date.
 - 20/10/2026 — Confirmations Oui/Non, icônes poubelle, lignes alternées, comptes cliquables, une gestion dépliée à la fois avec pastille « action à faire », encadré de téléchargement qui disparaît au clic, aide à la réactivation des notifications.

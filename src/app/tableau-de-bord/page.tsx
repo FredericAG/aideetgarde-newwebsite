@@ -29,7 +29,13 @@ import {
  * mais un administrateur qui ouvre cette page verrait sinon les données de
  * TOUS les comptes mélangées.
  */
-export default async function TableauDeBordPage() {
+export default async function TableauDeBordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
   const { supabase, user, profile } = await requireUser("/tableau-de-bord");
 
   const moisCourant = periodesDeclarables().parDefaut;
@@ -88,6 +94,10 @@ export default async function TableauDeBordPage() {
     abonnements.find((a) => a.statut === "actif") ?? abonnements[0] ?? null;
   const enCours = gestions.filter((g) => g.statut === "en_cours");
   const terminees = gestions.filter((g) => g.statut === "terminee");
+  // Brique 3 : gestions créées par l'abonné, pas encore démarrées.
+  const enPreparation = gestions.filter((g) => g.statut === "brouillon" || g.statut === "envoyee");
+  // Places occupées dans l'abonnement : gestions en cours + envoyées.
+  const placesUtilisees = gestions.filter((g) => g.statut === "en_cours" || g.statut === "envoyee").length;
   const gestionParId = new Map(gestions.map((g) => [g.id, g]));
   const dernierBulletin = new Map<
     string,
@@ -110,6 +120,12 @@ export default async function TableauDeBordPage() {
           Bonjour {profile?.prenom || user.email} · inscrit le{" "}
           {formatDate(profile?.created_at)}.
         </p>
+
+        {messageOk && (
+          <p role="status" className="mt-6 rounded-lg border border-brand-teal/40 bg-brand-teal/10 p-3 text-sm text-brand-teal">
+            {messageOk}
+          </p>
+        )}
 
         {erreur && (
           <p className="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -148,9 +164,9 @@ export default async function TableauDeBordPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-foreground/60">Gestions en cours</dt>
+                <dt className="text-foreground/60">Places utilisées</dt>
                 <dd className="font-medium">
-                  {enCours.length} / {abonnement.quota_gestions}
+                  {placesUtilisees} / {abonnement.quota_gestions}
                 </dd>
               </div>
               <div>
@@ -173,9 +189,52 @@ export default async function TableauDeBordPage() {
           )}
         </section>
 
+        {/* --- Gestions en préparation (brique 3) --- */}
+        {enPreparation.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-bold text-brand-teal">Gestions en préparation</h2>
+            <ul className="liste-alternee mt-3 divide-y divide-brand-gray/15 overflow-hidden rounded-xl border border-brand-gray/25">
+              {enPreparation.map((g) => (
+                <li key={g.id} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
+                  <span className="flex-1">
+                    <span className="font-bold text-brand-teal">{nomSalarie(g) || "Sans nom"}</span>
+                    <span className="ml-2 text-foreground/60">{TYPES_GESTION[g.type_gestion]}</span>
+                    <span className="mt-1 block">
+                      {g.statut === "brouillon" ? (
+                        g.motif_retour ? (
+                          <span className="pastille-nouveau">À compléter (demande d&apos;Aide &amp; Garde)</span>
+                        ) : (
+                          <span className="text-foreground/70">Brouillon : pas encore envoyé</span>
+                        )
+                      ) : (
+                        <span className="font-bold text-brand-violet">
+                          Envoyée le {formatDate(g.envoyee_le)} : en attente de validation
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <Link
+                    href={`/tableau-de-bord/gestions/${g.id}`}
+                    className={`btn btn-sm w-full sm:w-auto ${g.statut === "brouillon" ? "btn-primaire" : "btn-secondaire"}`}
+                  >
+                    {g.statut === "brouillon" ? "Compléter et envoyer" : "Voir"}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* --- Gestions en cours --- */}
         <section className="mt-8">
-          <h2 className="font-bold text-brand-teal">Mes gestions en cours</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-bold text-brand-teal">Mes gestions en cours</h2>
+            {abonnement?.statut === "actif" && (
+              <Link href="/tableau-de-bord/gestions/nouvelle" className="btn btn-primaire btn-sm">
+                + Créer une gestion
+              </Link>
+            )}
+          </div>
           {enCours.length === 0 ? (
             <p className="mt-3 text-sm text-foreground/70">
               Aucune gestion en cours.

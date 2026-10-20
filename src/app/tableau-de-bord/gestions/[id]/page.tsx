@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentsParCategorie } from "@/components/DocumentsParCategorie";
+import { BoutonConfirme } from "@/components/BoutonConfirme";
+import { BoutonEnvoi } from "@/components/BoutonEnvoi";
+import { IconePoubelle } from "@/components/IconePoubelle";
+import { RecapGestion } from "@/components/RecapGestion";
+import { FormulaireGestion } from "../FormulaireGestion";
+import { annulerEnvoi, supprimerBrouillon } from "../actions";
 import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { requireUser } from "@/lib/auth";
 import { DeclarationMois } from "./DeclarationMois";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import {
+  LIBELLES_STATUT_GESTION,
   LIBELLES_TRI,
   TYPES_GESTION,
   formatDate,
@@ -37,6 +44,8 @@ export default async function DetailGestionPage({
   if (!isUuid(id)) notFound();
   const sp = await searchParams;
   const triDemande = Array.isArray(sp.tri) ? sp.tri[0] : sp.tri;
+  const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
+  const messageErreur = Array.isArray(sp.erreur) ? sp.erreur[0] : sp.erreur;
   const tri: TriDocuments =
     triDemande && triDemande in LIBELLES_TRI ? (triDemande as TriDocuments) : "recent";
 
@@ -84,9 +93,75 @@ export default async function DetailGestionPage({
           {TYPES_GESTION[gestion.type_gestion]} ·{" "}
           {gestion.statut === "en_cours"
             ? `en cours depuis le ${formatDate(gestion.date_debut)}`
-            : `terminée (du ${formatDate(gestion.date_debut)} au ${formatDate(gestion.date_fin)})`}
+            : gestion.statut === "terminee"
+              ? `terminée (du ${formatDate(gestion.date_debut)} au ${formatDate(gestion.date_fin)})`
+              : LIBELLES_STATUT_GESTION[gestion.statut].toLowerCase()}
         </p>
 
+        {messageOk && (
+          <p role="status" className="mt-6 rounded-lg border border-brand-teal/40 bg-brand-teal/10 p-3 text-sm text-brand-teal">
+            {messageOk}
+          </p>
+        )}
+        {messageErreur && (
+          <p role="alert" className="mt-6 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            {messageErreur}
+          </p>
+        )}
+
+        {/* Brouillon : l'abonné complète et envoie (brique 3) */}
+        {gestion.statut === "brouillon" && (
+          <>
+            {gestion.motif_retour && (
+              <div className="mt-6 rounded-xl border-2 border-brand-jaune bg-brand-jaune/25 p-4 text-sm">
+                <p className="font-bold text-brand-violet">Aide &amp; Garde vous demande de compléter :</p>
+                <p className="mt-1 whitespace-pre-line">{gestion.motif_retour}</p>
+              </div>
+            )}
+            <FormulaireGestion gestion={gestion} />
+            <form action={supprimerBrouillon} className="mt-8 border-t border-brand-gray/20 pt-6">
+              <input type="hidden" name="gestion_id" value={gestion.id} />
+              <BoutonConfirme
+                className="btn btn-danger"
+                enCours="Suppression…"
+                question="Supprimer ce brouillon ?"
+                precision="Les informations saisies pour ce salarié seront effacées."
+                oui="Oui, supprimer"
+              >
+                <IconePoubelle /> Supprimer le brouillon
+              </BoutonConfirme>
+            </form>
+          </>
+        )}
+
+        {/* Envoyée : en attente de validation par Aide & Garde */}
+        {gestion.statut === "envoyee" && (
+          <>
+            <div className="mt-6 rounded-xl border-2 border-brand-violet/40 bg-brand-violet/5 p-4 text-sm">
+              <p className="font-bold text-brand-violet">
+                Envoyée le {formatDate(gestion.envoyee_le)} : en attente de validation
+              </p>
+              <p className="mt-1 text-foreground/80">
+                Aide &amp; Garde vérifie les informations et démarre la gestion.
+                Vous serez prévenu dès qu&apos;elle sera validée, ou si une
+                information manque.
+              </p>
+            </div>
+            <section className="carte mt-6 p-4 sm:p-5">
+              <h2 className="mb-3 font-bold text-brand-teal">Informations envoyées</h2>
+              <RecapGestion gestion={gestion} />
+            </section>
+            <form action={annulerEnvoi} className="mt-6">
+              <input type="hidden" name="gestion_id" value={gestion.id} />
+              <BoutonEnvoi className="btn btn-secondaire" enCours="En cours…">
+                Annuler l&apos;envoi pour modifier
+              </BoutonEnvoi>
+            </form>
+          </>
+        )}
+
+        {(gestion.statut === "en_cours" || gestion.statut === "terminee") && (
+          <>
         <NouveauxDocuments documents={documents} />
 
         {gestion.statut === "en_cours" && (
@@ -146,6 +221,17 @@ export default async function DetailGestionPage({
                 ) : null
               }
             />
+          </>
+        )}
+
+        {gestion.type_contrat && (
+          <details className="carte mt-8 p-4 sm:p-5">
+            <summary className="font-bold text-brand-teal">Informations du contrat</summary>
+            <div className="mt-3">
+              <RecapGestion gestion={gestion} />
+            </div>
+          </details>
+        )}
           </>
         )}
       </div>

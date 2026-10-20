@@ -3,6 +3,7 @@ import { type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
+import { PreferenceEmail } from "./PreferenceEmail";
 
 /**
  * Page protégée. Le Proxy (`src/proxy.ts`) redirige déjà les requêtes sans
@@ -10,7 +11,14 @@ import { DeconnexionButton } from "@/components/DeconnexionButton";
  * (double vérification), et la base (RLS) reste la dernière barrière.
  */
 export default async function MonComptePage() {
-  const { user, profile } = await requireUser("/mon-compte");
+  const { supabase, user, profile } = await requireUser("/mon-compte");
+  // Préférence « copie par email » (brique9b) ; « oui » par défaut, y
+  // compris tant que le script n'a pas été exécuté.
+  const { data: prefs } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
   // Ne devrait pas arriver (le profil est créé par un trigger Postgres à
   // l'inscription, voir supabase/schema.sql), mais on reste défensif plutôt
@@ -38,6 +46,11 @@ export default async function MonComptePage() {
         <ProfileForm profile={safeProfile} />
 
         <NotificationsPush />
+
+        <PreferenceEmail
+          actifInitial={prefs?.notifications_email !== false}
+          email={user.email ?? ""}
+        />
 
         {/* Sur téléphone, la déconnexion se trouve ici (onglet « Compte »). */}
         <div className="mt-8 border-t border-brand-gray/20 pt-6">

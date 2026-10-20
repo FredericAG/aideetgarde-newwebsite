@@ -11,7 +11,7 @@ import {
   libelleMois,
   type TypeDocument,
 } from "@/lib/data";
-import { notifierUtilisateur, resumerBilan } from "@/lib/push";
+import { prevenirAbonne } from "@/lib/prevenir";
 import { cheminStockage } from "@/lib/nom-fichier";
 
 /**
@@ -412,18 +412,40 @@ export async function enregistrerDocument(
   // Prévenir l'abonné sur ses appareils. Le message reste volontairement
   // général (pas de nom, pas de montant) : il peut s'afficher sur un écran
   // verrouillé.
+  // Copie par email (sauf si l'abonné l'a désactivée) : on peut y nommer
+  // le salarié, utile quand l'abonné en emploie plusieurs.
   const libelle = TYPES_DOCUMENT[m.typeDocument as TypeDocument] ?? "Document";
-  const bilan = await notifierUtilisateur(supabase, m.compteId, {
-    title: remplacement ? "Bulletin corrigé disponible" : "Nouveau document disponible",
-    body: periode ? `${libelle} de ${libelleMois(periode)}` : libelle,
-    url: `/tableau-de-bord/gestions/${m.gestionId}`,
-    tag: `document-${m.documentId}`,
-  });
+  const quoi = periode ? `${libelle} de ${libelleMois(periode)}` : libelle;
+  const { data: g } = await supabase
+    .from("gestions")
+    .select("prenom_salarie, nom_salarie")
+    .eq("id", m.gestionId)
+    .maybeSingle();
+  const salarie = g ? `${g.prenom_salarie ?? ""} ${g.nom_salarie ?? ""}`.trim() : "";
+  const bilan = await prevenirAbonne(
+    supabase,
+    m.compteId,
+    {
+      title: remplacement ? "Bulletin corrigé disponible" : "Nouveau document disponible",
+      body: quoi,
+      url: `/tableau-de-bord/gestions/${m.gestionId}`,
+      tag: `document-${m.documentId}`,
+    },
+    {
+      sujet: `${remplacement ? "Bulletin corrigé disponible" : "Nouveau document disponible"} : ${quoi}`,
+      titre: remplacement ? "Votre bulletin corrigé est disponible" : "Un nouveau document est disponible",
+      paragraphes: [
+        `${remplacement ? "Le bulletin corrigé" : "Un nouveau document"} est disponible dans votre espace Aide & Garde : ${quoi}${salarie ? ` (${salarie})` : ""}.`,
+        "Pour protéger vos données, il n'est pas joint à cet email : téléchargez-le depuis votre espace sécurisé.",
+      ],
+      bouton: "Télécharger depuis mon espace",
+    },
+  );
 
   revalidatePath(`/admin/comptes/${m.compteId}`);
   return {
     ok: true,
-    message: `${remplacement ? "Bulletin remplacé" : "Document déposé"} — ${resumerBilan(bilan)}.`,
+    message: `${remplacement ? "Bulletin remplacé" : "Document déposé"} — ${bilan}.`,
   };
 }
 
@@ -450,4 +472,82 @@ export async function supprimerDocument(fd: FormData) {
     .eq("employeur_id", compteId);
   if (error) retour(compteId, "erreur", messageErreur(error));
   retour(compteId, "ok", "Document et fichier supprimés.");
+}
+
+/** Brique 3 : gestion envoyée par l'abonné → en cours. */
+export async function validerGestion(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const gestionId = texte(fd, "gestion_id");
+  const { data, error } = await supabase
+    .from("gestions")
+    .update({ statut: "en_cours", validee_le: new Date().toISOString(), motif_retour: null })
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId)
+    .eq("statut", "envoyee")
+    .select("prenom_salarie, nom_salarie");
+  if (error) retour(compteId, "erreur", messageErreur(error));
+  if (!data?.length) retour(compteId, "erreur", "Cette gestion n'est plus en attente de validation.");
+
+  const salarie = `${data[0].prenom_salarie ?? ""} ${data[0].nom_salarie ?? ""}`.trim();
+  const bilan = await prevenirAbonne(
+    supabase,
+    compteId,
+    {
+      title: "Gestion validée",
+      body: `La gestion de ${salarie} est en cours.`,
+      url: `/tableau-de-bord/gestions/${gestionId}`,
+      tag: `gestion-${gestionId}`,
+    },
+    {
+      sujet: `Gestion validée : ${salarie}`,
+      titre: "Votre gestion est validée",
+      paragraphes: [
+        `Aide & Garde a validé la gestion de ${salarie} : elle est désormais en cours.`,
+        "Chaque mois, déclarez les heures travaillées depuis votre espace : nous établissons le bulletin et vous prévenons dès qu'il est disponible.",
+      ],
+      bouton: "Ouvrir la gestion",
+    },
+  );
+  retour(compteId, "ok", `Gestion validée — ${bilan}.`);
+}
+
+/** Brique 3 : renvoyer une gestion envoyée à l'abonné pour qu'il la complète. */
+export async function renvoyerGestion(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const gestionId = texte(fd, "gestion_id");
+  const motif = texte(fd, "motif_retour").slice(0, 2000);
+  if (motif.length < 3) retour(compteId, "erreur", "Indiquez à l'abonné ce qu'il doit compléter.");
+
+  const { data, error } = await supabase
+    .from("gestions")
+    .update({ statut: "brouillon", motif_retour: motif, envoyee_le: null })
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId)
+    .eq("statut", "envoyee")
+    .select("prenom_salarie, nom_salarie");
+  if (error) retour(compteId, "erreur", messageErreur(error));
+  if (!data?.length) retour(compteId, "erreur", "Cette gestion n'est plus en attente de validation.");
+
+  const salarie = `${data[0].prenom_salarie ?? ""} ${data[0].nom_salarie ?? ""}`.trim();
+  const bilan = await prevenirAbonne(
+    supabase,
+    compteId,
+    {
+      title: "Gestion à compléter",
+      body: `Il manque une information pour la gestion de ${salarie}.`,
+      url: `/tableau-de-bord/gestions/${gestionId}`,
+      tag: `gestion-${gestionId}`,
+    },
+    {
+      sujet: `Gestion à compléter : ${salarie}`,
+      titre: "Une information manque",
+      paragraphes: [
+        `Avant de démarrer la gestion de ${salarie}, nous avons besoin que vous complétiez la demande :`,
+        `« ${motif} »`,
+        "Modifiez la gestion dans votre espace, puis envoyez-la à nouveau.",
+      ],
+      bouton: "Compléter la gestion",
+    },
+  );
+  retour(compteId, "ok", `Gestion renvoyée à l'abonné — ${bilan}.`);
 }

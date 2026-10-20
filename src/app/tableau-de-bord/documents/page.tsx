@@ -41,10 +41,14 @@ export default async function MesDocumentsPage({
   ]);
 
   // Gestions en cours d'abord, puis terminées.
-  const gestions = ((gestionsRes.data ?? []) as Gestion[]).sort(
+  const tous = (docsRes.data ?? []) as DocumentRow[];
+  // Gestions démarrées (en cours ou terminées), ou ayant déjà un document.
+  const gestions = ((gestionsRes.data ?? []) as Gestion[])
+    .filter((g) => g.statut === "en_cours" || g.statut === "terminee" || tous.some((d) => d.gestion_id === g.id))
+    .sort(
     (a, b) => Number(a.statut !== "en_cours") - Number(b.statut !== "en_cours"),
   );
-  const documents = trierDocuments((docsRes.data ?? []) as DocumentRow[], "recent");
+  const documents = trierDocuments(tous, "recent");
   const affichees = gestions.filter((g) => !filtre || g.id === filtre);
   const parId = new Map(gestions.map((g) => [g.id, g]));
 

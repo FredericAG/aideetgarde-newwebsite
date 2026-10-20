@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { formatDate, formatHeures, libelleMois } from "@/lib/data";
+import { TYPES_GESTION, formatDate, formatHeures, libelleMois } from "@/lib/data";
 
 interface DeclarationATraiter {
   id: string;
@@ -13,6 +13,17 @@ interface DeclarationATraiter {
   statut: "envoyee" | "modification";
   motif_modification: string | null;
   gestion: { reference: string; prenom_salarie: string; nom_salarie: string } | null;
+  employeur: { prenom: string; nom: string } | null;
+}
+
+interface GestionAValider {
+  id: string;
+  reference: string;
+  prenom_salarie: string;
+  nom_salarie: string;
+  type_gestion: keyof typeof TYPES_GESTION;
+  envoyee_le: string;
+  employeur_id: string;
   employeur: { prenom: string; nom: string } | null;
 }
 
@@ -33,7 +44,7 @@ interface CompteRow {
 export default async function AdminPage() {
   const { supabase } = await requireAdmin("/admin");
 
-  const [comptesRes, abosRes, gestionsRes, declsRes] = await Promise.all([
+  const [comptesRes, abosRes, gestionsRes, declsRes, aValiderRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, role, prenom, nom, created_at")
@@ -42,7 +53,7 @@ export default async function AdminPage() {
       .from("abonnements")
       .select("employeur_id, quota_gestions")
       .eq("statut", "actif"),
-    supabase.from("gestions").select("employeur_id").eq("statut", "en_cours"),
+    supabase.from("gestions").select("employeur_id").in("statut", ["en_cours", "envoyee"]),
     // Déclarations envoyées par les abonnés, en attente de bulletin
     // (la plus ancienne en premier : c'est elle qui attend depuis le plus
     // longtemps).
@@ -54,7 +65,15 @@ export default async function AdminPage() {
       .in("statut", ["envoyee", "modification"])
       .order("envoyee_le", { ascending: true })
       .limit(200),
+    // Brique 3 : gestions envoyées par les abonnés, à valider.
+    supabase
+      .from("gestions")
+      .select("id, reference, prenom_salarie, nom_salarie, type_gestion, envoyee_le, employeur_id, employeur:profiles(prenom, nom)")
+      .eq("statut", "envoyee")
+      .order("envoyee_le", { ascending: true })
+      .limit(200),
   ]);
+  const aValider = (aValiderRes.data ?? []) as unknown as GestionAValider[];
   const aTraiter = (declsRes.data ?? []) as unknown as DeclarationATraiter[];
 
   const comptes = (comptesRes.data ?? []) as CompteRow[];
@@ -85,6 +104,37 @@ export default async function AdminPage() {
             Erreur de lecture : {erreur.message}. Le script supabase/brique2.sql
             a-t-il bien été exécuté ?
           </p>
+        )}
+
+        {aValider.length > 0 && (
+          <section className="mt-8">
+            <h2 className="font-bold text-brand-violet">Gestions à valider ({aValider.length})</h2>
+            <p className="mt-1 text-xs text-foreground/60">
+              Créées et envoyées par les abonnés. Vérifiez les informations du
+              contrat, puis validez ou renvoyez à l&apos;abonné.
+            </p>
+            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-violet/30">
+              {aValider.map((g) => (
+                <li key={g.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
+                  <span className="w-20 shrink-0 font-mono text-xs text-foreground/60">{g.reference}</span>
+                  <span className="flex-1">
+                    <span className="font-medium">
+                      {`${g.employeur?.prenom ?? ""} ${g.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
+                    </span>
+                    {" → "}
+                    {`${g.prenom_salarie} ${g.nom_salarie}`.trim()}
+                    <span className="ml-2 text-foreground/60">{TYPES_GESTION[g.type_gestion]}</span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-start gap-1 text-xs text-foreground/60 sm:items-end">
+                    envoyée le {formatDate(g.envoyee_le)}
+                    <Link href={`/admin/comptes/${g.employeur_id}#gestion-${g.id}`} className="btn btn-primaire btn-sm">
+                      Vérifier et valider
+                    </Link>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <section className="mt-8">

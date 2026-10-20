@@ -171,7 +171,7 @@ Aucun script SQL.
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
 | R.1 | Administration : cliquer n'importe où sur la ligne d'un compte (rôle, date, abonnement) | La fiche du compte s'ouvre || OK (20/10) |
-| R.2 | Fiche d'un compte avec plusieurs gestions | Une seule gestion dépliée (cadre violet), les autres en cadre gris clair ; déplier une autre gestion replie la précédente || À revérifier (corrigé le 20/10 : gestions repliées sur fond gris) |
+| R.2 | Fiche d'un compte avec plusieurs gestions | Une seule gestion dépliée (cadre violet), les autres en cadre gris clair ; déplier une autre gestion replie la précédente || OK (20/10, après correction — voir T.8) |
 | R.3 | Gestion avec une déclaration à traiter | Pastille « 1 action à faire » visible même repliée ; c'est elle qui est dépliée à l'arrivée || OK (20/10) |
 | R.4 | Cliquer la poubelle d'un document | Fenêtre « Supprimer ce document ? » avec type, période et titre ; « Non, annuler » ou Échap ne supprime rien ; « Oui, supprimer » supprime || OK (20/10) |
 | R.5 | Poubelle d'une gestion | Fenêtre de confirmation rappelant le nombre de documents effacés et suggérant « Terminer la gestion » || OK (20/10) |
@@ -200,12 +200,49 @@ Aucun script SQL.
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
-| T.1 | Téléphone, connecté : n'importe quelle page | Barre fixe en bas : Accueil / Documents / Aide (Admin pour l'administrateur) / Compte ; onglet en cours en violet ; elle ne cache pas le bas des pages | |
-| T.2 | iPhone, application installée | La barre reste au-dessus de la zone du geste d'accueil | |
-| T.3 | Onglet « Documents » | Page « Mes documents » : tous les documents, salarié par salarié, en trois catégories ; boutons pour filtrer par salarié | |
-| T.4 | Onglet « Aide » | Bouton « Appeler le 01 88 320 118 » (ouvre le téléphone) et adresse email | |
-| T.5 | Onglet « Compte » | Bouton « Se déconnecter » en bas de page | |
-| T.6 | Téléphone : détail d'une gestion et « Vos 5 derniers documents » | Chaque document sur deux lignes (type + période, puis titre), bouton rond de téléchargement à droite, alternance blanc / gris | |
-| T.7 | Ordinateur : en-tête | Tableau de bord / Documents / (Administration) / Mon compte / Aide / Se déconnecter ; pas de barre en bas | |
-| T.8 | Admin : fiche d'un compte | Gestions repliées sur fond gris ; gestion dépliée sur fond blanc, cadre violet | |
+| T.1 | Téléphone, connecté : n'importe quelle page | Barre fixe en bas : Accueil / Documents / Aide (Admin pour l'administrateur) / Compte ; onglet en cours en violet ; elle ne cache pas le bas des pages || OK (20/10) |
+| T.2 | iPhone, application installée | La barre reste au-dessus de la zone du geste d'accueil || OK (20/10) |
+| T.3 | Onglet « Documents » | Page « Mes documents » : tous les documents, salarié par salarié, en trois catégories ; boutons pour filtrer par salarié || OK (20/10) |
+| T.4 | Onglet « Aide » | Bouton « Appeler le 01 88 320 118 » (ouvre le téléphone) et adresse email || OK (20/10) |
+| T.5 | Onglet « Compte » | Bouton « Se déconnecter » en bas de page || OK (20/10) |
+| T.6 | Téléphone : détail d'une gestion et « Vos 5 derniers documents » | Chaque document sur deux lignes (type + période, puis titre), bouton rond de téléchargement à droite, alternance blanc / gris || OK (20/10) |
+| T.7 | Ordinateur : en-tête | Tableau de bord / Documents / (Administration) / Mon compte / Aide / Se déconnecter ; pas de barre en bas || OK (20/10) |
+| T.8 | Admin : fiche d'un compte | Gestions repliées sur fond gris ; gestion dépliée sur fond blanc, cadre violet || OK (20/10) |
+
+## Brique 9b — Copie des notifications par email
+
+Préparation :
+1. Exécuter `supabase/brique9b_notifications_email.sql`.
+2. Dans Brevo : « SMTP et API » > onglet « Clés API » > « Générer une nouvelle clé API » (nom : `site-vercel`). Copier la clé.
+3. Dans Vercel : Settings > Environment Variables > `BREVO_API_KEY` = la clé, type **Secret** (pas de préfixe NEXT_PUBLIC_). Redéployer.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 9b.1 | Client : Mon compte | Bloc « Emails », case cochée par défaut | |
+| 9b.2 | Admin : déposer un bulletin | Message « Document déposé — notification… ; email envoyé à … » ; email reçu par le client : titre, mois, salarié, bouton vers l'espace, aucune pièce jointe | |
+| 9b.3 | Cliquer le bouton de l'email (déconnecté) | Page de connexion, puis arrivée sur la gestion | |
+| 9b.4 | Client : décocher la case, puis nouveau dépôt | Message « Plus d'email de notification » ; admin : « pas d'email (désactivé par l'abonné) » ; aucun email reçu | |
+| 9b.5 | Si l'admin voit « email refusé par Brevo » | Vérifier la clé ; si la cause est l'adresse IP : Brevo > Sécurité > IP autorisées, désactiver le blocage (les serveurs Vercel changent d'adresse) | |
+
+## Brique 3 — L'abonné crée ses gestions
+
+Préparation : exécuter `supabase/brique3_gestions_abonne.sql` (après 9b).
+
+| # | Scénario | Ancien site | Résultat attendu | Statut |
+|---|---|---|---|---|
+| 3.1 | Client avec abonnement actif : tableau de bord | « Editer un contrat / Créer une gestion » | Bouton « + Créer une gestion » à côté de « Mes gestions en cours » | |
+| 3.2 | Remplir seulement le nom, « Enregistrer le brouillon » | Brouillon | Message « Brouillon enregistré » ; tableau de bord : bloc « Gestions en préparation », « Brouillon : pas encore envoyé » | |
+| 3.3 | Rouvrir le brouillon, choisir CDD | — | Le champ « Date de fin prévue du CDD » apparaît | |
+| 3.4 | « Envoyer à Aide & Garde » avec des champs manquants | Contrôle | Message listant ce qui manque ; le brouillon est conservé | |
+| 3.5 | Compléter et envoyer | Soumis | « Gestion envoyée… » ; statut « Envoyée le …, en attente de validation » ; récapitulatif en lecture seule ; « Places utilisées » augmente de 1 ; email « Gestion à valider » reçu sur contact@aideetgarde.fr | |
+| 3.6 | « Annuler l'envoi pour modifier » | — | Retour en brouillon modifiable ; la place est libérée | |
+| 3.7 | Envoyer alors que le quota est atteint | Refus | Message « Quota atteint… » ; le brouillon reste enregistré | |
+| 3.8 | Admin : Administration | Back-office | Bloc « Gestions à valider » ; « Vérifier et valider » ouvre la bonne gestion, dépliée, pastille « À valider », informations du contrat | |
+| 3.9 | Admin : « Renvoyer à l'abonné pour qu'il complète » avec un message | Invalidation | Client : notification + email « Gestion à compléter » ; le message s'affiche en haut du brouillon ; pastille « À compléter » au tableau de bord | |
+| 3.10 | Client renvoie, admin « Valider et démarrer » (confirmation) | Validé → en cours | Client : notification + email « Gestion validée » ; la gestion passe dans « Mes gestions en cours » avec « Déclarer [mois] » | |
+| 3.11 | Client : supprimer un brouillon (poubelle, confirmation) | — | Brouillon effacé, message « Brouillon supprimé » | |
+| 3.12 | Client : tenter de modifier une gestion en cours | — | Impossible : seul le récapitulatif « Informations du contrat » est affiché | |
+| 3.13 | Admin : « Ajouter la gestion » depuis la fiche (ancien chemin) | — | Fonctionne toujours (gestion créée directement en cours) | |
+
+**Écarts assumés brique 3** : l'ancien site avait 5 états (brouillon, soumis, validé, en cours, terminé) ; « validé » et « en cours » sont fusionnés (décision du 20/10). Les champs détaillés du contrat et les données sensibles du salarié ne sont pas encore collectés (voir spécifications § 4).
 
