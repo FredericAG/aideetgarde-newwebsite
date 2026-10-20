@@ -126,6 +126,9 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Règle | Statut |
 |---|---|
 | Liste des comptes : **toute la ligne** est cliquable (pas seulement le nom). | En place (20/10) |
+| **Liste des comptes pour des milliers d'abonnés** (21/10) : une ligne par compte — Réf. client, Employeur (Prénom NOM, email, code postal et ville), Inscrit le, Abonnement (actif / résilié / aucun), Gestions (en cours / quota, à valider, brouillons, terminées), Salariés, Actions (bouton violet « N actions »). Recherche instantanée (nom, email, référence client ou de gestion, salarié, ville, téléphone ; sans tenir compte des accents ; plusieurs mots possibles). Tri en cliquant sur les titres de colonnes. Pagination par 50 ; tri, recherche et pagination faits par la base (vue `admin_comptes`) pour rester fluide. | En place (21/10, brique 2g) — à recetter |
+| **Onglets** : *Clients actifs* (au moins une gestion en cours ou à valider, par défaut, comptes avec actions en tête) ; *À surveiller : abonnement sans gestion* (abonnement actif sans gestion en cours ni en attente — abonnement à suspendre ou rembourser ?), signalé par un bandeau jaune ; *Avec actions à effectuer* ; *Inactifs* (ni gestion ni abonnement actif) affichés seulement à la demande, en fin de barre. Le bandeau du haut donne la somme des actions de toutes les lignes. | En place (21/10) |
+| **Homonymes** : référence client unique `C00001…` (administration seulement, aussi en tête de la fiche du compte) ; pastille « Homonyme ×N » quand plusieurs comptes portent le même prénom et nom ; email, ville et salariés affichés sur chaque ligne pour départager. | En place (21/10) |
 | Fiche d'un compte : **une seule gestion dépliée à la fois** (« Détail : N document(s) · k déclaration(s) à traiter »), fond blanc et cadre violet ; les autres sont sur fond gris clair. À l'arrivée, la gestion visée par un lien « Déposer le bulletin » est dépliée, sinon la première qui attend une action. | En place (20/10) |
 | **Actions attendues toujours visibles** : une gestion qui attend une action porte une pastille violette « 1 action à faire » dans son en-tête, même repliée. Les déclarations, les documents et la zone de dépôt sont regroupés dans le détail. | En place (20/10) |
 | Documents répartis en **trois catégories** : *Éléments contractuels* (contrat, avenants, rupture conventionnelle, licenciement, et documents de fin de contrat : certificat de travail, solde de tout compte, attestation France Travail), *Bulletins de paie*, *Autres documents* (attestations de salaire ou sur l'honneur, courriers, divers). Une catégorie vide tient sur une ligne (« aucun document »). | En place (20/10) — rattachement des documents de fin de contrat à valider par Frédéric |
@@ -249,6 +252,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 21/10/2026 — Liste des comptes de l'administration pour des milliers d'abonnés (recherche, tri, onglets, homonymes, comptes à surveiller).
 - 20/10/2026 — Brique 3c : messages explicites à l'envoi d'une gestion (champs manquants, quota), brouillon sans nom.
 - 20/10/2026 — Brique 3b : quota fiable, demandes d'avenant, actions à effectuer (admin), liens d'emails ouverts avec un autre compte, page 404 en français.
 - 20/10/2026 — Brique 3 (création de gestion par l'abonné, cycle brouillon → envoyée → en cours → terminée, validation par l'administrateur) et brique 9b (copie des notifications par email).

@@ -1,0 +1,155 @@
+-- ============================================================================
+-- Brique 2g — liste des comptes de l'administration, prête pour des milliers
+-- de comptes
+--
+-- À exécuter UNE FOIS dans Supabase > SQL Editor, APRÈS brique3c
+-- (peut être relancé sans danger).
+--
+-- 1. Référence client (C00001, C00002…) : attribuée une fois pour toutes,
+--    visible de l'administrateur seulement. Elle départage les homonymes au
+--    téléphone (« Madame Martin, référence C00412 »), comme AG00001 pour
+--    les gestions.
+-- 2. Vue `admin_comptes` : une ligne par compte, avec tout ce que la liste
+--    affiche (abonnement, nombre de gestions par état, salariés, actions à
+--    effectuer, homonymes). Le tri, la recherche et la pagination sont faits
+--    par la base : la page reste rapide avec des milliers de comptes, car
+--    elle ne charge que les 50 lignes affichées.
+--    `security_invoker` : la vue applique les règles d'accès de celui qui
+--    l'interroge (l'administrateur voit tout, un abonné ne verrait que sa
+--    propre ligne).
+-- ============================================================================
+
+-- 1. Référence client ---------------------------------------------------------
+create sequence if not exists public.profiles_reference_seq start 1;
+
+alter table public.profiles add column if not exists reference_client text;
+
+do $$
+declare
+  p record;
+begin
+  for p in
+    select id from public.profiles where reference_client is null order by created_at, id
+  loop
+    update public.profiles
+       set reference_client = 'C' || lpad(nextval('public.profiles_reference_seq')::text, 5, '0')
+     where id = p.id;
+  end loop;
+end;
+$$;
+
+alter table public.profiles
+  alter column reference_client set default
+    ('C' || lpad(nextval('public.profiles_reference_seq')::text, 5, '0'));
+
+create unique index if not exists profiles_reference_client_unique
+  on public.profiles (reference_client);
+
+-- 2. Index utiles au calcul des compteurs --------------------------------------
+create index if not exists gestions_employeur_statut_idx on public.gestions (employeur_id, statut);
+create index if not exists declarations_employeur_statut_idx on public.declarations_mensuelles (employeur_id, statut);
+create index if not exists demandes_avenant_employeur_statut_idx on public.demandes_avenant (employeur_id, statut);
+create index if not exists abonnements_employeur_idx on public.abonnements (employeur_id);
+
+-- 3. Vue de la liste des comptes ------------------------------------------------
+-- Texte « simplifié » pour la recherche : minuscules et sans accents
+-- (é → e…), pour qu'« helene » trouve « Hélène ».
+create or replace function public.texte_recherche(t text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select translate(lower(coalesce(t, '')),
+    'àâäáãåçéèêëíìîïñóòôöõúùûüýÿœæ',
+    'aaaaaaceeeeiiiinooooouuuuyyoa');
+$$;
+
+drop view if exists public.admin_comptes_resume;
+drop view if exists public.admin_comptes;
+create view public.admin_comptes
+with (security_invoker = true)
+as
+select
+  p.id,
+  p.reference_client,
+  p.prenom,
+  p.nom,
+  p.email,
+  p.telephone,
+  p.code_postal,
+  p.ville,
+  p.role,
+  p.created_at,
+  -- Tri alphabétique sans tenir compte des accents ni des majuscules.
+  public.texte_recherche(trim(p.nom) || ' ' || trim(p.prenom)) as nom_tri,
+  abo.statut          as abonnement_statut,
+  abo.quota_gestions  as quota,
+  coalesce(g.en_cours, 0)   as nb_en_cours,
+  coalesce(g.envoyees, 0)   as nb_envoyees,
+  coalesce(g.brouillons, 0) as nb_brouillons,
+  coalesce(g.terminees, 0)  as nb_terminees,
+  coalesce(g.salaries, '')  as salaries,
+  coalesce(g.envoyees, 0) + coalesce(d.nb, 0) + coalesce(av.nb, 0) as nb_actions,
+  -- Catégorie de suivi :
+  --  actif       : au moins une gestion en cours ou en attente de validation
+  --  a_surveiller: abonnement actif mais aucune gestion en cours ni en
+  --                attente (abonnement payé pour rien ?)
+  --  inactif     : ni gestion en cours ou en attente, ni abonnement actif
+  case
+    when coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0) > 0 then 'actif'
+    when abo.statut = 'actif' then 'a_surveiller'
+    else 'inactif'
+  end as categorie,
+  -- Nombre de comptes portant exactement le même prénom et le même nom.
+  count(*) over (
+    partition by public.texte_recherche(trim(p.nom)), public.texte_recherche(trim(p.prenom))
+  ) as nb_homonymes,
+  public.texte_recherche(
+    concat_ws(' ', p.reference_client, p.prenom, p.nom, p.email, p.ville, p.code_postal,
+              p.telephone, g.salaries, g.references)
+  ) as recherche
+from public.profiles p
+left join lateral (
+  select a.statut, a.quota_gestions
+    from public.abonnements a
+   where a.employeur_id = p.id
+   order by (a.statut = 'actif') desc, a.date_debut desc
+   limit 1
+) abo on true
+left join lateral (
+  select
+    count(*) filter (where statut = 'en_cours')  as en_cours,
+    count(*) filter (where statut = 'envoyee')   as envoyees,
+    count(*) filter (where statut = 'brouillon') as brouillons,
+    count(*) filter (where statut = 'terminee')  as terminees,
+    string_agg(nullif(trim(prenom_salarie || ' ' || nom_salarie), ''), ', '
+               order by (statut in ('en_cours', 'envoyee')) desc, nom_salarie)
+      filter (where statut <> 'brouillon' or nom_salarie <> '') as salaries,
+    string_agg(reference, ' ') as references
+  from public.gestions
+  where employeur_id = p.id
+) g on true
+left join lateral (
+  select count(*) as nb from public.declarations_mensuelles
+   where employeur_id = p.id and statut in ('envoyee', 'modification')
+) d on true
+left join lateral (
+  select count(*) as nb from public.demandes_avenant
+   where employeur_id = p.id and statut = 'envoyee'
+) av on true
+where p.role <> 'admin';
+
+revoke all on public.admin_comptes from anon;
+grant select on public.admin_comptes to authenticated;
+
+-- Compteurs des onglets (un seul aller-retour pour toute la liste).
+create view public.admin_comptes_resume
+with (security_invoker = true)
+as
+select categorie, count(*) as nb_comptes, sum(nb_actions) as nb_actions
+  from public.admin_comptes
+ group by categorie;
+
+revoke all on public.admin_comptes_resume from anon;
+grant select on public.admin_comptes_resume to authenticated;

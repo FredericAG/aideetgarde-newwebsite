@@ -220,7 +220,7 @@ Préparation :
 |---|---|---|---|
 | 9b.1 | Client : Mon compte | Bloc « Emails », case cochée par défaut || OK (20/10) |
 | 9b.2 | Admin : déposer un bulletin | Message « Document déposé — notification… ; email envoyé à … » ; email reçu par le client : titre, mois, salarié, bouton vers l'espace, aucune pièce jointe || OK (20/10) |
-| 9b.3 | Cliquer le bouton de l'email (déconnecté) | Page de connexion, puis arrivée sur la gestion || KO (20/10 : lien de l'email → 404 quand on est connecté avec un autre compte) — corrigé, à revérifier |
+| 9b.3 | Cliquer le bouton de l'email (déconnecté) | Page de connexion, puis arrivée sur la gestion || OK après correction (20/10, voir 3b/3c) |
 | 9b.4 | Client : décocher la case, puis nouveau dépôt | Message « Plus d'email de notification » ; admin : « pas d'email (désactivé par l'abonné) » ; aucun email reçu || OK (20/10) |
 | 9b.5 | Si l'admin voit « email refusé par Brevo » | Vérifier la clé ; si la cause est l'adresse IP : Brevo > Sécurité > IP autorisées, désactiver le blocage (les serveurs Vercel changent d'adresse) || OK (20/10) |
 
@@ -236,7 +236,7 @@ Préparation : exécuter `supabase/brique3_gestions_abonne.sql` (après 9b).
 | 3.4 | « Envoyer à Aide & Garde » avec des champs manquants | Contrôle | Message listant ce qui manque ; le brouillon est conservé | |
 | 3.5 | Compléter et envoyer | Soumis | « Gestion envoyée… » ; statut « Envoyée le …, en attente de validation » ; récapitulatif en lecture seule ; « Places utilisées » augmente de 1 ; email « Gestion à valider » reçu sur contact@aideetgarde.fr | |
 | 3.6 | « Annuler l'envoi pour modifier » | — | Retour en brouillon modifiable ; la place est libérée | |
-| 3.7 | Envoyer alors que le quota est atteint | Refus | Message « Quota atteint… » ; le brouillon reste enregistré || KO (20/10 : 5 gestions pour un quota de 3) — corrigé par brique3b, à revérifier |
+| 3.7 | Envoyer alors que le quota est atteint | Refus | Message « Quota atteint… » ; le brouillon reste enregistré || OK après correction (20/10, voir 3b/3c) |
 | 3.8 | Admin : Administration | Back-office | Bloc « Gestions à valider » ; « Vérifier et valider » ouvre la bonne gestion, dépliée, pastille « À valider », informations du contrat | |
 | 3.9 | Admin : « Renvoyer à l'abonné pour qu'il complète » avec un message | Invalidation | Client : notification + email « Gestion à compléter » ; le message s'affiche en haut du brouillon ; pastille « À compléter » au tableau de bord | |
 | 3.10 | Client renvoie, admin « Valider et démarrer » (confirmation) | Validé → en cours | Client : notification + email « Gestion validée » ; la gestion passe dans « Mes gestions en cours » avec « Déclarer [mois] » | |
@@ -252,20 +252,20 @@ Préparation : exécuter `supabase/brique3b_quota_avenants.sql` (après brique3)
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
-| 3b.1 | Compte de test à 5 places pour un quota de 3 : fiche admin | Bandeau rouge « Quota dépassé » ; « Valider et démarrer » refusé avec le message « Quota atteint… » | |
-| 3b.2 | Admin : baisser le quota sous le nombre de places utilisées | Refus : « Quota trop bas : ce compte utilise déjà N place(s) » | |
-| 3b.3 | Remettre le compte dans les clous (terminer des gestions), puis envoyer une gestion de plus que le quota | Refus à l'envoi par l'abonné | |
-| 3b.4 | Client : gestion en cours → « Demander un avenant », cocher « Passage en garde partagée », décrire, envoyer | Message de confirmation ; encadré « Demande d'avenant en cours » ; email « Demande d'avenant » reçu sur contact@aideetgarde.fr | |
-| 3b.5 | Client : redemander un avenant sur la même gestion | Impossible tant que la première demande n'est pas traitée | |
-| 3b.6 | Admin : n'importe quelle page | Pastille jaune avec le nombre d'actions sur « Administration » (pastille rouge sur l'onglet Admin du téléphone) | |
-| 3b.7 | Admin : Administration | Encadré « Actions à effectuer (N) » avec un bouton par type ; liste « Demandes d'avenant » ; « Traiter » ouvre la bonne gestion, pastille « Avenant demandé » | |
-| 3b.8 | Admin : « Déposer l'avenant » | Zone de dépôt avec le type « Avenant » prérempli (et le mois d'effet) ; après dépôt, la demande passe « traitée » toute seule ; le client reçoit la notification du document | |
-| 3b.9 | Admin : « Marquer comme traitée sans document » sur une autre demande | Demande traitée ; client prévenu (notification + email) | |
-| 3b.10 | Admin : « Modifier les informations du contrat… » sur une gestion en cours | Nouvelles valeurs enregistrées, visibles côté client dans « Informations du contrat » | |
-| 3b.11 | Recevoir un email de document sur Outlook | Bouton violet à texte blanc lisible | |
-| 3b.12 | Cliquer le lien d'un email client en étant connecté en administrateur | Arrivée sur la fiche du compte concerné, gestion dépliée (plus de 404) | |
-| 3b.13 | Cliquer le lien en étant connecté avec un autre compte client | Page « Ce lien concerne un autre compte » ; « Se déconnecter » ramène à la connexion puis à la bonne page | |
-| 3b.14 | Ouvrir une adresse qui n'existe pas | Page « Page introuvable » en français, aux couleurs du site | |
+| 3b.1 | Compte de test à 5 places pour un quota de 3 : fiche admin | Bandeau rouge « Quota dépassé » ; « Valider et démarrer » refusé avec le message « Quota atteint… » || OK (20/10) |
+| 3b.2 | Admin : baisser le quota sous le nombre de places utilisées | Refus : « Quota trop bas : ce compte utilise déjà N place(s) » || OK (20/10) |
+| 3b.3 | Remettre le compte dans les clous (terminer des gestions), puis envoyer une gestion de plus que le quota | Refus à l'envoi par l'abonné || OK (20/10) |
+| 3b.4 | Client : gestion en cours → « Demander un avenant », cocher « Passage en garde partagée », décrire, envoyer | Message de confirmation ; encadré « Demande d'avenant en cours » ; email « Demande d'avenant » reçu sur contact@aideetgarde.fr || OK (20/10) |
+| 3b.5 | Client : redemander un avenant sur la même gestion | Impossible tant que la première demande n'est pas traitée || OK (20/10) |
+| 3b.6 | Admin : n'importe quelle page | Pastille jaune avec le nombre d'actions sur « Administration » (pastille rouge sur l'onglet Admin du téléphone) || OK (20/10) |
+| 3b.7 | Admin : Administration | Encadré « Actions à effectuer (N) » avec un bouton par type ; liste « Demandes d'avenant » ; « Traiter » ouvre la bonne gestion, pastille « Avenant demandé » || OK (20/10) |
+| 3b.8 | Admin : « Déposer l'avenant » | Zone de dépôt avec le type « Avenant » prérempli (et le mois d'effet) ; après dépôt, la demande passe « traitée » toute seule ; le client reçoit la notification du document || OK (20/10) |
+| 3b.9 | Admin : « Marquer comme traitée sans document » sur une autre demande | Demande traitée ; client prévenu (notification + email) || OK (20/10) |
+| 3b.10 | Admin : « Modifier les informations du contrat… » sur une gestion en cours | Nouvelles valeurs enregistrées, visibles côté client dans « Informations du contrat » || OK (20/10) |
+| 3b.11 | Recevoir un email de document sur Outlook | Bouton violet à texte blanc lisible || OK (20/10) |
+| 3b.12 | Cliquer le lien d'un email client en étant connecté en administrateur | Arrivée sur la fiche du compte concerné, gestion dépliée (plus de 404) || OK (20/10) |
+| 3b.13 | Cliquer le lien en étant connecté avec un autre compte client | Page « Ce lien concerne un autre compte » ; « Se déconnecter » ramène à la connexion puis à la bonne page || OK (20/10) |
+| 3b.14 | Ouvrir une adresse qui n'existe pas | Page « Page introuvable » en français, aux couleurs du site || OK (20/10) |
 
 ## Brique 3c — Envoi d'une gestion (corrections du 20/10)
 
@@ -275,10 +275,28 @@ Constats de recette corrigés : message « L'enregistrement n'a pas abouti » au
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
-| 3c.1 | Client : créer une gestion sans rien saisir, « Enregistrer le brouillon » | Brouillon enregistré ; titre « Nouveau salarié » ; « Sans nom » au tableau de bord | |
-| 3c.2 | « Envoyer » avec des champs vides | Message listant précisément ce qui manque (nom, prénom, type de contrat, durée de travail, salaire) | |
-| 3c.3 | Abonnement complet : tableau de bord, création, brouillon | Encadré jaune « Votre abonnement est complet (N / N) » expliquant quoi faire ; le brouillon reste enregistrable | |
-| 3c.4 | Abonnement complet : « Envoyer » une gestion complète | Message « Votre abonnement permet N gestion(s) et elles sont toutes utilisées… Votre brouillon est conservé… » | |
-| 3c.5 | Admin : augmenter le quota, puis le client renvoie | Envoi accepté | |
-| 3c.6 | Compte en dépassement (5 / 3) : tableau de bord client | Encadré « Vous dépassez votre abonnement » | |
+| 3c.1 | Client : créer une gestion sans rien saisir, « Enregistrer le brouillon » | Brouillon enregistré ; titre « Nouveau salarié » ; « Sans nom » au tableau de bord || OK (20/10) |
+| 3c.2 | « Envoyer » avec des champs vides | Message listant précisément ce qui manque (nom, prénom, type de contrat, durée de travail, salaire) || OK (20/10) |
+| 3c.3 | Abonnement complet : tableau de bord, création, brouillon | Encadré jaune « Votre abonnement est complet (N / N) » expliquant quoi faire ; le brouillon reste enregistrable || OK (20/10) |
+| 3c.4 | Abonnement complet : « Envoyer » une gestion complète | Message « Votre abonnement permet N gestion(s) et elles sont toutes utilisées… Votre brouillon est conservé… » || OK (20/10) |
+| 3c.5 | Admin : augmenter le quota, puis le client renvoie | Envoi accepté || OK (20/10) |
+| 3c.6 | Compte en dépassement (5 / 3) : tableau de bord client | Encadré « Vous dépassez votre abonnement » || OK (20/10) |
+
+## Brique 2g — Liste des comptes de l'administration
+
+Préparation : exécuter `supabase/brique2g_liste_comptes_admin.sql` (après brique3c). Le script attribue une référence client à chaque compte existant.
+
+Vérification préalable faite par Claude sur une base de test de **3 000 comptes fictifs** : la liste, la recherche et les compteurs répondent en 50 à 110 ms ; un abonné qui interrogerait la vue ne voit que sa propre ligne.
+
+| # | Scénario | Ancien site | Résultat attendu | Statut |
+|---|---|---|---|---|
+| 2g.1 | Ouvrir Administration | Liste « Gestions administratives » | Bandeau « N action(s) à effectuer, sur M compte(s) » ; onglets Clients actifs / À surveiller / Avec actions ; lien « Voir les comptes inactifs » à droite | |
+| 2g.2 | Colonnes d'une ligne | Employeur – Intervenant, Service, État, Création | Réf. client, Employeur (Prénom NOM, email, ville), Inscrit le, Abonnement, Gestions, Salariés, Actions | |
+| 2g.3 | Taper un nom sans accent (ex. « helene »), puis un nom de salarié, une référence C… ou AG… | Recherche | La liste se met à jour pendant la frappe, dans tous les comptes | |
+| 2g.4 | Cliquer sur les titres Employeur, Inscrit le, Abonnement, Gestions, Actions | Tri | Tri croissant puis décroissant, flèche sur la colonne triée | |
+| 2g.5 | Compte avec une gestion à valider ou un avenant demandé | — | Bouton violet « 1 action » sur la ligne ; le total du bandeau = somme des lignes | |
+| 2g.6 | Créer un compte de test avec abonnement actif sans gestion | — | Bandeau jaune « N compte(s) paient un abonnement sans gestion » ; le compte apparaît dans « À surveiller » | |
+| 2g.7 | Compte sans abonnement ni gestion | — | Absent des clients actifs ; visible dans « Voir les comptes inactifs » | |
+| 2g.8 | Deux comptes avec le même prénom et nom | — | Pastille « Homonyme ×2 » ; références client différentes ; la référence apparaît aussi en tête de la fiche du compte | |
+| 2g.9 | Plus de 50 comptes | — | Pagination « Suivants → » | |
 

@@ -54,6 +54,7 @@ interface CompteRow {
   code_postal: string;
   ville: string;
   created_at: string;
+  reference_client?: string | null;
 }
 
 function one(v: string | string[] | undefined): string | undefined {
@@ -88,7 +89,9 @@ export default async function FicheComptePage({
     supabase
       .from("profiles")
       .select(
-        "id, email, role, prenom, nom, telephone, adresse, code_postal, ville, created_at",
+        // « * » : inclut la référence client (brique2g) sans échouer si le
+        // script n'a pas encore été exécuté.
+        "*",
       )
       .eq("id", id)
       .maybeSingle<CompteRow>(),
@@ -157,6 +160,11 @@ export default async function FicheComptePage({
           {`${compte.prenom} ${compte.nom}`.trim() || "(sans nom)"}
         </h1>
         <p className="mt-1 text-sm text-foreground/70">
+          {compte.reference_client && (
+            <span className="mr-2 rounded bg-brand-sky-tint/40 px-1.5 py-0.5 font-mono text-xs text-brand-black">
+              {compte.reference_client}
+            </span>
+          )}
           {compte.email} · rôle : {compte.role} · inscrit le{" "}
           {formatDate(compte.created_at)}
         </p>

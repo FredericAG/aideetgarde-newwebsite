@@ -1,81 +1,126 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { formatDate } from "@/lib/data";
 import {
-  OBJETS_AVENANT,
-  TYPES_GESTION,
-  formatDate,
-  formatHeures,
-  libelleMois,
-  type ObjetAvenant,
-} from "@/lib/data";
+  DetailActions,
+  type AvenantATraiter,
+  type DeclarationATraiter,
+  type GestionAValider,
+} from "./DetailActions";
+import { RechercheComptes } from "./RechercheComptes";
 
-interface DeclarationATraiter {
+/** Une ligne de la vue `admin_comptes` (supabase/brique2g_liste_comptes_admin.sql). */
+interface LigneCompte {
   id: string;
-  periode: string;
-  heures: number | null;
-  commentaire: string;
-  envoyee_le: string;
-  employeur_id: string;
-  gestion_id: string;
-  statut: "envoyee" | "modification";
-  motif_modification: string | null;
-  gestion: { reference: string; prenom_salarie: string; nom_salarie: string } | null;
-  employeur: { prenom: string; nom: string } | null;
-}
-
-interface GestionAValider {
-  id: string;
-  reference: string;
-  prenom_salarie: string;
-  nom_salarie: string;
-  type_gestion: keyof typeof TYPES_GESTION;
-  envoyee_le: string;
-  employeur_id: string;
-  employeur: { prenom: string; nom: string } | null;
-}
-
-interface AvenantATraiter {
-  id: string;
-  objets: ObjetAvenant[];
-  date_effet: string | null;
-  description: string;
-  created_at: string;
-  employeur_id: string;
-  gestion_id: string;
-  gestion: { reference: string; prenom_salarie: string; nom_salarie: string } | null;
-  employeur: { prenom: string; nom: string } | null;
-}
-
-interface CompteRow {
-  id: string;
-  email: string | null;
-  role: string;
+  reference_client: string | null;
   prenom: string;
   nom: string;
+  email: string | null;
+  ville: string;
+  code_postal: string;
   created_at: string;
+  abonnement_statut: "actif" | "resilie" | null;
+  quota: number | null;
+  nb_en_cours: number;
+  nb_envoyees: number;
+  nb_brouillons: number;
+  nb_terminees: number;
+  salaries: string;
+  nb_actions: number;
+  categorie: "actif" | "a_surveiller" | "inactif";
+  nb_homonymes: number;
+}
+
+type Vue = "actifs" | "surveiller" | "actions" | "inactifs";
+type Tri = "nom" | "inscription" | "abonnement" | "gestions" | "actions";
+
+const PAR_PAGE = 50;
+
+const COLONNES_TRI: Record<Tri, string> = {
+  nom: "nom_tri",
+  inscription: "created_at",
+  abonnement: "abonnement_statut",
+  gestions: "nb_en_cours",
+  actions: "nb_actions",
+};
+
+/** Même simplification que la fonction SQL texte_recherche (accents, majuscules). */
+function simplifier(t: string): string {
+  return t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/œ/g, "o")
+    .replace(/æ/g, "a")
+    .replace(/[%_\\(),"]/g, " ");
+}
+
+function un(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
 }
 
 /**
- * Back-office, brique 1-2 : liste des comptes (lecture seule) avec, pour
- * chacun, l'état de son abonnement. On y entre pour créer / modifier les
- * données de test d'un compte (voir la fiche d'un compte).
+ * Espace d'administration : liste des comptes pensée pour des milliers
+ * d'abonnés. Recherche, tri, filtres et pagination sont faits par la base
+ * (vue `admin_comptes`) : seules les 50 lignes affichées sont chargées.
+ *
+ * Onglets :
+ * - Clients actifs : au moins une gestion en cours ou à valider ;
+ * - À surveiller : abonnement actif mais aucune gestion en cours ni en
+ *   attente (abonnement payé pour rien ? remboursement à prévoir ?) ;
+ * - Avec actions : quelque chose attend l'administrateur ;
+ * - Inactifs : ni gestion ni abonnement actif, affichés seulement à la
+ *   demande.
  */
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const recherche = (un(sp.q) ?? "").trim();
+  const vueDemandee = un(sp.vue);
+  const vue: Vue =
+    vueDemandee === "surveiller" || vueDemandee === "actions" || vueDemandee === "inactifs"
+      ? vueDemandee
+      : "actifs";
+  const triDemande = un(sp.tri);
+  const tri: Tri = triDemande && triDemande in COLONNES_TRI ? (triDemande as Tri) : "actions";
+  // Par défaut : actions en premier (ordre décroissant), sinon ordre croissant.
+  const ordre = un(sp.ordre) === "asc" || un(sp.ordre) === "desc" ? un(sp.ordre)! : tri === "actions" || tri === "inscription" ? "desc" : "asc";
+  const page = Math.max(1, Number(un(sp.page)) || 1);
+
   const { supabase } = await requireAdmin("/admin");
 
-  const [comptesRes, abosRes, gestionsRes, declsRes, aValiderRes, avenantsRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, email, role, prenom, nom, created_at")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("abonnements")
-      .select("employeur_id, quota_gestions")
-      .eq("statut", "actif"),
-    supabase.from("gestions").select("employeur_id").in("statut", ["en_cours", "envoyee"]),
-    // Déclarations envoyées par les abonnés, en attente de bulletin
-    // (la plus ancienne en premier : c'est elle qui attend depuis le plus
-    // longtemps).
+  let requete = supabase
+    .from("admin_comptes")
+    .select(
+      "id, reference_client, prenom, nom, email, ville, code_postal, created_at, abonnement_statut, quota, nb_en_cours, nb_envoyees, nb_brouillons, nb_terminees, salaries, nb_actions, categorie, nb_homonymes",
+      { count: "exact" },
+    );
+  if (recherche) {
+    // Chaque mot doit apparaître (ex. « durand helene » ou « durand 75011 »).
+    for (const mot of simplifier(recherche).split(/\s+/).filter(Boolean).slice(0, 5)) {
+      requete = requete.like("recherche", `%${mot}%`);
+    }
+  } else if (vue === "actions") {
+    requete = requete.gt("nb_actions", 0);
+  } else {
+    requete = requete.eq(
+      "categorie",
+      vue === "surveiller" ? "a_surveiller" : vue === "inactifs" ? "inactif" : "actif",
+    );
+  }
+  requete = requete
+    .order(COLONNES_TRI[tri], { ascending: ordre === "asc", nullsFirst: false })
+    .order("nom_tri", { ascending: true })
+    .range((page - 1) * PAR_PAGE, page * PAR_PAGE - 1);
+
+  const [listeRes, resumeRes, avecActionsRes, declsRes, aValiderRes, avenantsRes] = await Promise.all([
+    requete,
+    supabase.from("admin_comptes_resume").select("categorie, nb_comptes, nb_actions"),
+    supabase.from("admin_comptes").select("id", { count: "exact", head: true }).gt("nb_actions", 0),
+    // Détail des actions, la plus ancienne en premier.
     supabase
       .from("declarations_mensuelles")
       .select(
@@ -84,14 +129,12 @@ export default async function AdminPage() {
       .in("statut", ["envoyee", "modification"])
       .order("envoyee_le", { ascending: true })
       .limit(200),
-    // Brique 3 : gestions envoyées par les abonnés, à valider.
     supabase
       .from("gestions")
       .select("id, reference, prenom_salarie, nom_salarie, type_gestion, envoyee_le, employeur_id, employeur:profiles(prenom, nom)")
       .eq("statut", "envoyee")
       .order("envoyee_le", { ascending: true })
       .limit(200),
-    // Brique 3b : demandes d'avenant en attente.
     supabase
       .from("demandes_avenant")
       .select(
@@ -101,232 +144,268 @@ export default async function AdminPage() {
       .order("created_at", { ascending: true })
       .limit(200),
   ]);
+
+  const lignes = (listeRes.data ?? []) as LigneCompte[];
+  const total = listeRes.count ?? 0;
+  const resume = new Map(
+    (resumeRes.data ?? []).map((r) => [
+      r.categorie as string,
+      { comptes: Number(r.nb_comptes), actions: Number(r.nb_actions) },
+    ]),
+  );
+  const totalActions = [...resume.values()].reduce((s, r) => s + r.actions, 0);
+  const comptesAvecActions = avecActionsRes.count ?? 0;
+  const nbPages = Math.max(1, Math.ceil(total / PAR_PAGE));
+
   const avenants = (avenantsRes.data ?? []) as unknown as AvenantATraiter[];
   const aValider = (aValiderRes.data ?? []) as unknown as GestionAValider[];
   const aTraiter = (declsRes.data ?? []) as unknown as DeclarationATraiter[];
-  const totalActions = aValider.length + avenants.length + aTraiter.length;
 
-  const comptes = (comptesRes.data ?? []) as CompteRow[];
-  const quotaParCompte = new Map(
-    (abosRes.data ?? []).map((a) => [a.employeur_id as string, a.quota_gestions as number]),
-  );
-  const enCoursParCompte = new Map<string, number>();
-  for (const g of gestionsRes.data ?? []) {
-    const id = g.employeur_id as string;
-    enCoursParCompte.set(id, (enCoursParCompte.get(id) ?? 0) + 1);
-  }
+  // Adresse de la page avec des paramètres modifiés (onglet, tri, page).
+  const lien = (modif: Record<string, string | undefined>) => {
+    const p = new URLSearchParams();
+    const base: Record<string, string | undefined> = {
+      q: recherche || undefined,
+      vue: vue === "actifs" ? undefined : vue,
+      tri: tri === "actions" ? undefined : tri,
+      ordre: un(sp.ordre),
+      page: undefined,
+      ...modif,
+    };
+    for (const [k, v] of Object.entries(base)) if (v) p.set(k, v);
+    const s = p.toString();
+    return s ? `/admin?${s}` : "/admin";
+  };
 
-  const erreur = comptesRes.error || abosRes.error || gestionsRes.error;
+  const enteteTri = (cle: Tri, libelle: string) => {
+    const actif = tri === cle;
+    const prochainOrdre = actif ? (ordre === "asc" ? "desc" : "asc") : cle === "actions" || cle === "inscription" ? "desc" : "asc";
+    return (
+      <Link
+        href={lien({ tri: cle, ordre: prochainOrdre })}
+        scroll={false}
+        className={`inline-flex items-center gap-1 whitespace-nowrap hover:underline ${actif ? "text-brand-violet" : ""}`}
+        title={`Trier par ${libelle.toLowerCase()}`}
+      >
+        {libelle}
+        <span aria-hidden="true" className="text-xs">
+          {actif ? (ordre === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </Link>
+    );
+  };
+
+  const onglets: { vue: Vue; libelle: string; nb: number; style: string }[] = [
+    { vue: "actifs", libelle: "Clients actifs", nb: resume.get("actif")?.comptes ?? 0, style: "" },
+    {
+      vue: "surveiller",
+      libelle: "À surveiller : abonnement sans gestion",
+      nb: resume.get("a_surveiller")?.comptes ?? 0,
+      style: "surveiller",
+    },
+    { vue: "actions", libelle: "Avec actions à effectuer", nb: comptesAvecActions, style: "actions" },
+  ];
 
   return (
-    <div className="flex flex-1 justify-center px-6 py-12">
-      <div className="w-full max-w-4xl">
-        <h1 className="font-display font-black text-2xl text-brand-teal">
-          Administration
-        </h1>
-        <p className="mt-2 text-sm text-foreground/70">
-          {comptes.length} compte(s). Cliquez sur un compte pour gérer son
-          abonnement, ses gestions et ses documents.
-        </p>
+    <div className="flex flex-1 justify-center px-4 py-10 sm:px-6">
+      <div className="w-full max-w-6xl">
+        <h1 className="font-display font-black text-2xl text-brand-teal">Administration</h1>
 
-        {erreur && (
+        {listeRes.error && (
           <p className="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-            Erreur de lecture : {erreur.message}. Le script supabase/brique2.sql
-            a-t-il bien été exécuté ?
+            Liste des comptes indisponible ({listeRes.error.message}). Le script
+            supabase/brique2g_liste_comptes_admin.sql a-t-il bien été exécuté ?
           </p>
         )}
 
-        {/* Résumé des actions qui attendent l'administrateur */}
+        {/* Somme des actions de toutes les lignes */}
         <section
           aria-label="Actions à effectuer"
-          className={`mt-6 rounded-xl p-4 text-sm ${
-            totalActions
-              ? "border-2 border-brand-violet bg-brand-violet/5"
-              : "border border-brand-gray/20"
+          className={`mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 text-sm ${
+            totalActions ? "border-2 border-brand-violet bg-brand-violet/5" : "border border-brand-gray/20"
           }`}
         >
           <h2 className="font-bold text-brand-violet">
-            {totalActions ? `Actions à effectuer (${totalActions})` : "Aucune action à effectuer"}
+            {totalActions
+              ? `${totalActions} action(s) à effectuer, sur ${comptesAvecActions} compte(s)`
+              : "Aucune action à effectuer"}
           </h2>
           {totalActions > 0 && (
-            <ul className="mt-2 flex flex-wrap gap-2">
-              {aValider.length > 0 && (
-                <li>
-                  <a href="#gestions-a-valider" className="btn btn-primaire btn-sm">
-                    {aValider.length} gestion(s) à valider
-                  </a>
-                </li>
-              )}
-              {avenants.length > 0 && (
-                <li>
-                  <a href="#avenants" className="btn btn-primaire btn-sm">
-                    {avenants.length} demande(s) d&apos;avenant
-                  </a>
-                </li>
-              )}
-              {aTraiter.length > 0 && (
-                <li>
-                  <a href="#declarations" className="btn btn-primaire btn-sm">
-                    {aTraiter.length} déclaration(s) à traiter
-                  </a>
-                </li>
-              )}
-            </ul>
+            <div className="flex flex-wrap gap-2">
+              <Link href={lien({ vue: "actions", q: undefined })} className="btn btn-primaire btn-sm">
+                Voir les comptes concernés
+              </Link>
+              <a href="#detail-actions" className="btn btn-secondaire btn-sm">
+                Détail par type
+              </a>
+            </div>
           )}
         </section>
 
-        {avenants.length > 0 && (
-          <section id="avenants" className="mt-8 scroll-mt-4">
-            <h2 className="font-bold text-brand-violet">Demandes d&apos;avenant ({avenants.length})</h2>
-            <p className="mt-1 text-xs text-foreground/60">
-              Changements signalés par les abonnés sur une gestion en cours. Une
-              demande se clôt d&apos;elle-même au dépôt d&apos;un document
-              « Avenant » pour la gestion.
-            </p>
-            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-violet/30">
-              {avenants.map((a) => (
-                <li key={a.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-4">
-                  <span className="w-20 shrink-0 font-mono text-xs text-foreground/60">{a.gestion?.reference}</span>
-                  <span className="flex-1">
-                    <span className="font-medium">
-                      {`${a.employeur?.prenom ?? ""} ${a.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
-                    </span>
-                    {" → "}
-                    {`${a.gestion?.prenom_salarie ?? ""} ${a.gestion?.nom_salarie ?? ""}`.trim()}
-                    <span className="block text-foreground/70">
-                      {a.objets.map((o) => OBJETS_AVENANT[o] ?? o).join(" · ")}
-                      {a.date_effet ? ` — à partir du ${formatDate(a.date_effet)}` : ""}
-                    </span>
-                    <span className="block text-foreground/70">« {a.description} »</span>
-                  </span>
-                  <span className="flex shrink-0 flex-col items-start gap-1 text-xs text-foreground/60 sm:items-end">
-                    demandée le {formatDate(a.created_at)}
-                    <Link href={`/admin/comptes/${a.employeur_id}#gestion-${a.gestion_id}`} className="btn btn-primaire btn-sm">
-                      Traiter
-                    </Link>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {aValider.length > 0 && (
-          <section id="gestions-a-valider" className="mt-8 scroll-mt-4">
-            <h2 className="font-bold text-brand-violet">Gestions à valider ({aValider.length})</h2>
-            <p className="mt-1 text-xs text-foreground/60">
-              Créées et envoyées par les abonnés. Vérifiez les informations du
-              contrat, puis validez ou renvoyez à l&apos;abonné.
-            </p>
-            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-violet/30">
-              {aValider.map((g) => (
-                <li key={g.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
-                  <span className="w-20 shrink-0 font-mono text-xs text-foreground/60">{g.reference}</span>
-                  <span className="flex-1">
-                    <span className="font-medium">
-                      {`${g.employeur?.prenom ?? ""} ${g.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
-                    </span>
-                    {" → "}
-                    {`${g.prenom_salarie} ${g.nom_salarie}`.trim()}
-                    <span className="ml-2 text-foreground/60">{TYPES_GESTION[g.type_gestion]}</span>
-                  </span>
-                  <span className="flex shrink-0 flex-col items-start gap-1 text-xs text-foreground/60 sm:items-end">
-                    envoyée le {formatDate(g.envoyee_le)}
-                    <Link href={`/admin/comptes/${g.employeur_id}#gestion-${g.id}`} className="btn btn-primaire btn-sm">
-                      Vérifier et valider
-                    </Link>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <section id="declarations" className="mt-8 scroll-mt-4">
-          <h2 className="font-bold text-brand-violet">
-            Déclarations à traiter ({aTraiter.length})
-          </h2>
-          <p className="mt-1 text-xs text-foreground/60">
-            Envoyées par les abonnés, en attente du bulletin. Une déclaration
-            disparaît d&apos;elle-même de cette liste dès que le bulletin du
-            mois est déposé pour la gestion concernée.
+        {(resume.get("a_surveiller")?.comptes ?? 0) > 0 && vue !== "surveiller" && !recherche && (
+          <p className="mt-3 rounded-lg border-2 border-brand-jaune bg-brand-jaune/25 p-3 text-sm">
+            <strong>{resume.get("a_surveiller")?.comptes} compte(s) paient un abonnement sans gestion en
+            cours ni demande en attente</strong> : à vérifier (abonnement à suspendre ou à rembourser ?).{" "}
+            <Link href={lien({ vue: "surveiller", tri: "inscription", ordre: "asc" })} className="font-bold text-brand-violet underline">
+              Les afficher
+            </Link>
           </p>
-          {aTraiter.length === 0 ? (
-            <p className="mt-3 text-sm text-foreground/70">Rien en attente.</p>
-          ) : (
-            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-violet/30">
-              {aTraiter.map((d) => (
-                <li key={d.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-4">
-                  <span className="w-20 shrink-0 font-mono text-xs text-foreground/60">
-                    {d.gestion?.reference}
-                  </span>
-                  <span className="flex-1">
-                    <Link
-                      href={`/admin/comptes/${d.employeur_id}?depot=${d.gestion_id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${d.gestion_id}`}
-                      className="font-medium text-brand-teal underline"
-                    >
-                      {`${d.employeur?.prenom ?? ""} ${d.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
-                    </Link>
-                    {" → "}
-                    {`${d.gestion?.prenom_salarie ?? ""} ${d.gestion?.nom_salarie ?? ""}`.trim()}
-                    <span className="block text-foreground/70">
-                      {libelleMois(d.periode)} · {formatHeures(d.heures)}
-                      {d.commentaire ? ` · « ${d.commentaire} »` : ""}
-                    </span>
-                    {d.statut === "modification" && (
-                      <span className="mt-1 block rounded bg-brand-jaune/40 px-2 py-1 text-brand-black">
-                        Modification demandée : « {d.motif_modification} »
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex shrink-0 flex-col items-start gap-1 text-xs text-foreground/60 sm:items-end">
-                    envoyée le {formatDate(d.envoyee_le)}
-                    <Link
-                      href={`/admin/comptes/${d.employeur_id}?depot=${d.gestion_id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${d.gestion_id}`}
-                      className="btn btn-primaire btn-sm"
-                    >
-                      {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
-                    </Link>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        )}
 
-        <h2 className="mt-10 font-bold text-brand-teal">Comptes</h2>
-        <div className="mt-3 overflow-x-auto rounded-lg border border-brand-gray/20">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-sky-tint/30 text-brand-black">
+        {/* Recherche et onglets */}
+        <div className="mt-6">
+          <RechercheComptes />
+        </div>
+
+        {recherche ? (
+          <p className="mt-3 text-sm text-foreground/70">
+            {total} compte(s) trouvé(s) pour « {recherche} », dans tous les comptes (actifs, à
+            surveiller et inactifs).
+          </p>
+        ) : (
+          <nav aria-label="Catégories de comptes" className="mt-4 flex flex-wrap items-center gap-2">
+            {onglets.map((o) => (
+              <Link
+                key={o.vue}
+                href={lien({ vue: o.vue === "actifs" ? undefined : o.vue })}
+                scroll={false}
+                aria-current={vue === o.vue ? "page" : undefined}
+                className={`btn btn-sm ${
+                  vue === o.vue
+                    ? "btn-primaire"
+                    : o.style === "surveiller" && o.nb > 0
+                      ? "btn-secondaire bg-brand-jaune/40"
+                      : "btn-secondaire"
+                }`}
+              >
+                {o.libelle} ({o.nb})
+              </Link>
+            ))}
+            <Link
+              href={lien({ vue: "inactifs" })}
+              scroll={false}
+              aria-current={vue === "inactifs" ? "page" : undefined}
+              className={`ml-auto text-sm underline ${vue === "inactifs" ? "font-bold text-brand-violet" : "text-foreground/60"}`}
+            >
+              Voir les comptes inactifs ({resume.get("inactif")?.comptes ?? 0})
+            </Link>
+          </nav>
+        )}
+
+        {vue === "inactifs" && !recherche && (
+          <p className="mt-3 text-xs text-foreground/60">
+            Comptes sans gestion en cours ni en attente, et sans abonnement actif (anciens
+            clients, ou inscrits qui n&apos;ont pas encore souscrit).
+          </p>
+        )}
+        {vue === "surveiller" && !recherche && (
+          <p className="mt-3 text-xs text-foreground/60">
+            Abonnement actif, mais aucune gestion en cours ni en attente de validation. Un
+            brouillon éventuel est indiqué. Les plus anciens inscrits d&apos;abord.
+          </p>
+        )}
+
+        {/* Liste des comptes */}
+        <div className="mt-4 overflow-x-auto rounded-xl border border-brand-gray/25">
+          <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+            <thead className="bg-[var(--carte)] text-brand-teal">
               <tr>
-                <th className="px-4 py-2 font-medium">Compte</th>
-                <th className="px-4 py-2 font-medium">Rôle</th>
-                <th className="px-4 py-2 font-medium">Inscrit le</th>
-                <th className="px-4 py-2 font-medium">Abonnement</th>
+                <th className="px-3 py-2">Réf.</th>
+                <th className="px-3 py-2">{enteteTri("nom", "Employeur")}</th>
+                <th className="px-3 py-2">{enteteTri("inscription", "Inscrit le")}</th>
+                <th className="px-3 py-2">{enteteTri("abonnement", "Abonnement")}</th>
+                <th className="px-3 py-2">{enteteTri("gestions", "Gestions")}</th>
+                <th className="px-3 py-2">Salariés</th>
+                <th className="px-3 py-2 text-right">{enteteTri("actions", "Actions")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-gray/15">
-              {comptes.map((c) => {
-                const quota = quotaParCompte.get(c.id);
+            <tbody>
+              {lignes.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-6 text-center text-foreground/60">
+                    Aucun compte.
+                  </td>
+                </tr>
+              )}
+              {lignes.map((c) => {
+                const nomAffiche = `${c.prenom} ${c.nom.toUpperCase()}`.trim() || "(sans nom)";
                 return (
-                  <tr key={c.id} className="relative cursor-pointer hover:bg-brand-sky-tint/25">
-                    {/* Toute la ligne est cliquable : le lien du nom s'étend
-                        sur la ligne entière (pseudo-élément ::after). */}
-                    <td className="px-4 py-2">
+                  <tr
+                    key={c.id}
+                    className={`relative border-t border-brand-gray/20 even:bg-[#f7f7f7] hover:bg-brand-sky-tint/25 ${
+                      c.categorie === "a_surveiller" ? "bg-brand-jaune/15" : ""
+                    }`}
+                  >
+                    <td className="px-3 py-2.5 align-top font-mono text-xs text-foreground/60">
+                      {c.reference_client}
+                    </td>
+                    <td className="px-3 py-2.5 align-top">
+                      {/* Lien étiré sur toute la ligne : un clic n'importe où ouvre la fiche. */}
                       <Link
                         href={`/admin/comptes/${c.id}`}
-                        className="font-medium text-brand-teal underline after:absolute after:inset-0 after:content-['']"
+                        className="font-bold text-brand-teal after:absolute after:inset-0 after:content-['']"
                       >
-                        {`${c.prenom} ${c.nom}`.trim() || "(sans nom)"}
+                        {nomAffiche}
                       </Link>
-                      <div className="text-foreground/60">{c.email}</div>
+                      {c.nb_homonymes > 1 && (
+                        <span
+                          className="ml-2 rounded-full bg-brand-jaune px-2 py-0.5 text-[11px] font-bold text-brand-black"
+                          title={`${c.nb_homonymes} comptes portent ce nom : vérifiez la référence, l'email, la ville ou les salariés.`}
+                        >
+                          Homonyme ×{c.nb_homonymes}
+                        </span>
+                      )}
+                      <span className="block text-xs text-foreground/60">
+                        {[c.email, [c.code_postal, c.ville].filter(Boolean).join(" ")].filter(Boolean).join(" · ")}
+                      </span>
                     </td>
-                    <td className="px-4 py-2">{c.role}</td>
-                    <td className="px-4 py-2">{formatDate(c.created_at)}</td>
-                    <td className="px-4 py-2">
-                      {quota === undefined
-                        ? "—"
-                        : `Actif · ${enCoursParCompte.get(c.id) ?? 0} / ${quota} gestions`}
+                    <td className="px-3 py-2.5 align-top tabular-nums">{formatDate(c.created_at)}</td>
+                    <td className="px-3 py-2.5 align-top">
+                      {c.abonnement_statut === "actif" ? (
+                        <span className="font-medium text-brand-teal">Actif</span>
+                      ) : c.abonnement_statut === "resilie" ? (
+                        <span className="text-foreground/60">Résilié</span>
+                      ) : (
+                        <span className="text-foreground/50">Aucun</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 align-top">
+                      {c.categorie === "a_surveiller" ? (
+                        <span className="font-bold text-brand-black">
+                          0 / {c.quota} — abonnement sans gestion
+                        </span>
+                      ) : (
+                        <span className="tabular-nums">
+                          {c.nb_en_cours}
+                          {c.quota ? ` / ${c.quota}` : ""} en cours
+                        </span>
+                      )}
+                      <span className="block text-xs text-foreground/60">
+                        {[
+                          c.nb_envoyees ? `${c.nb_envoyees} à valider` : "",
+                          c.nb_brouillons ? `${c.nb_brouillons} brouillon(s)` : "",
+                          c.nb_terminees ? `${c.nb_terminees} terminée(s)` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </td>
+                    <td className="max-w-[16rem] px-3 py-2.5 align-top text-xs text-foreground/80">
+                      <span className="line-clamp-2" title={c.salaries}>
+                        {c.salaries || "—"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right align-top">
+                      {c.nb_actions > 0 ? (
+                        <Link
+                          href={`/admin/comptes/${c.id}`}
+                          className="btn btn-primaire btn-sm relative z-10 whitespace-nowrap"
+                        >
+                          {c.nb_actions} action{c.nb_actions > 1 ? "s" : ""}
+                        </Link>
+                      ) : (
+                        <span className="text-foreground/40">—</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -334,6 +413,35 @@ export default async function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {total > PAR_PAGE && (
+          <nav aria-label="Pages" className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span className="text-foreground/60">
+              {(page - 1) * PAR_PAGE + 1}–{Math.min(page * PAR_PAGE, total)} sur {total}
+            </span>
+            <span className="flex gap-2">
+              {page > 1 && (
+                <Link href={lien({ page: String(page - 1) })} className="btn btn-secondaire btn-sm">
+                  ← Précédents
+                </Link>
+              )}
+              {page < nbPages && (
+                <Link href={lien({ page: String(page + 1) })} className="btn btn-secondaire btn-sm">
+                  Suivants →
+                </Link>
+              )}
+            </span>
+          </nav>
+        )}
+
+        {/* Détail des actions par type */}
+        <details id="detail-actions" className="mt-10 scroll-mt-4" open={totalActions > 0 && totalActions <= 10}>
+          <summary className="font-bold text-brand-violet">
+            Détail des actions par type ({aValider.length + avenants.length + aTraiter.length})
+          </summary>
+          <DetailActions avenants={avenants} aValider={aValider} aTraiter={aTraiter} />
+        </details>
       </div>
     </div>
   );
