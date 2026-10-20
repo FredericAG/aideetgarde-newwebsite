@@ -1,4 +1,5 @@
-import { BoutonEnvoi } from "@/components/BoutonEnvoi";
+import { BoutonConfirme } from "@/components/BoutonConfirme";
+import { IconePoubelle } from "@/components/IconePoubelle";
 import { TableauDepliable } from "@/components/TableauDepliable";
 import { TitreDocument } from "@/components/TitreDocument";
 import {
@@ -60,7 +61,7 @@ export function DocumentsGestion({
                       <col className="w-20" />
                       <col />
                       <col className="w-32" />
-                      <col className="w-24" />
+                      <col className="w-14" />
                     </>
                   }
                   entete={
@@ -77,7 +78,7 @@ export function DocumentsGestion({
                     </tr>
                   }
                   lignes={docs.map((d) => (
-                    <tr key={d.id} className="hover:bg-brand-sky-tint/20">
+                    <tr key={d.id} className="even:bg-[#f7f7f7] hover:bg-brand-sky-tint/20">
                       <td className={`${td} text-foreground/80`}>
                         {TYPES_DOCUMENT[d.type_document] ?? d.type_document}
                       </td>
@@ -105,12 +106,16 @@ export function DocumentsGestion({
                         <form action={supprimerDocument}>
                           <input type="hidden" name="compte_id" value={compteId} />
                           <input type="hidden" name="document_id" value={d.id} />
-                          <BoutonEnvoi
-                            className="text-xs text-red-700 underline"
-                            enCours="Suppression…"
+                          <BoutonConfirme
+                            className="rounded-full p-1.5 text-red-700 hover:bg-red-50"
+                            enCours="…"
+                            libelle={`Supprimer « ${d.titre} »`}
+                            question="Supprimer ce document ?"
+                            precision={`${TYPES_DOCUMENT[d.type_document] ?? "Document"}${d.periode ? ` ${formatPeriode(d.periode)}` : ""} — « ${d.titre} ». Le fichier PDF est effacé définitivement ; l'abonné ne pourra plus le télécharger.`}
+                            oui="Oui, supprimer"
                           >
-                            Supprimer
-                          </BoutonEnvoi>
+                            <IconePoubelle />
+                          </BoutonConfirme>
                         </form>
                       </td>
                     </tr>

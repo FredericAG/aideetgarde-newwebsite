@@ -1,3 +1,4 @@
+import { LienTelechargement } from "@/components/LienTelechargement";
 import { TYPES_DOCUMENT, formatDate, formatPeriode, type DocumentRow } from "@/lib/data";
 
 /**
@@ -18,12 +19,9 @@ export function TitreDocument({
     );
   }
   return (
-    <a
-      href={`/documents/${doc.id}/telecharger`}
-      className="font-medium text-brand-teal underline"
-    >
+    <LienTelechargement documentId={doc.id} className="font-medium text-brand-teal underline">
       {doc.titre}
-    </a>
+    </LienTelechargement>
   );
 }
 

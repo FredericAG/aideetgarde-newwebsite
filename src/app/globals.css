@@ -142,6 +142,16 @@ button:disabled {
     font-size: 1rem;
   }
 
+  /* Listes simples à lignes alternées (blanc / gris très clair). */
+  .liste-alternee > li:nth-child(even) {
+    background: #f7f7f7;
+  }
+  @media (max-width: 639px) {
+    .liste-alternee > li:nth-child(even) {
+      background: var(--carte);
+    }
+  }
+
   /* Bloc gris arrondi de l'ancien site (cartes, encadrés). */
   .carte {
     background: var(--carte);
@@ -183,6 +193,10 @@ button:disabled {
   .tableau-adaptatif tbody tr {
     border-top: 1px solid color-mix(in srgb, var(--brand-gray) 20%, transparent);
   }
+  /* Lignes alternées blanc / gris très clair : lecture plus facile. */
+  .tableau-adaptatif tbody tr:nth-child(even) {
+    background: #f7f7f7;
+  }
   @media (max-width: 639px) {
     .tableau-adaptatif thead {
       position: absolute;
@@ -200,6 +214,10 @@ button:disabled {
     }
     .tableau-adaptatif tbody tr {
       padding: 0.5rem 0;
+    }
+    /* Sur téléphone, chaque fiche alterne blanc / gris clair. */
+    .tableau-adaptatif tbody tr:nth-child(even) {
+      background: var(--carte);
     }
     .tableau-adaptatif td {
       display: flex;

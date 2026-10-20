@@ -154,11 +154,13 @@ export default async function AdminPage() {
               {comptes.map((c) => {
                 const quota = quotaParCompte.get(c.id);
                 return (
-                  <tr key={c.id} className="hover:bg-brand-sky-tint/20">
+                  <tr key={c.id} className="relative cursor-pointer hover:bg-brand-sky-tint/25">
+                    {/* Toute la ligne est cliquable : le lien du nom s'étend
+                        sur la ligne entière (pseudo-élément ::after). */}
                     <td className="px-4 py-2">
                       <Link
                         href={`/admin/comptes/${c.id}`}
-                        className="font-medium text-brand-teal underline"
+                        className="font-medium text-brand-teal underline after:absolute after:inset-0 after:content-['']"
                       >
                         {`${c.prenom} ${c.nom}`.trim() || "(sans nom)"}
                       </Link>

@@ -1,5 +1,6 @@
 "use client";
 
+import { LienTelechargement } from "@/components/LienTelechargement";
 import { useActionState, useState } from "react";
 import {
   formatDate,
@@ -99,12 +100,12 @@ export function DeclarationMois({
             Le bulletin de {libelleMois(periode)} est en ligne
             {existante?.traitee_le ? ` (établi le ${formatDate(existante.traitee_le)})` : ""}.
           </p>
-          <a
-            href={`/documents/${bulletinId}/telecharger`}
+          <LienTelechargement
+            documentId={bulletinId}
             className="btn btn-primaire btn-lg w-full sm:w-auto sm:self-start"
           >
             ⬇ Télécharger le bulletin de {libelleMois(periode)}
-          </a>
+          </LienTelechargement>
           {!demandeOuverte ? (
             <button
               type="button"

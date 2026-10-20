@@ -5,6 +5,7 @@ import {
   activerNotifications,
   desactiverNotifications,
 } from "@/app/notifications/actions";
+import { guideReactivation, type GuideNotifications } from "@/lib/guide-notifications";
 
 type Etat =
   | "chargement"
@@ -54,6 +55,9 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
   // « Non merci » sur le tableau de bord : choix mémorisé sur cet appareil.
   // Les notifications restent activables à tout moment depuis « Mon compte ».
   const [refusMemorise, setRefusMemorise] = useState(false);
+  // Instructions adaptées au navigateur utilisé (calculées dans le
+  // navigateur après affichage, voir src/lib/guide-notifications.ts).
+  const [guide, setGuide] = useState<GuideNotifications | null>(null);
   const clePublique = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   useEffect(() => {
@@ -70,6 +74,11 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
         .catch(() => {});
     }
     (async () => {
+      try {
+        setGuide(guideReactivation());
+      } catch {
+        /* détection impossible : pas d'instructions détaillées */
+      }
       try {
         setRefusMemorise(localStorage.getItem(CLE_REFUS) === "1");
       } catch {
@@ -173,8 +182,10 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
       {etat === "refuse" && (
         <p className="mt-1 text-foreground/80">
           Les notifications sont bloquées pour ce site dans les réglages de
-          votre navigateur ou de votre téléphone. Autorisez-les dans ces
-          réglages pour être prévenu des nouveaux documents.
+          votre navigateur ou de votre téléphone.
+          {compact
+            ? " Rendez-vous dans « Mon compte » pour savoir comment les réautoriser."
+            : " Voici comment les réautoriser :"}
         </p>
       )}
       {etat === "inactif" && (
@@ -225,6 +236,36 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
         </>
       )}
       {message && <p className="mt-2 text-brand-teal" aria-live="polite">{message}</p>}
+
+      {/* « Mon compte » : où réautoriser, selon le navigateur utilisé */}
+      {!compact && guide && etat !== "non-supporte" && etat !== "iphone-a-installer" && (
+        <details
+          className="mt-4 rounded-lg bg-white p-3"
+          open={etat === "refuse"}
+        >
+          <summary className="font-medium text-brand-teal">
+            Notifications bloquées ou jamais reçues ? Comment les réautoriser
+          </summary>
+          <p className="mt-2 text-xs text-foreground/60">
+            Instructions pour : {guide.contexte}
+          </p>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-foreground/80">
+            {guide.etapes.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ol>
+          {guide.systeme && (
+            <p className="mt-2 text-xs text-foreground/70">{guide.systeme}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="btn btn-secondaire btn-sm mt-3"
+          >
+            J&apos;ai modifié le réglage : vérifier
+          </button>
+        </details>
+      )}
     </section>
   );
 }

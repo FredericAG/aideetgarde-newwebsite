@@ -14,6 +14,9 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 | Les mentions d'aide (« Cliquez sur un document pour le télécharger… ») sont placées **avant** la liste qu'elles concernent, jamais après : avec beaucoup d'éléments, une mention en bas de liste n'est plus visible. | En place (19/10) |
 | **Identité visuelle de l'ancien site** reprise (charte 2018) : fond blanc, boutons en forme de pilule à contour jaune — violets pour l'action principale, blancs à texte teal pour les actions courantes et la navigation —, blocs gris clair arrondis, polices Corporative et Stevie Sans. L'ergonomie, elle, est repensée librement (pas de colonne de menu à gauche, qui repousse le contenu sous le pli sur téléphone ; navigation en haut de page). Pas de thème sombre automatique pour l'instant (l'ancien site n'en a pas ; la charte est pensée pour un fond clair). | En place (20/10) |
 | Les listes de données sont présentées en **tableaux à colonnes titrées** sur ordinateur ; sur téléphone, chaque ligne devient une petite fiche où chaque valeur est précédée de son intitulé (pas de défilement horizontal). | En place (20/10) |
+| **Confirmation avant toute action irréversible ou lourde** : suppression d'un document ou d'une gestion, fin d'une gestion, résiliation d'un abonnement. Une fenêtre aux couleurs du site demande « Oui / Non » et rappelle la conséquence ; « Non » (ou Échap) est le choix par défaut. | En place (20/10) |
+| Les actions « Supprimer » sont des **icônes poubelle** rouges (nom complet de l'action au survol et pour les lecteurs d'écran). | En place (20/10) |
+| Les tableaux et listes de documents ont des **lignes alternées** blanc / gris clair, plus marquées sur téléphone. | En place (20/10) |
 | Chaque action qui échoue affiche un message en français qui dit quoi faire, jamais un écran figé ou une erreur technique brute. | En place |
 | **Fluidité de navigation : exigence majeure.** Mesure du 19/10 (serveurs à Paris) : changements de page servis en 90 à 110 ms environ ; les requêtes plus longues (jusqu'à ~290 ms) sont surtout des préchargements en arrière-plan ou des premiers appels après une période d'inactivité. Les pages déjà visitées sont gardées 30 secondes dans le navigateur pour un retour instantané. Chaque clic produit un effet visible immédiat (bouton qui passe en « Suppression… », indicateur « Chargement… » au changement de page). Objectifs : seuils « bons » des Core Web Vitals de Google sur mobile (contenu principal affiché en 2,5 s au plus, réaction à une action en 200 ms au plus, pas de décalage visuel pendant le chargement). Serveurs du site et base de données à Paris. | En place (retour visuel, serveurs à Paris) ; mesure chez les utilisateurs à faire |
 
@@ -106,12 +109,16 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Côté administrateur, chaque document indique la date de premier téléchargement par l'abonné, ou un tiret rouge s'il ne l'a pas encore téléchargé (utile en cas de réclamation « je n'ai rien reçu »). Les téléchargements de l'administrateur ne comptent pas. | En place (19/10, présentation 20/10) |
 | **Tableau de bord, « Mes gestions en cours »** : tableau Salarié / Emploi / Depuis le / Dernier bulletin (lien de téléchargement direct, pastille « Nouveau ») / Statut du mois en cours (« Déclarer [mois] », « Déclaration envoyée », « Correction en cours », « ✓ Disponible ») / bouton « Détail ». Un bulletin déjà en ligne pour le mois vaut « Disponible », même s'il a été déposé sans déclaration. | En place (20/10) |
 | « Vos 5 derniers documents » : tableau Type / Période / Document / Salarié. | En place (20/10) |
+| Après un clic sur un bouton de téléchargement, le document **disparaît aussitôt** de l'encadré « nouveau document » (l'encadré disparaît avec le dernier) ; les pastilles « Nouveau » se mettent à jour d'elles-mêmes une à deux secondes plus tard, sans actualiser la page. | En place (20/10) |
 | Le tableau de bord affiche **uniquement les 5 derniers documents** (« Vos 5 derniers documents »), tous salariés confondus, avec le nom du salarié ; la liste complète est dans le détail de chaque gestion. | En place |
 
 ### 5.4 bis Documents d'une gestion côté administrateur
 
 | Règle | Statut |
 |---|---|
+| Liste des comptes : **toute la ligne** est cliquable (pas seulement le nom). | En place (20/10) |
+| Fiche d'un compte : **une seule gestion dépliée à la fois** (« Détail : N document(s) · k déclaration(s) à traiter »), cadre violet ; les autres gardent un cadre gris clair. À l'arrivée, la gestion visée par un lien « Déposer le bulletin » est dépliée, sinon la première qui attend une action. | En place (20/10) |
+| **Actions attendues toujours visibles** : une gestion qui attend une action porte une pastille violette « 1 action à faire » dans son en-tête, même repliée. Les déclarations, les documents et la zone de dépôt sont regroupés dans le détail. | En place (20/10) |
 | Documents répartis en **trois catégories** : *Éléments contractuels* (contrat, avenants, rupture conventionnelle, licenciement, et documents de fin de contrat : certificat de travail, solde de tout compte, attestation France Travail), *Bulletins de paie*, *Autres documents* (attestations de salaire ou sur l'honneur, courriers, divers). Une catégorie vide tient sur une ligne (« aucun document »). | En place (20/10) — rattachement des documents de fin de contrat à valider par Frédéric |
 | Colonnes identiques dans les trois catégories, pour un alignement vertical : **Type / Période (MM/AAAA) / Titre (vu par l'abonné) / Téléchargé le**, puis « Supprimer ». Le titre est le nom affiché à l'abonné (le nom technique du fichier dans le stockage n'est pas utile ici). | En place (20/10) |
 | Chaque catégorie affiche ses **5 documents les plus récents** ; un bouton « Afficher les N documents suivants » déplie la suite dans une zone d'environ 10 lignes qui défile à la molette, en-tête toujours visible ; « Réduire » replie. | En place (20/10) |
@@ -149,6 +156,13 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 - ~~Le logiciel de paie peut-il produire ces noms ?~~ Oui (Frédéric, 19/10). Il faudra y reporter la référence de chaque gestion : l'admin proposera une liste exportable des références.
 - Validation des codes proposés pour les types qui n'en ont pas encore (CTRA, AV, LIC, RUPT, LET).
 - Pour la reprise des PDF existants (brique 13), qui n'ont pas de référence : rapprochement par noms, avec la même règle (aucun rangement en cas de doute, liste des cas ambigus à valider à la main).
+
+### 5.8 Notifications : aide à la réactivation
+
+| Règle | Statut |
+|---|---|
+| Dans « Mon compte », un encadré « Notifications bloquées ou jamais reçues ? Comment les réautoriser » donne les étapes **propres au navigateur et à l'appareil utilisés** (iPhone application installée ou Safari, Android application installée, Chrome, Edge, Samsung Internet, Firefox, Safari sur Mac, Chrome/Edge/Firefox sur ordinateur), plus le réglage du système à vérifier (Windows, macOS, Android). Il est ouvert d'office quand les notifications sont bloquées. Un bouton « J'ai modifié le réglage : vérifier » recharge la page. | En place (20/10) |
+| Détection : lecture de l'identifiant du navigateur (« user agent ») **dans le navigateur uniquement**, sans rien enregistrer ni transmettre au serveur ; il s'agit d'adapter l'affichage au service demandé, pas d'un traceur, donc pas de consentement à recueillir. À mentionner en une ligne dans la politique de confidentialité par transparence. | En place (20/10) |
 
 ## 6. Déclaration mensuelle et version mobile
 
@@ -212,6 +226,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 20/10/2026 — Confirmations Oui/Non, icônes poubelle, lignes alternées, comptes cliquables, une gestion dépliée à la fois avec pastille « action à faire », encadré de téléchargement qui disparaît au clic, aide à la réactivation des notifications.
 - 20/10/2026 — Identité visuelle de l'ancien site, tableaux à colonnes (gestions en cours, derniers documents), documents admin par catégories avec dépliage.
 - 19/10/2026 — Documents nouvellement disponibles mis en avant (encadré en haut de page, grands boutons, pastille « Nouveau », date de téléchargement visible par l'administrateur).
 - 19/10/2026 — Notifications push à la mise en ligne d'un document.

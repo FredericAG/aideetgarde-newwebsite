@@ -164,3 +164,20 @@ Aucun script SQL. Tester sur ordinateur **et** sur téléphone.
 | P.10 | Catégorie de plus de 5 documents | 5 lignes + bouton « Afficher les N documents suivants » ; au clic, zone d'environ 10 lignes qui défile à la molette, en-tête visible ; « Réduire » replie | |
 | P.11 | Supprimer un document depuis la zone dépliée | Suppression effectuée, message de confirmation | |
 
+## Retours du 20/10 — Confirmations, gestions, notifications
+
+Aucun script SQL.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| R.1 | Administration : cliquer n'importe où sur la ligne d'un compte (rôle, date, abonnement) | La fiche du compte s'ouvre | |
+| R.2 | Fiche d'un compte avec plusieurs gestions | Une seule gestion dépliée (cadre violet), les autres en cadre gris clair ; déplier une autre gestion replie la précédente | |
+| R.3 | Gestion avec une déclaration à traiter | Pastille « 1 action à faire » visible même repliée ; c'est elle qui est dépliée à l'arrivée | |
+| R.4 | Cliquer la poubelle d'un document | Fenêtre « Supprimer ce document ? » avec type, période et titre ; « Non, annuler » ou Échap ne supprime rien ; « Oui, supprimer » supprime | |
+| R.5 | Poubelle d'une gestion | Fenêtre de confirmation rappelant le nombre de documents effacés et suggérant « Terminer la gestion » | |
+| R.6 | « Terminer la gestion » puis « Résilier l'abonnement » | Une confirmation Oui/Non pour chacun | |
+| R.7 | Client sur ordinateur : cliquer le bouton de l'encadré « nouveau document » | Le PDF se télécharge et le bouton disparaît aussitôt ; l'encadré disparaît avec le dernier document ; la pastille « Nouveau » disparaît des tableaux 1 à 2 secondes plus tard, sans actualiser | |
+| R.8 | Téléphone : tableau de bord et détail d'une gestion | Fiches / lignes de documents alternées blanc et gris | |
+| R.9 | Mon compte, notifications bloquées dans le navigateur | Encadré ouvert avec les étapes pour ce navigateur et cet appareil (vérifier sur l'iPhone installé, Android, et l'ordinateur) | |
+| R.10 | Suivre les étapes, puis « J'ai modifié le réglage : vérifier » | La page se recharge ; le bouton « Activer les notifications » réapparaît | |
+

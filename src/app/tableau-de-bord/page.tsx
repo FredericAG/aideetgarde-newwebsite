@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TitreDocument } from "@/components/TitreDocument";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
+import { LienTelechargement } from "@/components/LienTelechargement";
 import { requireUser } from "@/lib/auth";
 import {
   TYPES_DOCUMENT,
@@ -118,10 +119,12 @@ export default async function TableauDeBordPage() {
 
         <NouveauxDocuments
           documents={(nouveauxRes.data ?? []) as DocumentRow[]}
-          nomSalarie={(d) => {
-            const g = gestionParId.get(d.gestion_id);
-            return g ? nomSalarie(g) : "";
-          }}
+          salaries={Object.fromEntries(
+            ((nouveauxRes.data ?? []) as DocumentRow[]).map((d) => {
+              const g = gestionParId.get(d.gestion_id);
+              return [d.id, g ? nomSalarie(g) : ""];
+            }),
+          )}
         />
 
         <NotificationsPush compact />
@@ -220,13 +223,13 @@ export default async function TableauDeBordPage() {
                         <td data-label="Dernier bulletin">
                           {dernier ? (
                             <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
-                              <a
-                                href={`/documents/${dernier.id}/telecharger`}
+                              <LienTelechargement
+                                documentId={dernier.id}
                                 className="font-medium text-brand-teal underline"
                                 title="Télécharger"
                               >
                                 ⬇ {dernier.periode ? libelleMois(dernier.periode) : "Bulletin"}
-                              </a>
+                              </LienTelechargement>
                               {!dernier.consulte_le && (
                                 <span className="pastille-nouveau">Nouveau</span>
                               )}

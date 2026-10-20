@@ -135,7 +135,7 @@ export default async function DetailGestionPage({
               ))}
             </nav>
 
-            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-gray/20">
+            <ul className="liste-alternee mt-3 divide-y divide-brand-gray/15 overflow-hidden rounded-lg border border-brand-gray/20">
               {documents.map((d) => (
                 <li key={d.id} className="flex items-center gap-4 px-4 py-3 text-sm">
                   <InfosDocument doc={d} />

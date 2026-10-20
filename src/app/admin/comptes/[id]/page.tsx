@@ -2,6 +2,8 @@ import Link from "next/link";
 import { DocumentsGestion } from "./DocumentsGestion";
 import { DepotDocument } from "./DepotDocument";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
+import { BoutonConfirme } from "@/components/BoutonConfirme";
+import { IconePoubelle } from "@/components/IconePoubelle";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
@@ -115,6 +117,15 @@ export default async function FicheComptePage({
   const anciens = abonnements.filter((a) => a.statut !== "actif");
   const enCours = gestions.filter((g) => g.statut === "en_cours");
   const today = new Date().toISOString().slice(0, 10);
+  // Une seule gestion dépliée à la fois (les autres gardent un cadre gris
+  // clair) : celle visée par le lien « Déposer le bulletin », sinon la
+  // première qui attend une action.
+  const gestionOuverte =
+    (depotCible && gestions.some((g) => g.id === depotCible) ? depotCible : null) ??
+    gestions.find((g) =>
+      declarations.some((d) => d.gestion_id === g.id && d.statut !== "traitee"),
+    )?.id ??
+    null;
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
@@ -204,9 +215,15 @@ Enregistrer
                     Motif (facultatif)
                     <input type="text" name="motif_fin" className={`${inputClass} w-72`} />
                   </label>
-                  <BoutonEnvoi className={btnDangerClass} enCours="Résiliation…">
-Confirmer la résiliation
-</BoutonEnvoi>
+                  <BoutonConfirme
+                    className={btnDangerClass}
+                    enCours="Résiliation…"
+                    question="Résilier l'abonnement de ce compte ?"
+                    precision="L'abonnement passera en « résilié » à la date du jour. Les gestions en cours ne sont pas arrêtées : terminez-les séparément si besoin."
+                    oui="Oui, résilier"
+                  >
+                    Résilier l&apos;abonnement
+                  </BoutonConfirme>
                 </form>
                 <p className="mt-2 text-xs text-foreground/60">
                   Résilier n&apos;arrête pas les gestions en cours : ce sont
@@ -345,11 +362,7 @@ Ajouter la gestion
                   <li
                     key={g.id}
                     id={`gestion-${g.id}`}
-                    className={`scroll-mt-4 rounded-lg border p-4 ${
-                      cible || enAttente.length
-                        ? "border-brand-violet ring-2 ring-brand-violet/30"
-                        : "border-brand-gray/20"
-                    }`}
+                    className="scroll-mt-4 rounded-lg border border-brand-gray/20 p-4 transition-shadow has-[>details[open]]:border-brand-violet has-[>details[open]]:ring-2 has-[>details[open]]:ring-brand-violet/30"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="text-sm">
@@ -363,6 +376,13 @@ Ajouter la gestion
                             ? `en cours depuis le ${formatDate(g.date_debut)}`
                             : `terminée (${formatDate(g.date_debut)} → ${formatDate(g.date_fin)})`}
                         </span>
+                        {enAttente.length > 0 && (
+                          <span className="ml-2 inline-block rounded-full bg-brand-violet px-2 py-0.5 text-xs font-bold text-white">
+                            {enAttente.length === 1
+                              ? "1 action à faire"
+                              : `${enAttente.length} actions à faire`}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
@@ -371,9 +391,15 @@ Ajouter la gestion
                             <input type="hidden" name="compte_id" value={id} />
                             <input type="hidden" name="gestion_id" value={g.id} />
                             <input type="date" name="date_fin" defaultValue={today} className={inputClass} />
-                            <BoutonEnvoi className={btnLightClass} enCours="Enregistrement…">
-Terminer la gestion
-</BoutonEnvoi>
+                            <BoutonConfirme
+                              className={btnLightClass}
+                              enCours="Enregistrement…"
+                              question={`Terminer la gestion de ${nomSalarie(g)} ?`}
+                              precision="La gestion passera en « terminée » à la date indiquée et libérera une place dans le quota de l'abonnement. Les documents restent consultables ; vous pourrez la rouvrir."
+                              oui="Oui, terminer"
+                            >
+                              Terminer la gestion
+                            </BoutonConfirme>
                           </form>
                         ) : (
                           <form action={rouvrirGestion}>
@@ -384,63 +410,73 @@ Rouvrir
 </BoutonEnvoi>
                           </form>
                         )}
-                        <details>
-                          <summary className="cursor-pointer text-xs text-red-700">
-                            Supprimer…
-                          </summary>
-                          <form action={supprimerGestion} className="mt-2">
-                            <input type="hidden" name="compte_id" value={id} />
-                            <input type="hidden" name="gestion_id" value={g.id} />
-                            <BoutonEnvoi className={btnDangerClass} enCours="Suppression…">
-Supprimer définitivement
-</BoutonEnvoi>
-                          </form>
-                        </details>
+                        <form action={supprimerGestion}>
+                          <input type="hidden" name="compte_id" value={id} />
+                          <input type="hidden" name="gestion_id" value={g.id} />
+                          <BoutonConfirme
+                            className="rounded-full p-2 text-red-700 hover:bg-red-50"
+                            enCours="…"
+                            libelle={`Supprimer la gestion de ${nomSalarie(g)}`}
+                            question={`Supprimer définitivement la gestion de ${nomSalarie(g)} ?`}
+                            precision={`Ses ${docsGestion.length} document(s), fichiers PDF compris, et ses déclarations seront effacés. Action irréversible. Pour un salarié qui part, utilisez plutôt « Terminer la gestion ».`}
+                            oui="Oui, supprimer"
+                          >
+                            <IconePoubelle className="h-5 w-5" />
+                          </BoutonConfirme>
+                        </form>
                       </div>
                     </div>
 
-                    {/* Déclarations mensuelles envoyées par l'abonné */}
-                    {declarations.some((d) => d.gestion_id === g.id) && (
-                      <details className="mt-3" open={enAttente.length > 0}>
-                        <summary className="text-sm text-brand-violet">
-                          Déclarations de l&apos;abonné (
-                          {enAttente.length}{" "}
-                          à traiter)
-                        </summary>
-                        <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
-                          {declarations
-                            .filter((d) => d.gestion_id === g.id)
-                            .map((d) => (
-                              <li key={d.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2">
-                                <span className="w-32 shrink-0">{libelleMois(d.periode)}</span>
-                                <span className="w-20 shrink-0 tabular-nums">{formatHeures(d.heures)}</span>
-                                <span className="min-w-0 flex-1 text-foreground/70">{d.commentaire || "—"}</span>
-                                <span className={`shrink-0 text-xs ${d.statut !== "traitee" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
-                                  {d.statut === "envoyee"
-                                    ? `à traiter (envoyée le ${formatDate(d.envoyee_le)})`
-                                    : d.statut === "modification"
-                                      ? `modification demandée le ${formatDate(d.modification_demandee_le)} : « ${d.motif_modification ?? ""} »`
-                                      : `traitée le ${formatDate(d.traitee_le)}`}
-                                </span>
-                                {d.statut !== "traitee" && (
-                                  <Link
-                                    href={`/admin/comptes/${id}?depot=${g.id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${g.id}`}
-                                    className="btn btn-primaire btn-sm shrink-0"
-                                  >
-                                    {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
-                                  </Link>
-                                )}
-                              </li>
-                            ))}
-                        </ul>
-                      </details>
-                    )}
-
-                    {/* Documents de la gestion */}
-                    <details className="mt-3" open={cible || enAttente.length > 0}>
-                      <summary className="cursor-pointer text-sm text-brand-teal">
-                        Documents ({docsGestion.length})
+                    {/* Détail (déclarations + documents + dépôt) : une seule
+                        gestion dépliée à la fois grâce à name=… */}
+                    <details
+                      name="gestions-du-compte"
+                      className="mt-3"
+                      open={gestionOuverte === g.id}
+                    >
+                      <summary className="text-sm font-medium text-brand-teal">
+                        Détail : {docsGestion.length} document(s)
+                        {enAttente.length > 0 && (
+                          <span className="text-brand-violet">
+                            {" "}· {enAttente.length} déclaration(s) à traiter
+                          </span>
+                        )}
                       </summary>
+
+                      {declarations.some((d) => d.gestion_id === g.id) && (
+                        <section className="mt-3" aria-label="Déclarations de l'abonné">
+                          <h3 className="text-sm font-bold text-brand-violet">
+                            Déclarations de l&apos;abonné
+                          </h3>
+                          <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
+                            {declarations
+                              .filter((d) => d.gestion_id === g.id)
+                              .map((d) => (
+                                <li key={d.id} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2">
+                                  <span className="w-32 shrink-0">{libelleMois(d.periode)}</span>
+                                  <span className="w-20 shrink-0 tabular-nums">{formatHeures(d.heures)}</span>
+                                  <span className="min-w-0 flex-1 text-foreground/70">{d.commentaire || "—"}</span>
+                                  <span className={`shrink-0 text-xs ${d.statut !== "traitee" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
+                                    {d.statut === "envoyee"
+                                      ? `à traiter (envoyée le ${formatDate(d.envoyee_le)})`
+                                      : d.statut === "modification"
+                                        ? `modification demandée le ${formatDate(d.modification_demandee_le)} : « ${d.motif_modification ?? ""} »`
+                                        : `traitée le ${formatDate(d.traitee_le)}`}
+                                  </span>
+                                  {d.statut !== "traitee" && (
+                                    <Link
+                                      href={`/admin/comptes/${id}?depot=${g.id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${g.id}`}
+                                      className="btn btn-primaire btn-sm shrink-0"
+                                    >
+                                      {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
+                                    </Link>
+                                  )}
+                                </li>
+                              ))}
+                          </ul>
+                        </section>
+                      )}
+
                       <DocumentsGestion compteId={id} documents={docsGestion} />
                       <div id={`depot-${g.id}`} className="scroll-mt-4">
                         <DepotDocument
