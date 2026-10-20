@@ -313,3 +313,36 @@ Préparation : **relancer** `supabase/brique2g_liste_comptes_admin.sql` (mis à 
 | N.5 | Onglet Archivés | Comptes inactifs uniquement, avec recherche et tri | |
 | N.6 | Compte abonné | Navigation inchangée (Tableau de bord, Documents, Mon compte, Aide) | |
 
+## Données de recette fictives (environ 100 comptes)
+
+Fichiers : `supabase/donnees_recette_fictives.sql` (chargement) et `supabase/donnees_recette_suppression.sql` (suppression). Générés par `supabase/outils_generer_donnees_recette.py`, réutilisable pour produire un nouveau jeu.
+
+Préparation : avoir exécuté tous les scripts `brique*` (dont `brique2g` à jour), puis coller le contenu de `donnees_recette_fictives.sql` dans Supabase > SQL Editor et l'exécuter. Le script ne charge rien s'il a déjà été lancé.
+
+Contenu (vérifié sur une base de test) :
+- **98 comptes inventés**, tous en `@recette.invalid`, domaine qui ne reçoit jamais d'email ; les notifications par email sont désactivées pour ces comptes ;
+- **62 clients actifs** (1 à 3 gestions), dont :
+  - 8 gestions envoyées à valider ;
+  - 10 déclarations d'octobre à traiter ;
+  - 3 demandes de correction de bulletin ;
+  - 4 demandes d'avenant ;
+  - 5 brouillons, dont 3 renvoyés à compléter ;
+  - 3 comptes en dépassement de quota ;
+- **12 abonnements payés sans gestion** (à surveiller) ;
+- **14 anciens clients résiliés** et **10 inscrits sans abonnement** (archivés) ;
+- **homonymes** : Marie MARTIN ×3, Thomas PETIT ×2, Sophie DURAND ×2, Nicolas BERNARD ×2 (plus un homonyme tiré au hasard) ;
+- historique de bulletins (juillet à septembre), contrats, certificats de travail et soldes de tout compte : fiches **sans fichier PDF**, donc non téléchargeables.
+
+Pour voir l'espace abonné d'un compte de test : se connecter avec son adresse `@recette.invalid` (visible dans l'administration) et le mot de passe `Recette2026!`.
+
+**Avant la reprise réelle des clients** : exécuter `donnees_recette_suppression.sql`. Il supprime uniquement les comptes `@recette.invalid` et, en cascade, tout ce qui leur est rattaché.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| D.1 | Charger les données, ouvrir Comptes | « 25 action(s) à effectuer », bandeau jaune « 12 compte(s) paient un abonnement sans gestion » | |
+| D.2 | Onglet Abonnements | 74 actifs, 3 quotas dépassés, 12 sans gestion, 14 résiliés | |
+| D.3 | Onglet Archivés | 24 comptes | |
+| D.4 | Rechercher « martin marie » | 3 comptes, pastille « Homonyme ×3 », références différentes | |
+| D.5 | Se connecter à un compte de test avec `Recette2026!` | Espace abonné avec gestions, déclarations et documents « sans fichier » | |
+| D.6 | Exécuter le script de suppression | Plus aucun compte `@recette.invalid` ; les comptes réels restent intacts | |
+
