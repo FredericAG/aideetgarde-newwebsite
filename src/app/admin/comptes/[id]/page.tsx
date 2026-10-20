@@ -362,7 +362,7 @@ Ajouter la gestion
                   <li
                     key={g.id}
                     id={`gestion-${g.id}`}
-                    className="scroll-mt-4 rounded-lg border border-brand-gray/20 p-4 transition-shadow has-[>details[open]]:border-brand-violet has-[>details[open]]:ring-2 has-[>details[open]]:ring-brand-violet/30"
+                    className="scroll-mt-4 rounded-lg border border-brand-gray/20 bg-[var(--carte)] p-4 transition-shadow has-[>details[open]]:border-brand-violet has-[>details[open]]:bg-white has-[>details[open]]:ring-2 has-[>details[open]]:ring-brand-violet/30"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="text-sm">

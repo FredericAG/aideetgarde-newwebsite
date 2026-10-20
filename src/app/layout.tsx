@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { corporative, stevieSans } from "@/fonts";
 import { SiteHeader } from "@/components/SiteHeader";
+import { NavigationTelephone } from "@/components/NavigationTelephone";
 import "./globals.css";
 
 export const viewport: Viewport = {
   // Couleur de la barre du navigateur / de l'application installée.
   themeColor: "#376873",
+  // Permet à la barre d'onglets du téléphone de tenir compte de la zone
+  // du geste d'accueil de l'iPhone (env(safe-area-inset-bottom)).
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -33,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
+        <NavigationTelephone />
       </body>
     </html>
   );

@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
 import { NotificationsPush } from "@/components/NotificationsPush";
+import { DeconnexionButton } from "@/components/DeconnexionButton";
 
 /**
  * Page protégée. Le Proxy (`src/proxy.ts`) redirige déjà les requêtes sans
@@ -37,6 +38,11 @@ export default async function MonComptePage() {
         <ProfileForm profile={safeProfile} />
 
         <NotificationsPush />
+
+        {/* Sur téléphone, la déconnexion se trouve ici (onglet « Compte »). */}
+        <div className="mt-8 border-t border-brand-gray/20 pt-6">
+          <DeconnexionButton className="btn btn-secondaire w-full sm:w-auto" />
+        </div>
       </div>
     </div>
   );

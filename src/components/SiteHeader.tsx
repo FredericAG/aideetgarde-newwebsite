@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
 import { getSessionCourante } from "@/lib/auth";
-import { MenuMobile } from "@/components/MenuMobile";
 
 /** En-tête commun à toutes les pages. */
 export async function SiteHeader() {
@@ -33,6 +32,9 @@ export async function SiteHeader() {
               <Link href="/tableau-de-bord" className="btn btn-secondaire btn-sm">
                 Tableau de bord
               </Link>
+              <Link href="/tableau-de-bord/documents" className="btn btn-secondaire btn-sm">
+                Documents
+              </Link>
               {isAdmin && (
                 <Link href="/admin" className="btn btn-primaire btn-sm">
                   Administration
@@ -41,10 +43,13 @@ export async function SiteHeader() {
               <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
                 Mon compte
               </Link>
+              <Link href="/aide" className="btn btn-secondaire btn-sm">
+                Aide
+              </Link>
               <DeconnexionButton className="ml-2 text-sm font-medium text-brand-teal underline disabled:opacity-60" />
             </nav>
-            {/* Téléphone */}
-            <MenuMobile isAdmin={isAdmin} />
+            {/* Téléphone : navigation par la barre d'onglets en bas de
+                l'écran (src/components/BarreOnglets.tsx). */}
           </>
         ) : (
           <nav className="flex items-center gap-2">

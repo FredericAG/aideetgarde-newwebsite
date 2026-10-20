@@ -197,6 +197,76 @@ button:disabled {
   }
 
   /*
+   * Tableau de documents : colonnes classiques sur ordinateur ; sur
+   * téléphone, chaque document tient sur deux lignes compactes
+   *   Type ............ Période  [⬇]
+   *   Titre (Nouveau)
+   * (+ une ligne d'information facultative, ex. le salarié), avec le bouton
+   * de téléchargement à droite, sans répéter les intitulés.
+   */
+  .tableau-documents tbody tr:nth-child(even) {
+    background: #f7f7f7;
+  }
+  @media (max-width: 639px) {
+    .tableau-documents thead {
+      display: none;
+    }
+    .tableau-documents,
+    .tableau-documents tbody {
+      display: block;
+      width: 100%;
+    }
+    .tableau-documents tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-areas:
+        "type periode action"
+        "doc doc action"
+        "info info action";
+      column-gap: 0.75rem;
+      row-gap: 0.125rem;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      border-top: 1px solid color-mix(in srgb, var(--brand-gray) 20%, transparent);
+    }
+    .tableau-documents tbody tr:first-child {
+      border-top: 0;
+    }
+    .tableau-documents tbody tr:nth-child(even) {
+      background: var(--carte);
+    }
+    .tableau-documents td {
+      display: block;
+      padding: 0 !important;
+      border: 0 !important;
+      text-align: left !important;
+    }
+    .tableau-documents .c-type {
+      grid-area: type;
+      font-weight: 700;
+    }
+    .tableau-documents .c-periode {
+      grid-area: periode;
+      font-variant-numeric: tabular-nums;
+    }
+    .tableau-documents .c-doc {
+      grid-area: doc;
+      font-size: 0.8125rem;
+    }
+    .tableau-documents .c-info {
+      grid-area: info;
+      font-size: 0.75rem;
+      color: color-mix(in srgb, var(--foreground) 60%, transparent);
+    }
+    .tableau-documents .c-action {
+      grid-area: action;
+    }
+    .tableau-documents .c-masque-mobile {
+      display: none;
+    }
+  }
+
+  /*
    * Tableau qui devient une pile de cartes sur téléphone : chaque cellule
    * affiche alors son intitulé (attribut data-label) devant sa valeur.
    */

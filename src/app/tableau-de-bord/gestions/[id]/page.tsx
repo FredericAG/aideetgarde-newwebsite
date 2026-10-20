@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentsParCategorie } from "@/components/DocumentsParCategorie";
-import { IconeTelechargement } from "@/components/IconeTelechargement";
-import { LienTelechargement } from "@/components/LienTelechargement";
+import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { requireUser } from "@/lib/auth";
 import { DeclarationMois } from "./DeclarationMois";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
@@ -143,14 +142,7 @@ export default async function DetailGestionPage({
               vue="abonne"
               action={(d) =>
                 d.storage_path ? (
-                  <LienTelechargement
-                    documentId={d.id}
-                    className="btn btn-secondaire btn-sm w-full sm:w-auto"
-                    title={`Télécharger « ${d.titre} »`}
-                  >
-                    <IconeTelechargement />
-                    Télécharger
-                  </LienTelechargement>
+                  <BoutonTelechargement documentId={d.id} titre={d.titre} />
                 ) : null
               }
             />

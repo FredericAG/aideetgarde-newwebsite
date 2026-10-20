@@ -170,16 +170,16 @@ Aucun script SQL.
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
-| R.1 | Administration : cliquer n'importe où sur la ligne d'un compte (rôle, date, abonnement) | La fiche du compte s'ouvre | |
-| R.2 | Fiche d'un compte avec plusieurs gestions | Une seule gestion dépliée (cadre violet), les autres en cadre gris clair ; déplier une autre gestion replie la précédente | |
-| R.3 | Gestion avec une déclaration à traiter | Pastille « 1 action à faire » visible même repliée ; c'est elle qui est dépliée à l'arrivée | |
-| R.4 | Cliquer la poubelle d'un document | Fenêtre « Supprimer ce document ? » avec type, période et titre ; « Non, annuler » ou Échap ne supprime rien ; « Oui, supprimer » supprime | |
-| R.5 | Poubelle d'une gestion | Fenêtre de confirmation rappelant le nombre de documents effacés et suggérant « Terminer la gestion » | |
-| R.6 | « Terminer la gestion » puis « Résilier l'abonnement » | Une confirmation Oui/Non pour chacun | |
-| R.7 | Client sur ordinateur : cliquer le bouton de l'encadré « nouveau document » | Le PDF se télécharge et le bouton disparaît aussitôt ; l'encadré disparaît avec le dernier document ; la pastille « Nouveau » disparaît des tableaux 1 à 2 secondes plus tard, sans actualiser | |
-| R.8 | Téléphone : tableau de bord et détail d'une gestion | Fiches / lignes de documents alternées blanc et gris | |
-| R.9 | Mon compte, notifications bloquées dans le navigateur | Encadré ouvert avec les étapes pour ce navigateur et cet appareil (vérifier sur l'iPhone installé, Android, et l'ordinateur) | |
-| R.10 | Suivre les étapes, puis « J'ai modifié le réglage : vérifier » | La page se recharge ; le bouton « Activer les notifications » réapparaît | |
+| R.1 | Administration : cliquer n'importe où sur la ligne d'un compte (rôle, date, abonnement) | La fiche du compte s'ouvre || OK (20/10) |
+| R.2 | Fiche d'un compte avec plusieurs gestions | Une seule gestion dépliée (cadre violet), les autres en cadre gris clair ; déplier une autre gestion replie la précédente || À revérifier (corrigé le 20/10 : gestions repliées sur fond gris) |
+| R.3 | Gestion avec une déclaration à traiter | Pastille « 1 action à faire » visible même repliée ; c'est elle qui est dépliée à l'arrivée || OK (20/10) |
+| R.4 | Cliquer la poubelle d'un document | Fenêtre « Supprimer ce document ? » avec type, période et titre ; « Non, annuler » ou Échap ne supprime rien ; « Oui, supprimer » supprime || OK (20/10) |
+| R.5 | Poubelle d'une gestion | Fenêtre de confirmation rappelant le nombre de documents effacés et suggérant « Terminer la gestion » || OK (20/10) |
+| R.6 | « Terminer la gestion » puis « Résilier l'abonnement » | Une confirmation Oui/Non pour chacun || OK (20/10) |
+| R.7 | Client sur ordinateur : cliquer le bouton de l'encadré « nouveau document » | Le PDF se télécharge et le bouton disparaît aussitôt ; l'encadré disparaît avec le dernier document ; la pastille « Nouveau » disparaît des tableaux 1 à 2 secondes plus tard, sans actualiser || OK (20/10) |
+| R.8 | Téléphone : tableau de bord et détail d'une gestion | Fiches / lignes de documents alternées blanc et gris || OK (20/10) |
+| R.9 | Mon compte, notifications bloquées dans le navigateur | Encadré ouvert avec les étapes pour ce navigateur et cet appareil (vérifier sur l'iPhone installé, Android, et l'ordinateur) || OK (20/10) |
+| R.10 | Suivre les étapes, puis « J'ai modifié le réglage : vérifier » | La page se recharge ; le bouton « Activer les notifications » réapparaît || OK (20/10) |
 
 ## Retours du 20/10 (suite) — Documents par catégories côté abonné
 
@@ -187,10 +187,25 @@ Aucun script SQL.
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
-| C.1 | Client : détail d'une gestion (ordinateur) | Trois catégories ; tableaux avec ligne de titres colorée (violet / turquoise / orange) : Type / Période / Document / Mis en ligne le ; bouton « Télécharger » sur chaque ligne ; aucune poubelle | |
-| C.2 | Cliquer « Télécharger » sur un document « Nouveau » | Le PDF se télécharge ; la pastille disparaît 1 à 2 s plus tard | |
-| C.3 | Changer de tri (Plus anciens, Ordre alphabétique, Par type) | Le tri s'applique dans chaque catégorie | |
-| C.4 | Même page sur téléphone | Une fiche par document, alternance blanc / gris, bouton « Télécharger » pleine largeur, carré de couleur devant chaque catégorie | |
-| C.5 | Admin : tableaux de documents | Mêmes couleurs de lignes de titres que côté client | |
-| C.6 | Admin : « Terminer la gestion » | Plus de champ de date ; confirmation Oui/Non ; la gestion est terminée à la date du jour | |
+| C.1 | Client : détail d'une gestion (ordinateur) | Trois catégories ; tableaux avec ligne de titres colorée (violet / turquoise / orange) : Type / Période / Document / Mis en ligne le ; bouton « Télécharger » sur chaque ligne ; aucune poubelle || OK (20/10) |
+| C.2 | Cliquer « Télécharger » sur un document « Nouveau » | Le PDF se télécharge ; la pastille disparaît 1 à 2 s plus tard || OK (20/10) |
+| C.3 | Changer de tri (Plus anciens, Ordre alphabétique, Par type) | Le tri s'applique dans chaque catégorie || OK (20/10) |
+| C.4 | Même page sur téléphone | Une fiche par document, alternance blanc / gris, bouton « Télécharger » pleine largeur, carré de couleur devant chaque catégorie || OK (20/10) |
+| C.5 | Admin : tableaux de documents | Mêmes couleurs de lignes de titres que côté client || OK (20/10) |
+| C.6 | Admin : « Terminer la gestion » | Plus de champ de date ; confirmation Oui/Non ; la gestion est terminée à la date du jour || OK (20/10) |
+
+## Retours du 20/10 (fin) — Barre d'onglets et documents compacts sur téléphone
+
+Aucun script SQL.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| T.1 | Téléphone, connecté : n'importe quelle page | Barre fixe en bas : Accueil / Documents / Aide (Admin pour l'administrateur) / Compte ; onglet en cours en violet ; elle ne cache pas le bas des pages | |
+| T.2 | iPhone, application installée | La barre reste au-dessus de la zone du geste d'accueil | |
+| T.3 | Onglet « Documents » | Page « Mes documents » : tous les documents, salarié par salarié, en trois catégories ; boutons pour filtrer par salarié | |
+| T.4 | Onglet « Aide » | Bouton « Appeler le 01 88 320 118 » (ouvre le téléphone) et adresse email | |
+| T.5 | Onglet « Compte » | Bouton « Se déconnecter » en bas de page | |
+| T.6 | Téléphone : détail d'une gestion et « Vos 5 derniers documents » | Chaque document sur deux lignes (type + période, puis titre), bouton rond de téléchargement à droite, alternance blanc / gris | |
+| T.7 | Ordinateur : en-tête | Tableau de bord / Documents / (Administration) / Mon compte / Aide / Se déconnecter ; pas de barre en bas | |
+| T.8 | Admin : fiche d'un compte | Gestions repliées sur fond gris ; gestion dépliée sur fond blanc, cadre violet | |
 

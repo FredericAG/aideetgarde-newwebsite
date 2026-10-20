@@ -22,7 +22,8 @@ const tdBase = "px-3 py-2 align-middle";
  * - vue « admin » : dernière colonne de date = premier téléchargement par
  *   l'abonné (tiret rouge s'il ne l'a pas encore fait).
  * - vue « abonne » : date de mise en ligne, pastille « Nouveau » ; sur
- *   téléphone, chaque ligne devient une petite fiche.
+ *   téléphone, chaque document tient sur deux lignes compactes (classe
+ *   « tableau-documents » de globals.css).
  */
 export function DocumentsParCategorie({
   documents,
@@ -36,9 +37,8 @@ export function DocumentsParCategorie({
   action: (d: DocumentRow) => React.ReactNode;
 }) {
   const admin = vue === "admin";
-  // Côté abonné, les lignes alternées et les fiches sur téléphone viennent
-  // de la classe « tableau-adaptatif » (globals.css) ; pas de filet entre
-  // les champs d'une même fiche sur téléphone.
+  // Côté abonné, les lignes alternées et l'affichage compact sur téléphone
+  // viennent de la classe « tableau-documents » (globals.css).
   const td = admin
     ? `${tdBase} border-b border-brand-gray/15`
     : `${tdBase} sm:border-b sm:border-brand-gray/15`;
@@ -63,7 +63,7 @@ export function DocumentsParCategorie({
 
         const tableau = (
           <TableauDepliable
-            classeTable={admin ? "" : "tableau-adaptatif"}
+            classeTable={admin ? "" : "tableau-documents"}
             classeEntete={`entete-${cat.cle}`}
             colonnes={
               <>
@@ -92,22 +92,19 @@ export function DocumentsParCategorie({
             }
             lignes={docs.map((d) => (
               <tr key={d.id} className={admin ? "even:bg-[#f7f7f7] hover:bg-brand-sky-tint/20" : "hover:bg-brand-sky-tint/20"}>
-                <td data-label="Type" className={`${td} text-foreground/80`}>
+                <td className={`${td} c-type text-foreground/80`}>
                   {TYPES_DOCUMENT[d.type_document] ?? d.type_document}
                 </td>
-                <td data-label="Période" className={`${td} tabular-nums`}>
+                <td className={`${td} c-periode tabular-nums`}>
                   {d.periode ? formatPeriode(d.periode) : "—"}
                 </td>
-                <td data-label="Document" className={`${td} break-words`}>
+                <td className={`${td} c-doc break-words`}>
                   <TitreDocument doc={d} />
                   {!admin && d.storage_path && !d.consulte_le && (
                     <span className="pastille-nouveau ml-2">Nouveau</span>
                   )}
                 </td>
-                <td
-                  data-label={admin ? "Téléchargé le" : "Mis en ligne le"}
-                  className={`${td} tabular-nums`}
-                >
+                <td className={`${td} c-masque-mobile tabular-nums`}>
                   {!d.storage_path ? (
                     <span className="text-xs text-foreground/50">sans fichier</span>
                   ) : !admin ? (
@@ -123,7 +120,7 @@ export function DocumentsParCategorie({
                     </span>
                   )}
                 </td>
-                <td className={`${td} cellule-pleine text-right`}>{action(d)}</td>
+                <td className={`${td} c-action text-right`}>{action(d)}</td>
               </tr>
             ))}
           />

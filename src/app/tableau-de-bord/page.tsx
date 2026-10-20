@@ -3,6 +3,7 @@ import { TitreDocument } from "@/components/TitreDocument";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import { LienTelechargement } from "@/components/LienTelechargement";
+import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { requireUser } from "@/lib/auth";
 import {
   TYPES_DOCUMENT,
@@ -313,35 +314,41 @@ export default async function TableauDeBordPage() {
             </p>
           ) : (
             <div className="mt-3 overflow-hidden rounded-xl border border-brand-gray/25">
-              <table className="tableau-adaptatif">
-                <thead className="bg-[var(--carte)]">
+              <table className="tableau-documents w-full text-left text-sm">
+                <thead className="bg-[var(--carte)] text-brand-teal">
                   <tr>
-                    <th scope="col">Type</th>
-                    <th scope="col">Période</th>
-                    <th scope="col">Document</th>
-                    <th scope="col">Salarié</th>
+                    <th scope="col" className="px-3 py-2">Type</th>
+                    <th scope="col" className="px-3 py-2">Période</th>
+                    <th scope="col" className="px-3 py-2">Document</th>
+                    <th scope="col" className="px-3 py-2">Salarié</th>
+                    <th scope="col" className="px-3 py-2">
+                      <span className="sr-only">Télécharger</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {documents.map((d) => {
                     const g = gestionParId.get(d.gestion_id);
                     return (
-                      <tr key={d.id}>
-                        <td data-label="Type">
+                      <tr key={d.id} className="border-t border-brand-gray/20">
+                        <td className="c-type px-3 py-2.5">
                           {TYPES_DOCUMENT[d.type_document] ?? d.type_document}
                         </td>
-                        <td data-label="Période" className="tabular-nums">
+                        <td className="c-periode px-3 py-2.5 tabular-nums">
                           {d.periode ? formatPeriode(d.periode) : "—"}
                         </td>
-                        <td data-label="Document">
-                          <span className="inline-flex flex-wrap items-center justify-end gap-x-2 sm:justify-start">
-                            <TitreDocument doc={d} />
-                            {d.storage_path && !d.consulte_le && (
-                              <span className="pastille-nouveau">Nouveau</span>
-                            )}
-                          </span>
+                        <td className="c-doc px-3 py-2.5">
+                          <TitreDocument doc={d} />
+                          {d.storage_path && !d.consulte_le && (
+                            <span className="pastille-nouveau ml-2">Nouveau</span>
+                          )}
                         </td>
-                        <td data-label="Salarié">{g ? nomSalarie(g) : ""}</td>
+                        <td className="c-info px-3 py-2.5">{g ? nomSalarie(g) : ""}</td>
+                        <td className="c-action px-3 py-2.5 text-right">
+                          {d.storage_path && (
+                            <BoutonTelechargement documentId={d.id} titre={d.titre} />
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

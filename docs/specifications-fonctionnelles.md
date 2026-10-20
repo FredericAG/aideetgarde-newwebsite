@@ -119,7 +119,7 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Règle | Statut |
 |---|---|
 | Liste des comptes : **toute la ligne** est cliquable (pas seulement le nom). | En place (20/10) |
-| Fiche d'un compte : **une seule gestion dépliée à la fois** (« Détail : N document(s) · k déclaration(s) à traiter »), cadre violet ; les autres gardent un cadre gris clair. À l'arrivée, la gestion visée par un lien « Déposer le bulletin » est dépliée, sinon la première qui attend une action. | En place (20/10) |
+| Fiche d'un compte : **une seule gestion dépliée à la fois** (« Détail : N document(s) · k déclaration(s) à traiter »), fond blanc et cadre violet ; les autres sont sur fond gris clair. À l'arrivée, la gestion visée par un lien « Déposer le bulletin » est dépliée, sinon la première qui attend une action. | En place (20/10) |
 | **Actions attendues toujours visibles** : une gestion qui attend une action porte une pastille violette « 1 action à faire » dans son en-tête, même repliée. Les déclarations, les documents et la zone de dépôt sont regroupés dans le détail. | En place (20/10) |
 | Documents répartis en **trois catégories** : *Éléments contractuels* (contrat, avenants, rupture conventionnelle, licenciement, et documents de fin de contrat : certificat de travail, solde de tout compte, attestation France Travail), *Bulletins de paie*, *Autres documents* (attestations de salaire ou sur l'honneur, courriers, divers). Une catégorie vide tient sur une ligne (« aucun document »). | En place (20/10) — rattachement des documents de fin de contrat à valider par Frédéric |
 | Colonnes identiques dans les trois catégories, pour un alignement vertical : **Type / Période (MM/AAAA) / Titre (vu par l'abonné) / Téléchargé le**, puis la poubelle ; ligne de titres colorée par catégorie (voir § 5.4). Le titre est le nom affiché à l'abonné (le nom technique du fichier dans le stockage n'est pas utile ici). | En place (20/10) |
@@ -189,6 +189,11 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ### 6.2 Version mobile
 
+**Navigation sur téléphone (20/10)** : barre de 4 onglets fixée en bas de l'écran, pour une personne connectée — Accueil (tableau de bord), Documents (tous les documents, par salarié et par catégorie, filtre par salarié), Aide (téléphone et email ; « Admin » à la place pour l'administrateur), Compte (coordonnées, notifications, déconnexion). Rubrique en cours en violet ; la barre respecte la zone du geste d'accueil de l'iPhone. Elle remplace le menu « ☰ ». Sur ordinateur, les mêmes rubriques sont dans l'en-tête ; le menu latéral gauche est reporté au moment où l'espace comptera assez de rubriques (4 à 6).
+
+**Documents sur téléphone** : chaque document tient sur deux lignes (type et période, puis titre), avec un bouton rond de téléchargement à droite (40 px, facile à toucher) et des lignes alternées blanc / gris.
+
+
 | Règle | Statut |
 |---|---|
 | Un seul site pour l'ordinateur et le téléphone : mêmes comptes, mêmes données, en temps réel. | En place |
@@ -228,6 +233,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 20/10/2026 — Barre d'onglets sur téléphone, page « Mes documents », page « Aide et contact », documents compacts sur téléphone, gestions repliées sur fond gris côté admin.
 - 20/10/2026 — Documents par catégories côté abonné avec bouton Télécharger ; lignes de titres colorées (violet / turquoise / orange) ; « Terminer la gestion » sans saisie de date.
 - 20/10/2026 — Confirmations Oui/Non, icônes poubelle, lignes alternées, comptes cliquables, une gestion dépliée à la fois avec pastille « action à faire », encadré de téléchargement qui disparaît au clic, aide à la réactivation des notifications.
 - 20/10/2026 — Identité visuelle de l'ancien site, tableaux à colonnes (gestions en cours, derniers documents), documents admin par catégories avec dépliage.
