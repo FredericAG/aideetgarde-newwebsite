@@ -51,6 +51,8 @@ export interface DocumentRow {
   titre: string;
   storage_path: string | null;
   created_at: string;
+  /** Premier téléchargement par l'abonné ; vide = document « nouveau ». */
+  consulte_le?: string | null;
 }
 
 /** Nom de l'espace de stockage Supabase des PDF (voir brique2c_stockage_pdf.sql). */

@@ -26,13 +26,14 @@ export function DeclarationMois({
   options,
   parDefaut,
   declarations,
-  periodesAvecBulletin,
+  bulletins,
 }: {
   gestionId: string;
   options: { valeur: string; libelle: string }[];
   parDefaut: string;
   declarations: Declaration[];
-  periodesAvecBulletin: string[];
+  /** Bulletins en ligne : mois (AAMM) → identifiant du document. */
+  bulletins: Record<string, string>;
 }) {
   const [etat, action, enCours] = useActionState<EtatDeclaration, FormData>(
     envoyerDeclaration,
@@ -46,7 +47,8 @@ export function DeclarationMois({
   const [demandeOuverte, setDemandeOuverte] = useState(false);
 
   const existante = declarations.find((d) => d.periode === periode);
-  const bulletinEnLigne = periodesAvecBulletin.includes(periode);
+  const bulletinId = bulletins[periode];
+  const bulletinEnLigne = Boolean(bulletinId);
   const modificationEnCours = existante?.statut === "modification";
   const formulaireOuvert = !bulletinEnLigne && !modificationEnCours;
 
@@ -95,9 +97,14 @@ export function DeclarationMois({
         <div className="mt-4 flex flex-col gap-3">
           <p className="rounded-md bg-brand-teal/10 p-3 text-sm text-brand-teal">
             Le bulletin de {libelleMois(periode)} est en ligne
-            {existante?.traitee_le ? ` (établi le ${formatDate(existante.traitee_le)})` : ""} :
-            retrouvez-le dans vos documents ci-dessous.
+            {existante?.traitee_le ? ` (établi le ${formatDate(existante.traitee_le)})` : ""}.
           </p>
+          <a
+            href={`/documents/${bulletinId}/telecharger`}
+            className="w-full rounded-md bg-brand-teal px-4 py-3 text-center text-base font-semibold text-white sm:w-auto sm:self-start"
+          >
+            ⬇ Télécharger le bulletin de {libelleMois(periode)}
+          </a>
           {!demandeOuverte ? (
             <button
               type="button"

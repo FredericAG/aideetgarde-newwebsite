@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InfosDocument } from "@/components/TitreDocument";
 import { NotificationsPush } from "@/components/NotificationsPush";
+import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import { requireUser } from "@/lib/auth";
 import {
   TYPES_GESTION,
@@ -29,7 +30,7 @@ export default async function TableauDeBordPage() {
 
   const moisCourant = periodesDeclarables().parDefaut;
 
-  const [abosRes, gestionsRes, docsRes, declsRes] = await Promise.all([
+  const [abosRes, gestionsRes, docsRes, declsRes, nouveauxRes] = await Promise.all([
     supabase
       .from("abonnements")
       .select("*")
@@ -42,7 +43,7 @@ export default async function TableauDeBordPage() {
       .order("date_debut", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
       .eq("employeur_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -51,6 +52,15 @@ export default async function TableauDeBordPage() {
       .select("gestion_id, statut")
       .eq("employeur_id", user.id)
       .eq("periode", moisCourant),
+    // Documents pas encore téléchargés, mis en avant en haut de page.
+    supabase
+      .from("documents")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
+      .eq("employeur_id", user.id)
+      .is("consulte_le", null)
+      .not("storage_path", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   const erreur = abosRes.error || gestionsRes.error || docsRes.error;
@@ -86,6 +96,14 @@ export default async function TableauDeBordPage() {
             dans un instant.
           </p>
         )}
+
+        <NouveauxDocuments
+          documents={(nouveauxRes.data ?? []) as DocumentRow[]}
+          nomSalarie={(d) => {
+            const g = gestionParId.get(d.gestion_id);
+            return g ? nomSalarie(g) : "";
+          }}
+        />
 
         <NotificationsPush compact />
 

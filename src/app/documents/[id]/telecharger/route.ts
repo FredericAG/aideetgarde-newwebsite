@@ -25,11 +25,11 @@ export async function GET(
     return NextResponse.redirect(`${origin}/tableau-de-bord`);
   }
 
-  const { supabase } = await requireUser(`/documents/${id}/telecharger`);
+  const { supabase, user } = await requireUser(`/documents/${id}/telecharger`);
 
   const { data: doc } = await supabase
     .from("documents")
-    .select("titre, periode, storage_path")
+    .select("titre, periode, storage_path, employeur_id, consulte_le")
     .eq("id", id)
     .maybeSingle();
 
@@ -55,6 +55,12 @@ export async function GET(
       "Le fichier est momentanément indisponible. Réessayez dans un instant.",
       { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } },
     );
+  }
+
+  // Premier téléchargement par l'abonné lui-même : le document n'est plus
+  // « nouveau » (un téléchargement par l'administrateur ne compte pas).
+  if (doc.employeur_id === user.id && !doc.consulte_le) {
+    await supabase.rpc("marquer_document_consulte", { p_document_id: id });
   }
 
   return NextResponse.redirect(data.signedUrl);

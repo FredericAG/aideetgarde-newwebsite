@@ -99,6 +99,9 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Ordre des informations sur chaque ligne de document : **type**, puis **période**, puis le **titre cliquable** (lien de téléchargement). Colonnes alignées. | En place (19/10) |
 | Tri par défaut : du plus récent au plus ancien (période, puis date de dépôt). | En place |
 | L'abonné peut changer le tri dans le détail d'une gestion : plus récents, plus anciens, ordre alphabétique, par type (bulletins, contrats, avenants, soldes de tout compte…). Le tri choisi reste dans l'adresse de la page (il survit au rafraîchissement). | En place (19/10) |
+| **Document nouvellement disponible mis en avant** : tant que l'abonné ne l'a pas téléchargé, un document apparaît **en haut** du tableau de bord et du détail de la gestion, dans un encadré « Un nouveau document est disponible », avec un **grand bouton de téléchargement** (« ⬇ Télécharger : Bulletin de salaire de [mois] »). Dans les listes, il porte une pastille « Nouveau ». Le premier téléchargement par l'abonné le fait passer en « consulté » : l'encadré et la pastille disparaissent. Un bulletin remplacé (corrigé) redevient « nouveau ». | En place (19/10, brique 7c) |
+| Dans la carte « Déclaration du mois », quand le bulletin est établi, un grand bouton « ⬇ Télécharger le bulletin de [mois] » est affiché à côté de la demande de modification. | En place (19/10) |
+| Côté administrateur, chaque document indique « téléchargé par l'abonné le … » ou « pas encore téléchargé » (utile en cas de réclamation « je n'ai rien reçu »). Les téléchargements de l'administrateur ne comptent pas. | En place (19/10) |
 | Le tableau de bord affiche **uniquement les 5 derniers documents** (« Vos 5 derniers documents »), tous salariés confondus, avec le nom du salarié ; la liste complète est dans le détail de chaque gestion. | En place |
 
 ### 5.5 Dépôt d'un document par l'administrateur (fichier par fichier)
@@ -197,6 +200,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 19/10/2026 — Documents nouvellement disponibles mis en avant (encadré en haut de page, grands boutons, pastille « Nouveau », date de téléchargement visible par l'administrateur).
 - 19/10/2026 — Notifications push à la mise en ligne d'un document.
 - 19/10/2026 — Déclaration mensuelle de l'abonné (première version) et socle mobile (PWA).
 - 19/10/2026 — Fluidité (objectifs chiffrés), hébergement à Paris, référencement moteurs + IA, convention de nommage validée et référence de gestion en place.

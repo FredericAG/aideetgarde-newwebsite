@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { InfosDocument } from "@/components/TitreDocument";
 import { requireUser } from "@/lib/auth";
 import { DeclarationMois } from "./DeclarationMois";
+import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import {
   LIBELLES_TRI,
   TYPES_GESTION,
@@ -55,7 +56,7 @@ export default async function DetailGestionPage({
   const [{ data: docs }, { data: decls }] = await Promise.all([
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
       .eq("gestion_id", id),
     supabase
       .from("declarations_mensuelles")
@@ -85,15 +86,19 @@ export default async function DetailGestionPage({
             : `terminée (du ${formatDate(gestion.date_debut)} au ${formatDate(gestion.date_fin)})`}
         </p>
 
+        <NouveauxDocuments documents={documents} />
+
         {gestion.statut === "en_cours" && (
           <DeclarationMois
             gestionId={gestion.id}
             options={options}
             parDefaut={parDefaut}
             declarations={declarations}
-            periodesAvecBulletin={documents
-              .filter((d) => d.type_document === "bulletin" && d.periode)
-              .map((d) => d.periode as string)}
+            bulletins={Object.fromEntries(
+              documents
+                .filter((d) => d.type_document === "bulletin" && d.periode && d.storage_path)
+                .map((d) => [d.periode as string, d.id]),
+            )}
           />
         )}
 

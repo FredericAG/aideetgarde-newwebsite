@@ -130,3 +130,19 @@ Préparation : exécuter `supabase/brique7b_modification_bulletin.sql`.
 | 7b.7 | Cliquer sur « Déposer le bulletin corrigé », déposer un PDF | Arrivée directe sur la bonne gestion ; case « Remplacer » cochée ; message « Bulletin remplacé — … » ; un seul bulletin pour le mois ; l'ancien fichier a disparu de Supabase > Storage | |
 | 7b.8 | Client : vérifier | Nouveau bulletin téléchargeable ; notification « Bulletin corrigé disponible » si activée ; la demande disparaît de « à traiter » | |
 | 7b.9 | Admin : supprimer un bulletin pour lequel une déclaration existe | La déclaration redevient « à traiter » ; côté client, le formulaire de déclaration réapparaît | |
+
+## Brique 7c — Documents nouvellement disponibles mis en avant
+
+Préparation : exécuter `supabase/brique7c_documents_consultes.sql` (les documents déjà en ligne sont considérés comme déjà consultés, pour ne pas afficher d'encadré sur l'historique).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 7c.1 | Admin : déposer un bulletin pour le compte client | Dans la liste des documents de la gestion : « pas encore téléchargé » | |
+| 7c.2 | Client : tableau de bord (ordinateur et téléphone) | En haut de page, encadré « Un nouveau document est disponible » avec un grand bouton « ⬇ Télécharger : Bulletin de salaire de [mois] » et le nom du salarié ; dans « Vos 5 derniers documents », pastille « Nouveau » | |
+| 7c.3 | Client : ouvrir la gestion concernée | Même encadré en haut de page ; dans la carte « Déclaration du mois », bouton « ⬇ Télécharger le bulletin de [mois] » | |
+| 7c.4 | Cliquer sur le grand bouton | Le PDF s'ouvre ; au retour sur la page (rafraîchir si besoin), l'encadré et la pastille « Nouveau » ont disparu | |
+| 7c.5 | Admin : rafraîchir la fiche du compte | « téléchargé par l'abonné le [date] » | |
+| 7c.6 | Admin : télécharger lui-même un autre document non consulté | Le document reste « pas encore téléchargé » (seul l'abonné compte) | |
+| 7c.7 | Admin : déposer deux documents d'affilée | Encadré « 2 nouveaux documents sont disponibles » avec deux boutons | |
+| 7c.8 | Admin : remplacer un bulletin déjà téléchargé (demande de modification) | Le bulletin corrigé redevient « Nouveau » côté client et « pas encore téléchargé » côté admin | |
+

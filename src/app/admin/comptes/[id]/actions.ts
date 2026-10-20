@@ -385,6 +385,8 @@ export async function enregistrerDocument(
           storage_path: cheminAttendu,
           nom_fichier_origine: m.nomFichier.slice(0, 255),
           created_at: new Date().toISOString(),
+          // Bulletin corrigé : il redevient « nouveau » pour l'abonné.
+          consulte_le: null,
         })
         .eq("id", existant.id);
       if (errMaj) return echec(messageErreur(errMaj));

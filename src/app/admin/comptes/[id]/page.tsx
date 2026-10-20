@@ -97,7 +97,7 @@ export default async function FicheComptePage({
       .order("date_debut", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at")
+      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
       .eq("employeur_id", id)
       .order("periode", { ascending: false, nullsFirst: false }),
     supabase
@@ -448,7 +448,7 @@ Supprimer définitivement
                       <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
                         {docsGestion.map((d) => (
                           <li key={d.id} className="flex items-center justify-between gap-3 py-2">
-                            <InfosDocument doc={d} />
+                            <InfosDocument doc={d} vue="admin" />
                             <form action={supprimerDocument}>
                               <input type="hidden" name="compte_id" value={id} />
                               <input type="hidden" name="document_id" value={d.id} />
