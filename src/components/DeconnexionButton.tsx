@@ -10,7 +10,14 @@ import { createClient } from "@/lib/supabase/client";
  * Firebase, pas besoin d'appeler une route API dédiée pour révoquer un
  * cookie serveur distinct).
  */
-export function DeconnexionButton({ className }: { className?: string }) {
+export function DeconnexionButton({
+  className,
+  redirection = "/",
+}: {
+  className?: string;
+  /** Page à ouvrir après la déconnexion (par défaut l'accueil). */
+  redirection?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +25,7 @@ export function DeconnexionButton({ className }: { className?: string }) {
     setLoading(true);
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
+    router.push(redirection);
     router.refresh();
   }
 

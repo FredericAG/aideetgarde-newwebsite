@@ -135,3 +135,55 @@ export async function annulerEnvoi(fd: FormData) {
     )}`,
   );
 }
+
+export interface EtatAvenant {
+  ok?: boolean;
+  message?: string;
+}
+
+/** Brique 3b : l'abonné demande un avenant sur une gestion en cours. */
+export async function demanderAvenant(_prec: EtatAvenant, fd: FormData): Promise<EtatAvenant> {
+  const { supabase, user, profile } = await requireUser("/tableau-de-bord");
+  const gestionId = texte(fd, "gestion_id");
+  if (!isUuid(gestionId)) return { message: "Gestion inconnue." };
+  const objets = fd.getAll("objets").map(String);
+  const description = texte(fd, "description");
+
+  const { error } = await supabase.rpc("demander_avenant", {
+    p_gestion_id: gestionId,
+    p_objets: objets,
+    p_date_effet: dateOuNull(fd, "date_effet"),
+    p_description: description,
+  });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") {
+      return { message: "Les demandes d'avenant ne sont pas encore activées (script brique3b à exécuter dans Supabase)." };
+    }
+    return { message: traduire(error) };
+  }
+
+  // Alerte à Aide & Garde (ne bloque jamais la demande).
+  const { data: g } = await supabase
+    .from("gestions")
+    .select("prenom_salarie, nom_salarie")
+    .eq("id", gestionId)
+    .maybeSingle();
+  const salarie = g ? `${g.prenom_salarie ?? ""} ${g.nom_salarie ?? ""}`.trim() : "";
+  const employeur = `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim() || user.email || "un abonné";
+  const site = await adresseSite();
+  const contenu = modeleEmail({
+    titre: "Demande d'avenant",
+    paragraphes: [
+      `${employeur} demande un avenant pour la gestion de ${salarie}.`,
+      `« ${description} »`,
+    ],
+    bouton: { texte: "Ouvrir la fiche du compte", url: `${site}/admin/comptes/${user.id}#gestion-${gestionId}` },
+  });
+  await envoyerEmail({ a: emailAdmin(), sujet: `Demande d'avenant : ${employeur} – ${salarie}`, ...contenu });
+
+  revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
+  return {
+    ok: true,
+    message: "Demande envoyée. Aide & Garde prépare l'avenant et vous prévient dès qu'il est disponible.",
+  };
+}

@@ -68,6 +68,36 @@ export const LIBELLES_STATUT_GESTION: Record<StatutGestion, string> = {
   terminee: "Terminée",
 };
 
+/** Demande d'avenant d'un abonné sur une gestion en cours (brique 3b). */
+export type ObjetAvenant =
+  | "garde_partagee"
+  | "organisation"
+  | "adresse"
+  | "taux_horaire"
+  | "duree_travail"
+  | "autre";
+
+export const OBJETS_AVENANT: Record<ObjetAvenant, string> = {
+  garde_partagee: "Passage en garde partagée (ou fin de garde partagée)",
+  organisation: "Changement d'organisation ou d'horaires",
+  duree_travail: "Changement de durée de travail",
+  taux_horaire: "Changement de taux horaire",
+  adresse: "Changement d'adresse (lieu de travail)",
+  autre: "Autre changement",
+};
+
+export interface DemandeAvenant {
+  id: string;
+  gestion_id: string;
+  employeur_id: string;
+  objets: ObjetAvenant[];
+  date_effet: string | null;
+  description: string;
+  statut: "envoyee" | "traitee";
+  created_at: string;
+  traitee_le: string | null;
+}
+
 /** « 20 h par semaine », « 86,67 h par mois ». */
 export function formatDuree(g: Pick<Gestion, "heures" | "unite_heures">): string {
   if (g.heures == null || !g.unite_heures) return "—";

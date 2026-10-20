@@ -2,25 +2,28 @@ import Link from "next/link";
 import Image from "next/image";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
 import { getSessionCourante } from "@/lib/auth";
+import { compterActionsAdmin } from "@/lib/actions-admin";
 
 /** En-tête commun à toutes les pages. */
 export async function SiteHeader() {
   // Identité partagée avec la page (un seul appel par affichage, voir
   // src/lib/auth.ts). Avant que Supabase soit configuré, user vaut null et
   // l'en-tête affiche simplement la navigation "déconnecté".
-  const { user, profile } = await getSessionCourante();
+  const { supabase, user, profile } = await getSessionCourante();
   const isAdmin = profile?.role === "admin";
+  // Pastille « actions à effectuer » sur le lien Administration.
+  const actions = isAdmin && supabase ? (await compterActionsAdmin(supabase)).total : 0;
 
   return (
     <header className="border-b border-brand-gray/15 bg-white">
-      <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/aide-et-garde-logo.svg"
             alt="Aide & Garde"
             width={505}
             height={159}
-            className="h-9 w-auto sm:h-11"
+            className="h-9 w-auto shrink-0 sm:h-10"
             priority
           />
         </Link>
@@ -28,7 +31,7 @@ export async function SiteHeader() {
         {user ? (
           <>
             {/* Ordinateur et tablette */}
-            <nav className="hidden items-center gap-2 sm:flex">
+            <nav className="hidden items-center gap-2 whitespace-nowrap sm:flex">
               <Link href="/tableau-de-bord" className="btn btn-secondaire btn-sm">
                 Tableau de bord
               </Link>
@@ -38,6 +41,14 @@ export async function SiteHeader() {
               {isAdmin && (
                 <Link href="/admin" className="btn btn-primaire btn-sm">
                   Administration
+                  {actions > 0 && (
+                    <span
+                      className="ml-1 rounded-full bg-brand-jaune px-1.5 text-xs text-brand-black"
+                      aria-label={`${actions} action(s) à effectuer`}
+                    >
+                      {actions}
+                    </span>
+                  )}
                 </Link>
               )}
               <Link href="/mon-compte" className="btn btn-secondaire btn-sm">

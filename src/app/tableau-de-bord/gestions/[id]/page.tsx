@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { AutreCompte } from "@/components/AutreCompte";
+import { DemandeAvenant } from "./DemandeAvenant";
 import { DocumentsParCategorie } from "@/components/DocumentsParCategorie";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
@@ -21,6 +23,7 @@ import {
   periodesDeclarables,
   trierDocuments,
   type Declaration,
+  type DemandeAvenant as DemandeAvenantType,
   type DocumentRow,
   type Gestion,
   type TriDocuments,
@@ -49,7 +52,7 @@ export default async function DetailGestionPage({
   const tri: TriDocuments =
     triDemande && triDemande in LIBELLES_TRI ? (triDemande as TriDocuments) : "recent";
 
-  const { supabase, user } = await requireUser(`/tableau-de-bord/gestions/${id}`);
+  const { supabase, user, profile } = await requireUser(`/tableau-de-bord/gestions/${id}`);
 
   // `.eq("employeur_id", user.id)` : même raison que sur le tableau de bord
   // (un administrateur ne doit pas voir ici la gestion d'un autre compte
@@ -61,9 +64,24 @@ export default async function DetailGestionPage({
     .eq("employeur_id", user.id)
     .maybeSingle<Gestion>();
 
-  if (!gestion) notFound();
+  if (!gestion) {
+    // Lien reçu par email ou notification, mais ouvert avec un autre compte
+    // (cas fréquent : l'administrateur clique le lien d'un email de test).
+    // L'administrateur est conduit à la fiche du compte concerné ; un
+    // abonné voit une explication plutôt qu'une page introuvable.
+    if (profile?.role === "admin") {
+      const { data: autre } = await supabase
+        .from("gestions")
+        .select("employeur_id")
+        .eq("id", id)
+        .maybeSingle();
+      if (autre) redirect(`/admin/comptes/${autre.employeur_id}#gestion-${id}`);
+      notFound();
+    }
+    return <AutreCompte email={user.email} retour={`/tableau-de-bord/gestions/${id}`} />;
+  }
 
-  const [{ data: docs }, { data: decls }] = await Promise.all([
+  const [{ data: docs }, { data: decls }, { data: avenants }] = await Promise.all([
     supabase
       .from("documents")
       .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
@@ -73,6 +91,13 @@ export default async function DetailGestionPage({
       .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le, motif_modification, modification_demandee_le")
       .eq("gestion_id", id)
       .eq("employeur_id", user.id),
+    // Demande d'avenant en attente (brique 3b ; sans le script, aucune).
+    supabase
+      .from("demandes_avenant")
+      .select("*")
+      .eq("gestion_id", id)
+      .eq("statut", "envoyee")
+      .limit(1),
   ]);
   const declarations = (decls ?? []) as Declaration[];
   const { options, parDefaut } = periodesDeclarables();
@@ -175,6 +200,13 @@ export default async function DetailGestionPage({
                 .filter((d) => d.type_document === "bulletin" && d.periode && d.storage_path)
                 .map((d) => [d.periode as string, d.id]),
             )}
+          />
+        )}
+
+        {gestion.statut === "en_cours" && (
+          <DemandeAvenant
+            gestionId={gestion.id}
+            enAttente={((avenants ?? []) as DemandeAvenantType[])[0] ?? null}
           />
         )}
 

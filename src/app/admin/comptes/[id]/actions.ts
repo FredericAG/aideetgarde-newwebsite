@@ -551,3 +551,75 @@ export async function renvoyerGestion(fd: FormData) {
   );
   retour(compteId, "ok", `Gestion renvoyée à l'abonné — ${bilan}.`);
 }
+
+/**
+ * Brique 3b : clore une demande d'avenant sans dépôt de document (le dépôt
+ * d'un document de type « Avenant » la clôt automatiquement).
+ */
+export async function marquerAvenantTraite(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const demandeId = texte(fd, "demande_id");
+  const { data, error } = await supabase
+    .from("demandes_avenant")
+    .update({ statut: "traitee", traitee_le: new Date().toISOString() })
+    .eq("id", demandeId)
+    .eq("employeur_id", compteId)
+    .eq("statut", "envoyee")
+    .select("gestion_id");
+  if (error) retour(compteId, "erreur", messageErreur(error));
+  if (!data?.length) retour(compteId, "erreur", "Cette demande est déjà traitée.");
+
+  const gestionId = data[0].gestion_id as string;
+  const bilan = await prevenirAbonne(
+    supabase,
+    compteId,
+    {
+      title: "Demande d'avenant traitée",
+      body: "Votre demande de modification du contrat a été traitée.",
+      url: `/tableau-de-bord/gestions/${gestionId}`,
+      tag: `avenant-${demandeId}`,
+    },
+    {
+      sujet: "Votre demande d'avenant a été traitée",
+      titre: "Demande d'avenant traitée",
+      paragraphes: [
+        "Aide & Garde a traité votre demande de modification du contrat de travail.",
+        "Retrouvez les informations à jour dans votre espace.",
+      ],
+      bouton: "Ouvrir la gestion",
+    },
+  );
+  retour(compteId, "ok", `Demande d'avenant marquée comme traitée — ${bilan}.`);
+}
+
+/** Mise à jour des informations du contrat par l'administrateur (avenant…). */
+export async function modifierContratGestion(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const gestionId = texte(fd, "gestion_id");
+  const nb = (nom: string): number | null => {
+    const t = texte(fd, nom).replace(",", ".").replace(/\s/g, "");
+    if (!t) return null;
+    const n = Number(t);
+    return Number.isFinite(n) ? n : null;
+  };
+  const date = (nom: string): string | null => {
+    const t = texte(fd, nom);
+    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
+  };
+  const typeContrat = texte(fd, "type_contrat");
+  const unite = texte(fd, "unite_heures");
+  const { error } = await supabase
+    .from("gestions")
+    .update({
+      type_contrat: typeContrat === "CDI" || typeContrat === "CDD" ? typeContrat : null,
+      date_fin_prevue: typeContrat === "CDD" ? date("date_fin_prevue") : null,
+      heures: nb("heures"),
+      unite_heures: unite === "semaine" || unite === "mois" ? unite : null,
+      salaire_horaire_net: nb("salaire_horaire_net"),
+      precisions: texte(fd, "precisions").slice(0, 2000),
+    })
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId);
+  if (error) retour(compteId, "erreur", messageErreur(error));
+  retour(compteId, "ok", "Informations du contrat mises à jour.");
+}

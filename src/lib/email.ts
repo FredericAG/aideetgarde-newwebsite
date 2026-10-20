@@ -59,8 +59,12 @@ export function modeleEmail(o: {
   const paras = o.paragraphes
     .map((p) => `<p style="margin:0 0 14px;line-height:1.5">${echapper(p)}</p>`)
     .join("");
+  // Bouton « à l'épreuve d'Outlook » : Outlook ignore le fond et les marges
+  // d'un lien et impose sa couleur de lien (texte violet sur fond violet,
+  // constaté en recette). Le fond est donc porté par une cellule de tableau
+  // et la couleur blanche répétée sur le texte.
   const bouton = o.bouton
-    ? `<p style="margin:22px 0"><a href="${o.bouton.url}" style="display:inline-block;background:#685c9b;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:999px;border:2px solid #f6ed78">${echapper(o.bouton.texte)}</a></p>`
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:22px 0"><tr><td bgcolor="#685c9b" style="background:#685c9b;border:2px solid #f6ed78;border-radius:999px;padding:12px 24px"><a href="${o.bouton.url}" style="color:#ffffff;text-decoration:none;font-weight:bold;font-family:Arial,Helvetica,sans-serif;font-size:15px"><span style="color:#ffffff">${echapper(o.bouton.texte)}</span></a></td></tr></table>`
     : "";
   const pied = o.piedDePage
     ? `<p style="margin:24px 0 0;font-size:12px;color:#7783a6;line-height:1.5">${echapper(o.piedDePage)}</p>`

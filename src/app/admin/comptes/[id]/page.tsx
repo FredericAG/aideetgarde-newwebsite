@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { DocumentsGestion } from "./DocumentsGestion";
 import { RecapGestion } from "@/components/RecapGestion";
+import { ContratAdmin } from "./ContratAdmin";
 import { DepotDocument } from "./DepotDocument";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
@@ -12,12 +13,14 @@ import {
   formatDate,
   formatEuros,
   formatHeures,
+  OBJETS_AVENANT,
   isUuid,
   libelleMois,
   nomSalarie,
   trierDocuments,
   type Abonnement,
   type Declaration,
+  type DemandeAvenant,
   type DocumentRow,
   type Gestion,
 } from "@/lib/data";
@@ -26,6 +29,7 @@ import {
   creerGestion,
   modifierAbonnement,
   resilierAbonnement,
+  marquerAvenantTraite,
   renvoyerGestion,
   rouvrirGestion,
   validerGestion,
@@ -73,12 +77,14 @@ export default async function FicheComptePage({
   const depotCible = one(sp.depot);
   const periodeCible = one(sp.periode);
   const remplacerCible = one(sp.remplacer) === "1";
+  // « Déposer l'avenant » (brique 3b) : type de document prérempli.
+  const typeCible = one(sp.type) === "avenant" ? "avenant" : "bulletin";
 
   const { supabase } = await requireAdmin(`/admin/comptes/${id}`);
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
-  const [compteRes, abosRes, gestionsRes, docsRes, declsRes] = await Promise.all([
+  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -106,7 +112,14 @@ export default async function FicheComptePage({
       .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le, motif_modification, modification_demandee_le")
       .eq("employeur_id", id)
       .order("periode", { ascending: false }),
+    // Demandes d'avenant (brique 3b ; sans le script, liste vide).
+    supabase
+      .from("demandes_avenant")
+      .select("*")
+      .eq("employeur_id", id)
+      .order("created_at", { ascending: false }),
   ]);
+  const avenants = (avenantsRes.data ?? []) as DemandeAvenant[];
   const declarations = (declsRes.data ?? []) as Declaration[];
 
   const compte = compteRes.data;
@@ -127,6 +140,7 @@ export default async function FicheComptePage({
   const gestionOuverte =
     (depotCible && gestions.some((g) => g.id === depotCible) ? depotCible : null) ??
     gestions.find((g) => g.statut === "envoyee")?.id ??
+    gestions.find((g) => avenants.some((a) => a.gestion_id === g.id && a.statut === "envoyee"))?.id ??
     gestions.find((g) =>
       declarations.some((d) => d.gestion_id === g.id && d.statut !== "traitee"),
     )?.id ??
@@ -180,6 +194,12 @@ export default async function FicheComptePage({
                 {formatEuros(actif.tarif_mensuel)} / mois · {enCours.length} /{" "}
                 {actif.quota_gestions} places utilisées (gestions en cours ou à valider).
               </p>
+              {enCours.length > actif.quota_gestions && (
+                <p className="mt-2 rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-700">
+                  Quota dépassé : terminez des gestions ou augmentez le quota. Aucune
+                  nouvelle gestion ne peut être validée tant que le dépassement dure.
+                </p>
+              )}
 
               <form action={modifierAbonnement} className="mt-4 flex flex-wrap items-end gap-3">
                 <input type="hidden" name="compte_id" value={id} />
@@ -352,6 +372,10 @@ Ajouter la gestion
                   .filter((d) => d.gestion_id === g.id && d.statut !== "traitee")
                   .sort((a, b) => a.periode.localeCompare(b.periode));
                 const cible = depotCible === g.id;
+                const avenantsGestion = avenants.filter((a) => a.gestion_id === g.id);
+                const avenantsEnAttente = avenantsGestion.filter((a) => a.statut === "envoyee");
+                const nbActions =
+                  enAttente.length + avenantsEnAttente.length + (g.statut === "envoyee" ? 1 : 0);
                 const periodeDepot =
                   cible && periodeCible && /^\d{4}$/.test(periodeCible)
                     ? periodeCible
@@ -385,13 +409,15 @@ Ajouter la gestion
                                 ? `envoyée par l'abonné le ${formatDate(g.envoyee_le)}`
                                 : "brouillon de l'abonné (pas encore envoyé)"}
                         </span>
-                        {enAttente.length + (g.statut === "envoyee" ? 1 : 0) > 0 && (
+                        {nbActions > 0 && (
                           <span className="ml-2 inline-block rounded-full bg-brand-violet px-2 py-0.5 text-xs font-bold text-white">
                             {g.statut === "envoyee"
                               ? "À valider"
-                              : enAttente.length === 1
-                                ? "1 action à faire"
-                                : `${enAttente.length} actions à faire`}
+                              : avenantsEnAttente.length && !enAttente.length
+                                ? "Avenant demandé"
+                                : nbActions === 1
+                                  ? "1 action à faire"
+                                  : `${nbActions} actions à faire`}
                           </span>
                         )}
                       </div>
@@ -467,12 +493,63 @@ Rouvrir
                             {" "}· {enAttente.length} déclaration(s) à traiter
                           </span>
                         )}
+                        {avenantsEnAttente.length > 0 && (
+                          <span className="text-brand-violet"> · avenant demandé</span>
+                        )}
                       </summary>
 
-                      {(g.type_contrat || g.statut === "brouillon" || g.statut === "envoyee") && (
+                      {avenantsGestion.length > 0 && (
+                        <section className="mt-3" aria-label="Demandes d'avenant">
+                          <h3 className="text-sm font-bold text-brand-violet">Demandes d&apos;avenant</h3>
+                          <ul className="mt-1 divide-y divide-brand-gray/15 text-sm">
+                            {avenantsGestion.map((a) => (
+                              <li key={a.id} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:gap-4">
+                                <span className="flex-1">
+                                  <span className="font-medium">
+                                    {a.objets.map((o) => OBJETS_AVENANT[o] ?? o).join(" · ")}
+                                  </span>
+                                  {a.date_effet && (
+                                    <span className="text-foreground/70"> — à partir du {formatDate(a.date_effet)}</span>
+                                  )}
+                                  <span className="block text-foreground/70">« {a.description} »</span>
+                                </span>
+                                <span className="flex shrink-0 flex-col items-start gap-1 text-xs sm:items-end">
+                                  {a.statut === "envoyee" ? (
+                                    <>
+                                      <span className="font-semibold text-brand-violet">
+                                        à traiter (demandée le {formatDate(a.created_at)})
+                                      </span>
+                                      <Link
+                                        href={`/admin/comptes/${id}?depot=${g.id}&type=avenant${a.date_effet ? `&periode=${a.date_effet.slice(2, 4)}${a.date_effet.slice(5, 7)}` : ""}#depot-${g.id}`}
+                                        className="btn btn-primaire btn-sm"
+                                      >
+                                        Déposer l&apos;avenant
+                                      </Link>
+                                      <form action={marquerAvenantTraite}>
+                                        <input type="hidden" name="compte_id" value={id} />
+                                        <input type="hidden" name="demande_id" value={a.id} />
+                                        <BoutonEnvoi className="text-xs text-brand-teal underline" enCours="…">
+                                          Marquer comme traitée sans document
+                                        </BoutonEnvoi>
+                                      </form>
+                                    </>
+                                  ) : (
+                                    <span className="text-foreground/50">traitée le {formatDate(a.traitee_le)}</span>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      )}
+
+                      {(g.type_contrat || g.statut === "brouillon" || g.statut === "envoyee" || g.statut === "en_cours") && (
                         <section className="mt-3 rounded-lg bg-[var(--carte)] p-3" aria-label="Informations du contrat">
                           <h3 className="mb-2 text-sm font-bold text-brand-teal">Informations du contrat</h3>
                           <RecapGestion gestion={g} />
+                          {(g.statut === "en_cours" || g.statut === "terminee") && (
+                            <ContratAdmin compteId={id} gestion={g} />
+                          )}
                           {g.motif_retour && g.statut === "brouillon" && (
                             <p className="mt-2 text-xs text-foreground/70">
                               Renvoyée à l&apos;abonné : « {g.motif_retour} »
@@ -540,10 +617,10 @@ Rouvrir
                       <DocumentsGestion compteId={id} documents={docsGestion} />
                       <div id={`depot-${g.id}`} className="scroll-mt-4">
                         <DepotDocument
-                          key={`${g.id}-${periodeDepot}`}
+                          key={`${g.id}-${periodeDepot}-${cible ? typeCible : "bulletin"}`}
                           compteId={id}
                           gestionId={g.id}
-                          typeInitial="bulletin"
+                          typeInitial={cible ? typeCible : "bulletin"}
                           periodeInitiale={periodeDepot}
                           titreInitial={titreDepot}
                           remplacerInitial={remplacerDepot}

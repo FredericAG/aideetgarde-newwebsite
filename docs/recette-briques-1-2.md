@@ -218,11 +218,11 @@ Préparation :
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
-| 9b.1 | Client : Mon compte | Bloc « Emails », case cochée par défaut | |
-| 9b.2 | Admin : déposer un bulletin | Message « Document déposé — notification… ; email envoyé à … » ; email reçu par le client : titre, mois, salarié, bouton vers l'espace, aucune pièce jointe | |
-| 9b.3 | Cliquer le bouton de l'email (déconnecté) | Page de connexion, puis arrivée sur la gestion | |
-| 9b.4 | Client : décocher la case, puis nouveau dépôt | Message « Plus d'email de notification » ; admin : « pas d'email (désactivé par l'abonné) » ; aucun email reçu | |
-| 9b.5 | Si l'admin voit « email refusé par Brevo » | Vérifier la clé ; si la cause est l'adresse IP : Brevo > Sécurité > IP autorisées, désactiver le blocage (les serveurs Vercel changent d'adresse) | |
+| 9b.1 | Client : Mon compte | Bloc « Emails », case cochée par défaut || OK (20/10) |
+| 9b.2 | Admin : déposer un bulletin | Message « Document déposé — notification… ; email envoyé à … » ; email reçu par le client : titre, mois, salarié, bouton vers l'espace, aucune pièce jointe || OK (20/10) |
+| 9b.3 | Cliquer le bouton de l'email (déconnecté) | Page de connexion, puis arrivée sur la gestion || KO (20/10 : lien de l'email → 404 quand on est connecté avec un autre compte) — corrigé, à revérifier |
+| 9b.4 | Client : décocher la case, puis nouveau dépôt | Message « Plus d'email de notification » ; admin : « pas d'email (désactivé par l'abonné) » ; aucun email reçu || OK (20/10) |
+| 9b.5 | Si l'admin voit « email refusé par Brevo » | Vérifier la clé ; si la cause est l'adresse IP : Brevo > Sécurité > IP autorisées, désactiver le blocage (les serveurs Vercel changent d'adresse) || OK (20/10) |
 
 ## Brique 3 — L'abonné crée ses gestions
 
@@ -236,13 +236,34 @@ Préparation : exécuter `supabase/brique3_gestions_abonne.sql` (après 9b).
 | 3.4 | « Envoyer à Aide & Garde » avec des champs manquants | Contrôle | Message listant ce qui manque ; le brouillon est conservé | |
 | 3.5 | Compléter et envoyer | Soumis | « Gestion envoyée… » ; statut « Envoyée le …, en attente de validation » ; récapitulatif en lecture seule ; « Places utilisées » augmente de 1 ; email « Gestion à valider » reçu sur contact@aideetgarde.fr | |
 | 3.6 | « Annuler l'envoi pour modifier » | — | Retour en brouillon modifiable ; la place est libérée | |
-| 3.7 | Envoyer alors que le quota est atteint | Refus | Message « Quota atteint… » ; le brouillon reste enregistré | |
+| 3.7 | Envoyer alors que le quota est atteint | Refus | Message « Quota atteint… » ; le brouillon reste enregistré || KO (20/10 : 5 gestions pour un quota de 3) — corrigé par brique3b, à revérifier |
 | 3.8 | Admin : Administration | Back-office | Bloc « Gestions à valider » ; « Vérifier et valider » ouvre la bonne gestion, dépliée, pastille « À valider », informations du contrat | |
 | 3.9 | Admin : « Renvoyer à l'abonné pour qu'il complète » avec un message | Invalidation | Client : notification + email « Gestion à compléter » ; le message s'affiche en haut du brouillon ; pastille « À compléter » au tableau de bord | |
 | 3.10 | Client renvoie, admin « Valider et démarrer » (confirmation) | Validé → en cours | Client : notification + email « Gestion validée » ; la gestion passe dans « Mes gestions en cours » avec « Déclarer [mois] » | |
 | 3.11 | Client : supprimer un brouillon (poubelle, confirmation) | — | Brouillon effacé, message « Brouillon supprimé » | |
-| 3.12 | Client : tenter de modifier une gestion en cours | — | Impossible : seul le récapitulatif « Informations du contrat » est affiché | |
+| 3.12 | Client : tenter de modifier une gestion en cours | — | Impossible : seul le récapitulatif « Informations du contrat » est affiché || OK, complété par la demande d'avenant (3b) |
 | 3.13 | Admin : « Ajouter la gestion » depuis la fiche (ancien chemin) | — | Fonctionne toujours (gestion créée directement en cours) | |
 
 **Écarts assumés brique 3** : l'ancien site avait 5 états (brouillon, soumis, validé, en cours, terminé) ; « validé » et « en cours » sont fusionnés (décision du 20/10). Les champs détaillés du contrat et les données sensibles du salarié ne sont pas encore collectés (voir spécifications § 4).
+
+## Brique 3b — Quota fiable, demandes d'avenant, liens des emails
+
+Préparation : exécuter `supabase/brique3b_quota_avenants.sql` (après brique3).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 3b.1 | Compte de test à 5 places pour un quota de 3 : fiche admin | Bandeau rouge « Quota dépassé » ; « Valider et démarrer » refusé avec le message « Quota atteint… » | |
+| 3b.2 | Admin : baisser le quota sous le nombre de places utilisées | Refus : « Quota trop bas : ce compte utilise déjà N place(s) » | |
+| 3b.3 | Remettre le compte dans les clous (terminer des gestions), puis envoyer une gestion de plus que le quota | Refus à l'envoi par l'abonné | |
+| 3b.4 | Client : gestion en cours → « Demander un avenant », cocher « Passage en garde partagée », décrire, envoyer | Message de confirmation ; encadré « Demande d'avenant en cours » ; email « Demande d'avenant » reçu sur contact@aideetgarde.fr | |
+| 3b.5 | Client : redemander un avenant sur la même gestion | Impossible tant que la première demande n'est pas traitée | |
+| 3b.6 | Admin : n'importe quelle page | Pastille jaune avec le nombre d'actions sur « Administration » (pastille rouge sur l'onglet Admin du téléphone) | |
+| 3b.7 | Admin : Administration | Encadré « Actions à effectuer (N) » avec un bouton par type ; liste « Demandes d'avenant » ; « Traiter » ouvre la bonne gestion, pastille « Avenant demandé » | |
+| 3b.8 | Admin : « Déposer l'avenant » | Zone de dépôt avec le type « Avenant » prérempli (et le mois d'effet) ; après dépôt, la demande passe « traitée » toute seule ; le client reçoit la notification du document | |
+| 3b.9 | Admin : « Marquer comme traitée sans document » sur une autre demande | Demande traitée ; client prévenu (notification + email) | |
+| 3b.10 | Admin : « Modifier les informations du contrat… » sur une gestion en cours | Nouvelles valeurs enregistrées, visibles côté client dans « Informations du contrat » | |
+| 3b.11 | Recevoir un email de document sur Outlook | Bouton violet à texte blanc lisible | |
+| 3b.12 | Cliquer le lien d'un email client en étant connecté en administrateur | Arrivée sur la fiche du compte concerné, gestion dépliée (plus de 404) | |
+| 3b.13 | Cliquer le lien en étant connecté avec un autre compte client | Page « Ce lien concerne un autre compte » ; « Se déconnecter » ramène à la connexion puis à la bonne page | |
+| 3b.14 | Ouvrir une adresse qui n'existe pas | Page « Page introuvable » en français, aux couleurs du site | |
 

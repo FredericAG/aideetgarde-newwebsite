@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Onglet = { href: string; libelle: string; actif: (p: string) => boolean; icone: React.ReactNode };
+type Onglet = {
+  href: string;
+  libelle: string;
+  actif: (p: string) => boolean;
+  icone: React.ReactNode;
+  pastille?: number;
+};
 
 const trait = {
   fill: "none",
@@ -52,7 +58,7 @@ const icones = {
  * dans les applications installées) : toujours sous le pouce, rubrique en
  * cours en violet. Remplace le menu « ☰ » sur téléphone.
  */
-export function BarreOnglets({ isAdmin }: { isAdmin: boolean }) {
+export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; actionsAdmin?: number }) {
   const chemin = usePathname();
   const onglets: Onglet[] = [
     {
@@ -68,7 +74,7 @@ export function BarreOnglets({ isAdmin }: { isAdmin: boolean }) {
       icone: icones.documents,
     },
     isAdmin
-      ? { href: "/admin", libelle: "Admin", actif: (p) => p.startsWith("/admin"), icone: icones.admin }
+      ? { href: "/admin", libelle: "Admin", actif: (p) => p.startsWith("/admin"), icone: icones.admin, pastille: actionsAdmin }
       : { href: "/aide", libelle: "Aide", actif: (p) => p.startsWith("/aide"), icone: icones.aide },
     {
       href: "/mon-compte",
@@ -91,7 +97,7 @@ export function BarreOnglets({ isAdmin }: { isAdmin: boolean }) {
               <Link
                 href={o.href}
                 aria-current={actif ? "page" : undefined}
-                className={`flex flex-col items-center gap-0.5 pb-2 pt-2.5 text-xs font-bold ${
+                className={`relative flex flex-col items-center gap-0.5 pb-2 pt-2.5 text-xs font-bold ${
                   actif
                     ? "text-brand-violet shadow-[inset_0_3px_0_var(--brand-violet)]"
                     : "text-brand-teal/80"
@@ -99,6 +105,14 @@ export function BarreOnglets({ isAdmin }: { isAdmin: boolean }) {
               >
                 {o.icone}
                 {o.libelle}
+                {o.pastille ? (
+                  <span
+                    className="absolute right-[22%] top-1 min-w-5 rounded-full bg-red-600 px-1 text-center text-[11px] leading-5 text-white"
+                    aria-label={`${o.pastille} action(s) à effectuer`}
+                  >
+                    {o.pastille}
+                  </span>
+                ) : null}
               </Link>
             </li>
           );

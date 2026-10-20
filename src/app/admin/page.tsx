@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { TYPES_GESTION, formatDate, formatHeures, libelleMois } from "@/lib/data";
+import {
+  OBJETS_AVENANT,
+  TYPES_GESTION,
+  formatDate,
+  formatHeures,
+  libelleMois,
+  type ObjetAvenant,
+} from "@/lib/data";
 
 interface DeclarationATraiter {
   id: string;
@@ -27,6 +34,18 @@ interface GestionAValider {
   employeur: { prenom: string; nom: string } | null;
 }
 
+interface AvenantATraiter {
+  id: string;
+  objets: ObjetAvenant[];
+  date_effet: string | null;
+  description: string;
+  created_at: string;
+  employeur_id: string;
+  gestion_id: string;
+  gestion: { reference: string; prenom_salarie: string; nom_salarie: string } | null;
+  employeur: { prenom: string; nom: string } | null;
+}
+
 interface CompteRow {
   id: string;
   email: string | null;
@@ -44,7 +63,7 @@ interface CompteRow {
 export default async function AdminPage() {
   const { supabase } = await requireAdmin("/admin");
 
-  const [comptesRes, abosRes, gestionsRes, declsRes, aValiderRes] = await Promise.all([
+  const [comptesRes, abosRes, gestionsRes, declsRes, aValiderRes, avenantsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, email, role, prenom, nom, created_at")
@@ -72,9 +91,20 @@ export default async function AdminPage() {
       .eq("statut", "envoyee")
       .order("envoyee_le", { ascending: true })
       .limit(200),
+    // Brique 3b : demandes d'avenant en attente.
+    supabase
+      .from("demandes_avenant")
+      .select(
+        "id, objets, date_effet, description, created_at, employeur_id, gestion_id, gestion:gestions(reference, prenom_salarie, nom_salarie), employeur:profiles(prenom, nom)",
+      )
+      .eq("statut", "envoyee")
+      .order("created_at", { ascending: true })
+      .limit(200),
   ]);
+  const avenants = (avenantsRes.data ?? []) as unknown as AvenantATraiter[];
   const aValider = (aValiderRes.data ?? []) as unknown as GestionAValider[];
   const aTraiter = (declsRes.data ?? []) as unknown as DeclarationATraiter[];
+  const totalActions = aValider.length + avenants.length + aTraiter.length;
 
   const comptes = (comptesRes.data ?? []) as CompteRow[];
   const quotaParCompte = new Map(
@@ -106,8 +136,83 @@ export default async function AdminPage() {
           </p>
         )}
 
+        {/* Résumé des actions qui attendent l'administrateur */}
+        <section
+          aria-label="Actions à effectuer"
+          className={`mt-6 rounded-xl p-4 text-sm ${
+            totalActions
+              ? "border-2 border-brand-violet bg-brand-violet/5"
+              : "border border-brand-gray/20"
+          }`}
+        >
+          <h2 className="font-bold text-brand-violet">
+            {totalActions ? `Actions à effectuer (${totalActions})` : "Aucune action à effectuer"}
+          </h2>
+          {totalActions > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {aValider.length > 0 && (
+                <li>
+                  <a href="#gestions-a-valider" className="btn btn-primaire btn-sm">
+                    {aValider.length} gestion(s) à valider
+                  </a>
+                </li>
+              )}
+              {avenants.length > 0 && (
+                <li>
+                  <a href="#avenants" className="btn btn-primaire btn-sm">
+                    {avenants.length} demande(s) d&apos;avenant
+                  </a>
+                </li>
+              )}
+              {aTraiter.length > 0 && (
+                <li>
+                  <a href="#declarations" className="btn btn-primaire btn-sm">
+                    {aTraiter.length} déclaration(s) à traiter
+                  </a>
+                </li>
+              )}
+            </ul>
+          )}
+        </section>
+
+        {avenants.length > 0 && (
+          <section id="avenants" className="mt-8 scroll-mt-4">
+            <h2 className="font-bold text-brand-violet">Demandes d&apos;avenant ({avenants.length})</h2>
+            <p className="mt-1 text-xs text-foreground/60">
+              Changements signalés par les abonnés sur une gestion en cours. Une
+              demande se clôt d&apos;elle-même au dépôt d&apos;un document
+              « Avenant » pour la gestion.
+            </p>
+            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-violet/30">
+              {avenants.map((a) => (
+                <li key={a.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-start sm:gap-4">
+                  <span className="w-20 shrink-0 font-mono text-xs text-foreground/60">{a.gestion?.reference}</span>
+                  <span className="flex-1">
+                    <span className="font-medium">
+                      {`${a.employeur?.prenom ?? ""} ${a.employeur?.nom ?? ""}`.trim() || "(sans nom)"}
+                    </span>
+                    {" → "}
+                    {`${a.gestion?.prenom_salarie ?? ""} ${a.gestion?.nom_salarie ?? ""}`.trim()}
+                    <span className="block text-foreground/70">
+                      {a.objets.map((o) => OBJETS_AVENANT[o] ?? o).join(" · ")}
+                      {a.date_effet ? ` — à partir du ${formatDate(a.date_effet)}` : ""}
+                    </span>
+                    <span className="block text-foreground/70">« {a.description} »</span>
+                  </span>
+                  <span className="flex shrink-0 flex-col items-start gap-1 text-xs text-foreground/60 sm:items-end">
+                    demandée le {formatDate(a.created_at)}
+                    <Link href={`/admin/comptes/${a.employeur_id}#gestion-${a.gestion_id}`} className="btn btn-primaire btn-sm">
+                      Traiter
+                    </Link>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {aValider.length > 0 && (
-          <section className="mt-8">
+          <section id="gestions-a-valider" className="mt-8 scroll-mt-4">
             <h2 className="font-bold text-brand-violet">Gestions à valider ({aValider.length})</h2>
             <p className="mt-1 text-xs text-foreground/60">
               Créées et envoyées par les abonnés. Vérifiez les informations du
@@ -137,7 +242,7 @@ export default async function AdminPage() {
           </section>
         )}
 
-        <section className="mt-8">
+        <section id="declarations" className="mt-8 scroll-mt-4">
           <h2 className="font-bold text-brand-violet">
             Déclarations à traiter ({aTraiter.length})
           </h2>
