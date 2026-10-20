@@ -146,3 +146,21 @@ Préparation : exécuter `supabase/brique7c_documents_consultes.sql` (les docume
 | 7c.7 | Admin : déposer deux documents d'affilée | Encadré « 2 nouveaux documents sont disponibles » avec deux boutons | |
 | 7c.8 | Admin : remplacer un bulletin déjà téléchargé (demande de modification) | Le bulletin corrigé redevient « Nouveau » côté client et « pas encore téléchargé » côté admin | |
 
+## Présentation (20/10) — Charte de l'ancien site et tableaux
+
+Aucun script SQL. Tester sur ordinateur **et** sur téléphone.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| P.1 | Ouvrir n'importe quelle page, y compris avec le téléphone ou l'ordinateur en mode sombre | Fond blanc ; boutons en pilule à contour jaune (violets pour l'action principale, blancs à texte teal sinon) ; polices de la marque | |
+| P.2 | En-tête (ordinateur) | « Tableau de bord », « Administration » (admin), « Mon compte » en boutons pilule ; « Se déconnecter » en lien | |
+| P.3 | Tableau de bord, « Mes gestions en cours » (ordinateur) | Colonnes Salarié / Emploi / Depuis le / Dernier bulletin / Statut — [mois] / Détail | |
+| P.4 | Même tableau sur téléphone | Une fiche par salarié, chaque valeur précédée de son intitulé, bouton « Détail » pleine largeur, aucun défilement horizontal | |
+| P.5 | Colonne « Dernier bulletin » | Lien « ⬇ [mois] » qui télécharge directement ; pastille jaune « Nouveau » tant que l'abonné ne l'a pas téléchargé | |
+| P.6 | Colonne Statut, selon les cas | « Déclarer [mois] » (bouton) / « Déclaration envoyée » / « Correction en cours » / « ✓ Disponible » (y compris si le bulletin a été déposé sans déclaration) | |
+| P.7 | « Vos 5 derniers documents » | Tableau Type / Période / Document / Salarié | |
+| P.8 | Admin : fiche d'un compte, gestion avec documents | Trois catégories (Éléments contractuels, Bulletins de paie, Autres documents) aux colonnes alignées : Type / Période / Titre / Téléchargé le / Supprimer | |
+| P.9 | Document jamais téléchargé par l'abonné | Tiret rouge dans « Téléchargé le » (info-bulle au survol) | |
+| P.10 | Catégorie de plus de 5 documents | 5 lignes + bouton « Afficher les N documents suivants » ; au clic, zone d'environ 10 lignes qui défile à la molette, en-tête visible ; « Réduire » replie | |
+| P.11 | Supprimer un document depuis la zone dépliée | Suppression effectuée, message de confirmation | |
+

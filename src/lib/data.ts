@@ -89,6 +89,39 @@ export const TYPES_DOCUMENT: Record<TypeDocument, string> = {
 };
 
 /**
+ * Regroupement des documents en trois catégories (affichage administrateur,
+ * à étendre à l'abonné). Les documents de fin de contrat (certificat de
+ * travail, solde de tout compte, attestation France Travail) sont rangés
+ * avec les éléments contractuels : ils concernent la vie du contrat.
+ */
+export type CategorieDocument = "contractuel" | "bulletin" | "autre";
+
+export const CATEGORIES_DOCUMENT: { cle: CategorieDocument; titre: string; aide: string }[] = [
+  {
+    cle: "contractuel",
+    titre: "Éléments contractuels",
+    aide: "Contrat, avenants, rupture et documents de fin de contrat",
+  },
+  { cle: "bulletin", titre: "Bulletins de paie", aide: "Un bulletin par mois" },
+  { cle: "autre", titre: "Autres documents", aide: "Attestations, courriers, divers" },
+];
+
+const TYPES_CONTRACTUELS: TypeDocument[] = [
+  "contrat",
+  "avenant",
+  "rupture_conventionnelle",
+  "licenciement",
+  "certificat_travail",
+  "solde_tout_compte",
+  "attestation_france_travail",
+];
+
+export function categorieDocument(type: TypeDocument): CategorieDocument {
+  if (type === "bulletin") return "bulletin";
+  return TYPES_CONTRACTUELS.includes(type) ? "contractuel" : "autre";
+}
+
+/**
  * Codes de type utilisés dans les noms de fichiers. Les six premiers sont
  * ceux déjà employés par Frédéric ; les suivants sont des propositions à
  * valider (dépôt en masse, brique 4).

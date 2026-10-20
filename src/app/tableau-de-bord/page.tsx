@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { InfosDocument } from "@/components/TitreDocument";
+import { TitreDocument } from "@/components/TitreDocument";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import { requireUser } from "@/lib/auth";
 import {
+  TYPES_DOCUMENT,
   TYPES_GESTION,
   formatDate,
+  formatPeriode,
   formatEuros,
   libelleMois,
   nomSalarie,
@@ -30,7 +32,7 @@ export default async function TableauDeBordPage() {
 
   const moisCourant = periodesDeclarables().parDefaut;
 
-  const [abosRes, gestionsRes, docsRes, declsRes, nouveauxRes] = await Promise.all([
+  const [abosRes, gestionsRes, docsRes, declsRes, nouveauxRes, bulletinsRes] = await Promise.all([
     supabase
       .from("abonnements")
       .select("*")
@@ -61,6 +63,16 @@ export default async function TableauDeBordPage() {
       .not("storage_path", "is", null)
       .order("created_at", { ascending: false })
       .limit(5),
+    // Bulletins en ligne, du plus récent au plus ancien : le premier de
+    // chaque gestion alimente la colonne « Dernier bulletin ».
+    supabase
+      .from("documents")
+      .select("id, gestion_id, periode, consulte_le")
+      .eq("employeur_id", user.id)
+      .eq("type_document", "bulletin")
+      .not("storage_path", "is", null)
+      .order("periode", { ascending: false, nullsFirst: false })
+      .limit(300),
   ]);
 
   const erreur = abosRes.error || gestionsRes.error || docsRes.error;
@@ -75,6 +87,13 @@ export default async function TableauDeBordPage() {
   const enCours = gestions.filter((g) => g.statut === "en_cours");
   const terminees = gestions.filter((g) => g.statut === "terminee");
   const gestionParId = new Map(gestions.map((g) => [g.id, g]));
+  const dernierBulletin = new Map<
+    string,
+    { id: string; periode: string | null; consulte_le: string | null }
+  >();
+  for (const b of bulletinsRes.data ?? []) {
+    if (!dernierBulletin.has(b.gestion_id)) dernierBulletin.set(b.gestion_id, b);
+  }
   const statutDeclaration = new Map(
     (declsRes.data ?? []).map((d) => [d.gestion_id as string, d.statut as string]),
   );
@@ -108,10 +127,10 @@ export default async function TableauDeBordPage() {
         <NotificationsPush compact />
 
         {/* --- Abonnement --- */}
-        <section className="mt-8 rounded-lg border border-brand-teal/20 p-5">
+        <section className="carte mt-8 p-5">
           <h2 className="font-bold text-brand-teal">Mon abonnement</h2>
           {abonnement ? (
-            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-4">
+            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-foreground/60">Statut</dt>
                 <dd className="font-medium">
@@ -158,44 +177,94 @@ export default async function TableauDeBordPage() {
               Aucune gestion en cours.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-gray/20">
-              {enCours.map((g) => {
-                const statut = statutDeclaration.get(g.id);
-                return (
-                  <li key={g.id} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                    <Link
-                      href={`/tableau-de-bord/gestions/${g.id}`}
-                      className="flex-1 hover:underline"
-                    >
-                      <span className="font-medium">{nomSalarie(g)}</span>
-                      <span className="ml-2 text-foreground/60">
-                        {TYPES_GESTION[g.type_gestion]} · depuis le {formatDate(g.date_debut)}
-                      </span>
-                    </Link>
-                    {statut === "traitee" ? (
-                      <span className="text-brand-teal">
-                        Bulletin de {libelleMois(moisCourant)} établi
-                      </span>
-                    ) : statut === "modification" ? (
-                      <span className="text-foreground/70">
-                        {libelleMois(moisCourant)} : modification demandée
-                      </span>
-                    ) : statut === "envoyee" ? (
-                      <span className="text-foreground/70">
-                        {libelleMois(moisCourant)} : déclaration envoyée
-                      </span>
-                    ) : (
-                      <Link
-                        href={`/tableau-de-bord/gestions/${g.id}#declaration`}
-                        className="rounded-md bg-brand-violet px-3 py-2 text-center font-semibold text-white"
-                      >
-                        Déclarer {libelleMois(moisCourant)}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mt-3 overflow-hidden rounded-xl border border-brand-gray/25">
+              <table className="tableau-adaptatif">
+                <thead className="bg-[var(--carte)]">
+                  <tr>
+                    <th scope="col">Salarié</th>
+                    <th scope="col">Emploi</th>
+                    <th scope="col">Depuis le</th>
+                    <th scope="col">Dernier bulletin</th>
+                    <th scope="col">{`Statut — ${libelleMois(moisCourant)}`}</th>
+                    <th scope="col">
+                      <span className="sr-only">Détail</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enCours.map((g) => {
+                    const dernier = dernierBulletin.get(g.id);
+                    // Statut du mois en cours. Un bulletin déjà en ligne
+                    // pour ce mois vaut « disponible », même sans
+                    // déclaration (dépôt direct par Aide & Garde), sauf si
+                    // une correction a été demandée.
+                    const declaration = statutDeclaration.get(g.id);
+                    const statut =
+                      declaration !== "modification" && dernier?.periode === moisCourant
+                        ? "traitee"
+                        : declaration;
+                    return (
+                      <tr key={g.id}>
+                        <td className="cellule-pleine">
+                          <Link
+                            href={`/tableau-de-bord/gestions/${g.id}`}
+                            className="font-bold text-brand-teal hover:underline"
+                          >
+                            {nomSalarie(g)}
+                          </Link>
+                        </td>
+                        <td data-label="Emploi">{TYPES_GESTION[g.type_gestion]}</td>
+                        <td data-label="Depuis le" className="tabular-nums">
+                          {formatDate(g.date_debut)}
+                        </td>
+                        <td data-label="Dernier bulletin">
+                          {dernier ? (
+                            <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
+                              <a
+                                href={`/documents/${dernier.id}/telecharger`}
+                                className="font-medium text-brand-teal underline"
+                                title="Télécharger"
+                              >
+                                ⬇ {dernier.periode ? libelleMois(dernier.periode) : "Bulletin"}
+                              </a>
+                              {!dernier.consulte_le && (
+                                <span className="pastille-nouveau">Nouveau</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-foreground/50">—</span>
+                          )}
+                        </td>
+                        <td data-label={`Statut — ${libelleMois(moisCourant)}`}>
+                          {statut === "traitee" ? (
+                            <span className="font-bold text-brand-teal">✓ Disponible</span>
+                          ) : statut === "modification" ? (
+                            <span className="font-bold text-brand-violet">Correction en cours</span>
+                          ) : statut === "envoyee" ? (
+                            <span className="text-foreground/80">Déclaration envoyée</span>
+                          ) : (
+                            <Link
+                              href={`/tableau-de-bord/gestions/${g.id}#declaration`}
+                              className="btn btn-primaire btn-sm"
+                            >
+                              Déclarer {libelleMois(moisCourant).split(" ")[0]}
+                            </Link>
+                          )}
+                        </td>
+                        <td className="cellule-pleine sm:text-right">
+                          <Link
+                            href={`/tableau-de-bord/gestions/${g.id}`}
+                            className="btn btn-secondaire btn-sm w-full sm:w-auto"
+                          >
+                            Détail
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {terminees.length > 0 && (
@@ -240,22 +309,42 @@ export default async function TableauDeBordPage() {
               Aucun document pour le moment.
             </p>
           ) : (
-            <ul className="mt-3 divide-y divide-brand-gray/15 rounded-lg border border-brand-gray/20">
-              {documents.map((d) => {
-                const g = gestionParId.get(d.gestion_id);
-                return (
-                  <li
-                    key={d.id}
-                    className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
-                  >
-                    <InfosDocument doc={d} />
-                    <span className="shrink-0 text-foreground/60">
-                      {g ? nomSalarie(g) : ""}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="mt-3 overflow-hidden rounded-xl border border-brand-gray/25">
+              <table className="tableau-adaptatif">
+                <thead className="bg-[var(--carte)]">
+                  <tr>
+                    <th scope="col">Type</th>
+                    <th scope="col">Période</th>
+                    <th scope="col">Document</th>
+                    <th scope="col">Salarié</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documents.map((d) => {
+                    const g = gestionParId.get(d.gestion_id);
+                    return (
+                      <tr key={d.id}>
+                        <td data-label="Type">
+                          {TYPES_DOCUMENT[d.type_document] ?? d.type_document}
+                        </td>
+                        <td data-label="Période" className="tabular-nums">
+                          {d.periode ? formatPeriode(d.periode) : "—"}
+                        </td>
+                        <td data-label="Document">
+                          <span className="inline-flex flex-wrap items-center justify-end gap-x-2 sm:justify-start">
+                            <TitreDocument doc={d} />
+                            {d.storage_path && !d.consulte_le && (
+                              <span className="pastille-nouveau">Nouveau</span>
+                            )}
+                          </span>
+                        </td>
+                        <td data-label="Salarié">{g ? nomSalarie(g) : ""}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>

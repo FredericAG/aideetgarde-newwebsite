@@ -10,7 +10,7 @@ export function NouveauxDocuments({
   nomSalarie,
 }: {
   documents: DocumentRow[];
-  /** Nom du salarié à afficher sous chaque bouton (tableau de bord). */
+  /** Nom du salarié à afficher à côté de chaque bouton (tableau de bord). */
   nomSalarie?: (doc: DocumentRow) => string;
 }) {
   const nouveaux = documents.filter((d) => d.storage_path && !d.consulte_le);
@@ -19,9 +19,9 @@ export function NouveauxDocuments({
   return (
     <section
       aria-label="Nouveaux documents"
-      className="mt-6 rounded-lg border-2 border-brand-teal bg-brand-teal/10 p-4 sm:p-5"
+      className="mt-6 rounded-xl border-2 border-brand-jaune bg-brand-jaune/25 p-4 sm:p-5"
     >
-      <h2 className="font-bold text-brand-teal">
+      <h2 className="font-bold text-brand-violet">
         {nouveaux.length === 1
           ? "Un nouveau document est disponible"
           : `${nouveaux.length} nouveaux documents sont disponibles`}
@@ -29,20 +29,21 @@ export function NouveauxDocuments({
       <ul className="mt-3 flex flex-col gap-3">
         {nouveaux.map((d) => {
           const libelle = TYPES_DOCUMENT[d.type_document] ?? "Document";
+          const salarie = nomSalarie?.(d);
           return (
-            <li key={d.id}>
+            <li key={d.id} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
               <a
                 href={`/documents/${d.id}/telecharger`}
-                className="flex w-full flex-col rounded-md bg-brand-teal px-4 py-3 text-white sm:w-auto sm:flex-row sm:items-center sm:gap-3"
+                className="btn btn-primaire btn-lg w-full sm:w-auto"
               >
-                <span className="text-base font-semibold">
-                  ⬇ Télécharger : {libelle}
-                  {d.periode ? ` de ${libelleMois(d.periode)}` : ""}
-                </span>
-                {nomSalarie && (
-                  <span className="text-sm text-white/80">{nomSalarie(d)}</span>
-                )}
+                ⬇ Télécharger : {libelle}
+                {d.periode ? ` de ${libelleMois(d.periode)}` : ""}
               </a>
+              {salarie && (
+                <span className="text-center text-sm text-foreground/70 sm:text-left">
+                  {salarie}
+                </span>
+              )}
             </li>
           );
         })}

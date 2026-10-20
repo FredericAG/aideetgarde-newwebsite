@@ -235,7 +235,7 @@ export function DepotDocument({
           type="button"
           onClick={deposer}
           disabled={envoi}
-          className="rounded-md bg-brand-violet px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="btn btn-primaire btn-sm"
         >
           {envoi ? "Envoi en cours…" : "Déposer le document"}
         </button>

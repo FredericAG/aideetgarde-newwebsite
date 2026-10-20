@@ -1,6 +1,6 @@
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-white px-6 py-24 dark:bg-background">
+    <div className="flex flex-1 flex-col items-center justify-center bg-white px-6 py-24">
       <main className="flex w-full max-w-2xl flex-col items-center gap-8 text-center">
         <span className="font-display font-black uppercase tracking-wide rounded-full bg-brand-jaune px-4 py-1 text-sm text-brand-black">
           Refonte en cours — Briques 1 et 2

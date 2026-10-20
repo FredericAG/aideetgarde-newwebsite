@@ -128,7 +128,7 @@ export default async function AdminPage() {
                     envoyée le {formatDate(d.envoyee_le)}
                     <Link
                       href={`/admin/comptes/${d.employeur_id}?depot=${d.gestion_id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${d.gestion_id}`}
-                      className="rounded-md bg-brand-violet px-3 py-1.5 font-semibold text-white"
+                      className="btn btn-primaire btn-sm"
                     >
                       {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
                     </Link>

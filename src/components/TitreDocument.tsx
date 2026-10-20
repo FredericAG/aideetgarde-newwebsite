@@ -52,7 +52,7 @@ export function InfosDocument({
       <span className="min-w-0 break-words">
         <TitreDocument doc={doc} />
         {vue === "abonne" && nouveau && (
-          <span className="ml-2 rounded-full bg-brand-teal px-2 py-0.5 text-xs font-semibold text-white">
+          <span className="pastille-nouveau ml-2">
             Nouveau
           </span>
         )}

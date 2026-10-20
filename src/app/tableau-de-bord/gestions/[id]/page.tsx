@@ -128,11 +128,7 @@ export default async function DetailGestionPage({
                   href={cle === "recent" ? `?` : `?tri=${cle}`}
                   scroll={false}
                   aria-current={cle === tri ? "true" : undefined}
-                  className={`rounded-full border px-3 py-1 ${
-                    cle === tri
-                      ? "border-brand-teal bg-brand-teal text-white"
-                      : "border-brand-gray/40 hover:border-brand-teal"
-                  }`}
+                  className={`btn btn-sm ${cle === tri ? "btn-primaire" : "btn-secondaire"}`}
                 >
                   {LIBELLES_TRI[cle]}
                 </Link>

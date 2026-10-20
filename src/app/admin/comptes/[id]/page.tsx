@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { InfosDocument } from "@/components/TitreDocument";
+import { DocumentsGestion } from "./DocumentsGestion";
 import { DepotDocument } from "./DepotDocument";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { notFound } from "next/navigation";
@@ -24,19 +24,15 @@ import {
   modifierAbonnement,
   resilierAbonnement,
   rouvrirGestion,
-  supprimerDocument,
   supprimerGestion,
   terminerGestion,
 } from "./actions";
 
 const inputClass =
   "rounded-md border border-brand-gray/40 bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-teal";
-const btnClass =
-  "rounded-md bg-brand-violet px-3 py-1.5 text-sm font-semibold text-white";
-const btnLightClass =
-  "rounded-md border border-brand-gray/40 px-3 py-1.5 text-sm font-medium";
-const btnDangerClass =
-  "rounded-md border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700";
+const btnClass = "btn btn-primaire btn-sm";
+const btnLightClass = "btn btn-secondaire btn-sm";
+const btnDangerClass = "btn btn-danger btn-sm";
 
 interface CompteRow {
   id: string;
@@ -429,7 +425,7 @@ Supprimer définitivement
                                 {d.statut !== "traitee" && (
                                   <Link
                                     href={`/admin/comptes/${id}?depot=${g.id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${g.id}`}
-                                    className="shrink-0 rounded-md bg-brand-violet px-2 py-1 text-xs font-semibold text-white"
+                                    className="btn btn-primaire btn-sm shrink-0"
                                   >
                                     {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
                                   </Link>
@@ -445,20 +441,7 @@ Supprimer définitivement
                       <summary className="cursor-pointer text-sm text-brand-teal">
                         Documents ({docsGestion.length})
                       </summary>
-                      <ul className="mt-2 divide-y divide-brand-gray/15 text-sm">
-                        {docsGestion.map((d) => (
-                          <li key={d.id} className="flex items-center justify-between gap-3 py-2">
-                            <InfosDocument doc={d} vue="admin" />
-                            <form action={supprimerDocument}>
-                              <input type="hidden" name="compte_id" value={id} />
-                              <input type="hidden" name="document_id" value={d.id} />
-                              <BoutonEnvoi className="text-xs text-red-700 underline" enCours="Suppression…">
-Supprimer
-</BoutonEnvoi>
-                            </form>
-                          </li>
-                        ))}
-                      </ul>
+                      <DocumentsGestion compteId={id} documents={docsGestion} />
                       <div id={`depot-${g.id}`} className="scroll-mt-4">
                         <DepotDocument
                           key={`${g.id}-${periodeDepot}`}

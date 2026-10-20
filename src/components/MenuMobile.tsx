@@ -18,7 +18,7 @@ export function MenuMobile({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <details ref={ref} className="relative sm:hidden">
-      <summary className="list-none rounded-md border border-brand-gray/40 px-3 py-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+      <summary className="btn btn-secondaire btn-sm list-none [&::-webkit-details-marker]:hidden">
         Menu ☰
       </summary>
       <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-brand-gray/20 bg-background shadow-lg">

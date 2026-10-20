@@ -13,7 +13,7 @@ export async function SiteHeader() {
   const isAdmin = profile?.role === "admin";
 
   return (
-    <header className="border-b border-brand-gray/15">
+    <header className="border-b border-brand-gray/15 bg-white">
       <div className="mx-auto flex w-full max-w-4xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
         <Link href="/" className="flex items-center gap-2">
           <Image
@@ -21,7 +21,7 @@ export async function SiteHeader() {
             alt="Aide & Garde"
             width={505}
             height={159}
-            className="h-8 w-auto"
+            className="h-9 w-auto sm:h-11"
             priority
           />
         </Link>
@@ -29,32 +29,29 @@ export async function SiteHeader() {
         {user ? (
           <>
             {/* Ordinateur et tablette */}
-            <nav className="hidden items-center gap-4 text-sm sm:flex">
-              <Link href="/tableau-de-bord" className="font-medium text-brand-teal underline">
+            <nav className="hidden items-center gap-2 sm:flex">
+              <Link href="/tableau-de-bord" className="btn btn-secondaire btn-sm">
                 Tableau de bord
               </Link>
               {isAdmin && (
-                <Link href="/admin" className="font-medium text-brand-violet underline">
+                <Link href="/admin" className="btn btn-primaire btn-sm">
                   Administration
                 </Link>
               )}
-              <Link href="/mon-compte" className="font-medium text-brand-teal underline">
+              <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
                 Mon compte
               </Link>
-              <DeconnexionButton />
+              <DeconnexionButton className="ml-2 text-sm font-medium text-brand-teal underline disabled:opacity-60" />
             </nav>
             {/* Téléphone */}
             <MenuMobile isAdmin={isAdmin} />
           </>
         ) : (
-          <nav className="flex items-center gap-3 text-sm">
-            <Link href="/connexion" className="font-medium text-brand-teal underline">
+          <nav className="flex items-center gap-2">
+            <Link href="/connexion" className="btn btn-secondaire btn-sm">
               Se connecter
             </Link>
-            <Link
-              href="/inscription"
-              className="rounded-md bg-brand-violet px-3 py-2 font-semibold text-white"
-            >
+            <Link href="/inscription" className="btn btn-primaire btn-sm">
               Créer un compte
             </Link>
           </nav>

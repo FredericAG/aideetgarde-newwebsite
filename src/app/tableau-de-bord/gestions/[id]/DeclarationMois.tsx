@@ -55,7 +55,7 @@ export function DeclarationMois({
   return (
     <section
       id="declaration"
-      className="mt-6 rounded-lg border border-brand-violet/30 bg-brand-violet/5 p-4 sm:p-5"
+      className="carte mt-6 p-4 sm:p-5"
     >
       <h2 className="font-bold text-brand-violet">Déclarer le mois</h2>
       <p className="mt-1 text-sm text-foreground/70">
@@ -101,7 +101,7 @@ export function DeclarationMois({
           </p>
           <a
             href={`/documents/${bulletinId}/telecharger`}
-            className="w-full rounded-md bg-brand-teal px-4 py-3 text-center text-base font-semibold text-white sm:w-auto sm:self-start"
+            className="btn btn-primaire btn-lg w-full sm:w-auto sm:self-start"
           >
             ⬇ Télécharger le bulletin de {libelleMois(periode)}
           </a>
@@ -109,7 +109,7 @@ export function DeclarationMois({
             <button
               type="button"
               onClick={() => setDemandeOuverte(true)}
-              className="w-full rounded-md border border-brand-violet px-4 py-3 text-base font-semibold text-brand-violet sm:w-auto sm:self-start"
+              className="btn btn-secondaire btn-lg w-full sm:w-auto sm:self-start"
             >
               Demander une modification du bulletin
             </button>
@@ -133,14 +133,14 @@ export function DeclarationMois({
                 <button
                   type="submit"
                   disabled={enCoursModif}
-                  className="w-full rounded-md bg-brand-violet px-4 py-3 text-base font-semibold text-white disabled:opacity-60 sm:w-auto"
+                  className="btn btn-primaire btn-lg w-full sm:w-auto"
                 >
                   {enCoursModif ? "Envoi en cours…" : "Envoyer la demande"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDemandeOuverte(false)}
-                  className="w-full rounded-md border border-brand-gray/40 px-4 py-3 text-base sm:w-auto"
+                  className="btn btn-secondaire btn-lg w-full sm:w-auto"
                 >
                   Annuler
                 </button>
@@ -201,7 +201,7 @@ export function DeclarationMois({
           <button
             type="submit"
             disabled={enCours}
-            className="w-full rounded-md bg-brand-violet px-4 py-3 text-base font-semibold text-white disabled:opacity-60 sm:w-auto sm:self-start"
+            className="btn btn-primaire btn-lg w-full sm:w-auto sm:self-start"
           >
             {enCours
               ? "Envoi en cours…"

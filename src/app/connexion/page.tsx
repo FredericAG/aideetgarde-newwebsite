@@ -93,7 +93,7 @@ function ConnexionForm() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 rounded-md bg-brand-violet px-4 py-2 font-semibold text-white disabled:opacity-60"
+            className="btn btn-primaire mt-2"
           >
             {loading ? "Connexion…" : "Se connecter"}
           </button>

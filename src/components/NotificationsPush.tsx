@@ -149,7 +149,7 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <section className="mt-6 rounded-lg border border-brand-teal/30 bg-brand-sky-tint/20 p-4 text-sm">
+    <section className="carte mt-6 p-4 text-sm sm:p-5">
       <h2 className="font-bold text-brand-teal">Notifications</h2>
       {etat === "iphone-a-installer" && (
         <p className="mt-1 text-foreground/80">
@@ -187,7 +187,7 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
             type="button"
             onClick={activer}
             disabled={enCours}
-            className="mt-3 w-full rounded-md bg-brand-teal px-4 py-3 font-semibold text-white disabled:opacity-60 sm:w-auto"
+            className="btn btn-primaire btn-lg mt-3 w-full sm:w-auto"
           >
             {enCours ? "Activation…" : "Activer les notifications"}
           </button>
@@ -218,7 +218,7 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
             type="button"
             onClick={desactiver}
             disabled={enCours}
-            className="mt-3 rounded-md border border-brand-gray/40 px-3 py-2 disabled:opacity-60"
+            className="btn btn-secondaire btn-sm mt-3"
           >
             {enCours ? "…" : "Désactiver sur cet appareil"}
           </button>

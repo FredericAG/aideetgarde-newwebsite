@@ -32,11 +32,15 @@
   --font-display: var(--font-stevie-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #14232b;
-    --foreground: #f4f1fb;
-  }
+/*
+ * Pas de thème sombre automatique : l'ancien site n'en a pas, et la charte
+ * (violet, teal, jaune sur fond blanc) est pensée pour un fond clair. Un
+ * thème sombre propre à la marque pourra être ajouté plus tard.
+ */
+:root {
+  color-scheme: light;
+  --carte: #f1f1f1; /* gris clair des blocs de l'ancien site */
+  --violet-fonce: #574b88; /* survol des boutons violets */
 }
 
 body {
@@ -71,4 +75,149 @@ a[href] {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+/*
+ * Boutons de l'ancien site aideetgarde.fr : forme « pilule », contour jaune.
+ * - btn-primaire   : fond violet, texte blanc (action principale)
+ * - btn-secondaire : fond blanc, texte teal (actions courantes, navigation)
+ * - btn-danger     : suppression, résiliation
+ * Tailles : btn-sm (listes, administration), btn-lg (téléphone, actions
+ * importantes comme le téléchargement d'un bulletin).
+ */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 2px solid var(--brand-jaune);
+    padding: 0.5rem 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+    text-decoration: none;
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      border-color 0.15s;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.6;
+  }
+  .btn:focus-visible {
+    outline: 3px solid var(--brand-teal);
+    outline-offset: 2px;
+  }
+  .btn-primaire {
+    background: var(--brand-violet);
+    color: #fff;
+  }
+  .btn-primaire:hover:not(:disabled) {
+    background: var(--violet-fonce);
+  }
+  .btn-secondaire {
+    background: #fff;
+    color: var(--brand-teal);
+  }
+  .btn-secondaire:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--brand-jaune) 30%, #fff);
+  }
+  .btn-danger {
+    background: #fff;
+    color: #b91c1c;
+    border-color: #fca5a5;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: #fef2f2;
+  }
+  .btn-sm {
+    padding: 0.25rem 0.875rem;
+    font-size: 0.875rem;
+  }
+  .btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  /* Bloc gris arrondi de l'ancien site (cartes, encadrés). */
+  .carte {
+    background: var(--carte);
+    border-radius: 0.75rem;
+  }
+
+  /* Pastille « Nouveau » : jaune de la marque, bien visible. */
+  .pastille-nouveau {
+    display: inline-block;
+    border-radius: 9999px;
+    background: var(--brand-jaune);
+    color: var(--brand-black);
+    padding: 0.05rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /*
+   * Tableau qui devient une pile de cartes sur téléphone : chaque cellule
+   * affiche alors son intitulé (attribut data-label) devant sa valeur.
+   */
+  .tableau-adaptatif {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.875rem;
+  }
+  .tableau-adaptatif th {
+    padding: 0.5rem 0.75rem;
+    font-weight: 700;
+    color: var(--brand-teal);
+    white-space: nowrap;
+  }
+  .tableau-adaptatif td {
+    padding: 0.625rem 0.75rem;
+    vertical-align: middle;
+  }
+  .tableau-adaptatif tbody tr {
+    border-top: 1px solid color-mix(in srgb, var(--brand-gray) 20%, transparent);
+  }
+  @media (max-width: 639px) {
+    .tableau-adaptatif thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .tableau-adaptatif,
+    .tableau-adaptatif tbody,
+    .tableau-adaptatif tr,
+    .tableau-adaptatif td {
+      display: block;
+      width: 100%;
+    }
+    .tableau-adaptatif tbody tr {
+      padding: 0.5rem 0;
+    }
+    .tableau-adaptatif td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.25rem 0.75rem;
+      text-align: right;
+    }
+    .tableau-adaptatif td[data-label]::before {
+      content: attr(data-label);
+      flex-shrink: 0;
+      text-align: left;
+      color: color-mix(in srgb, var(--foreground) 60%, transparent);
+    }
+    .tableau-adaptatif td.cellule-pleine {
+      display: block;
+      text-align: left;
+    }
+  }
 }
