@@ -39,7 +39,9 @@ function traduire(error: { code?: string; message: string }): string {
   if (error.code === "PGRST202" || error.code === "42883") {
     return "La création de gestion n'est pas encore activée (script brique3 à exécuter dans Supabase).";
   }
-  return "L'enregistrement n'a pas abouti. Réessayez dans un instant.";
+  // Erreur imprévue : message général, avec le code pour le diagnostic.
+  console.error("Gestion : erreur inattendue", error);
+  return `L'enregistrement n'a pas abouti. Réessayez dans un instant ; si cela se reproduit, contactez Aide & Garde (code ${error.code ?? "inconnu"}).`;
 }
 
 export async function enregistrerGestion(

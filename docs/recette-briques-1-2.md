@@ -267,3 +267,18 @@ Préparation : exécuter `supabase/brique3b_quota_avenants.sql` (après brique3)
 | 3b.13 | Cliquer le lien en étant connecté avec un autre compte client | Page « Ce lien concerne un autre compte » ; « Se déconnecter » ramène à la connexion puis à la bonne page | |
 | 3b.14 | Ouvrir une adresse qui n'existe pas | Page « Page introuvable » en français, aux couleurs du site | |
 
+## Brique 3c — Envoi d'une gestion (corrections du 20/10)
+
+Préparation : exécuter `supabase/brique3c_envoi_gestion.sql` (après brique3b). Si `brique3` est relancé un jour, relancer ensuite `brique3b` puis `brique3c`.
+
+Constats de recette corrigés : message « L'enregistrement n'a pas abouti » au lieu de la liste des champs manquants (erreur dans la fonction d'envoi, reproduite et corrigée sur une base de test) ; message de quota pensé pour l'administrateur ; nom obligatoire pour un brouillon.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| 3c.1 | Client : créer une gestion sans rien saisir, « Enregistrer le brouillon » | Brouillon enregistré ; titre « Nouveau salarié » ; « Sans nom » au tableau de bord | |
+| 3c.2 | « Envoyer » avec des champs vides | Message listant précisément ce qui manque (nom, prénom, type de contrat, durée de travail, salaire) | |
+| 3c.3 | Abonnement complet : tableau de bord, création, brouillon | Encadré jaune « Votre abonnement est complet (N / N) » expliquant quoi faire ; le brouillon reste enregistrable | |
+| 3c.4 | Abonnement complet : « Envoyer » une gestion complète | Message « Votre abonnement permet N gestion(s) et elles sont toutes utilisées… Votre brouillon est conservé… » | |
+| 3c.5 | Admin : augmenter le quota, puis le client renvoie | Envoi accepté | |
+| 3c.6 | Compte en dépassement (5 / 3) : tableau de bord client | Encadré « Vous dépassez votre abonnement » | |
+

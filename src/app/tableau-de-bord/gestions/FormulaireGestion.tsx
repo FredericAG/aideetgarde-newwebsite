@@ -49,10 +49,13 @@ function Boutons() {
 export function FormulaireGestion({
   gestion,
   dateParDefaut = "",
+  quota,
 }: {
   gestion?: Gestion;
   /** Date de début proposée pour une nouvelle gestion (AAAA-MM-JJ). */
   dateParDefaut?: string;
+  /** Places de l'abonnement : prévient l'abonné avant l'envoi si c'est complet. */
+  quota?: { utilisees: number; total: number };
 }) {
   const [etat, action] = useActionState<EtatFormulaireGestion, FormData>(enregistrerGestion, {});
   const [v, setV] = useState({
@@ -76,6 +79,15 @@ export function FormulaireGestion({
   return (
     <form action={action} className="mt-6 flex flex-col gap-6">
       {gestion && <input type="hidden" name="gestion_id" value={gestion.id} />}
+
+      {quota && quota.utilisees >= quota.total && (
+        <p className="rounded-lg border-2 border-brand-jaune bg-brand-jaune/25 p-3 text-sm">
+          <strong>Votre abonnement est complet</strong> ({quota.utilisees} / {quota.total} gestions
+          en cours ou en attente de validation). Vous pouvez préparer et enregistrer ce brouillon ;
+          pour l&apos;envoyer, terminez d&apos;abord une gestion ou contactez Aide &amp; Garde pour
+          faire évoluer votre abonnement.
+        </p>
+      )}
 
       {etat.message && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -103,7 +115,7 @@ export function FormulaireGestion({
           </label>
           <label className={etiquette}>
             Nom
-            <input name="nom_salarie" value={v.nom_salarie} onChange={maj("nom_salarie")} required autoComplete="off" className={champ} />
+            <input name="nom_salarie" value={v.nom_salarie} onChange={maj("nom_salarie")} autoComplete="off" className={champ} />
           </label>
         </div>
       </fieldset>

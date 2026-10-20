@@ -1,18 +1,14 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { FormulaireGestion } from "../FormulaireGestion";
+import { placesAbonnement } from "@/lib/places";
 
 export const metadata = { title: "Créer une gestion — Aide & Garde" };
 
 /** Création d'une gestion par l'abonné (brique 3). */
 export default async function NouvelleGestionPage() {
   const { supabase, user } = await requireUser("/tableau-de-bord/gestions/nouvelle");
-  const { data: abo } = await supabase
-    .from("abonnements")
-    .select("id")
-    .eq("employeur_id", user.id)
-    .eq("statut", "actif")
-    .maybeSingle();
+  const places = await placesAbonnement(supabase, user.id);
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
@@ -26,8 +22,8 @@ export default async function NouvelleGestionPage() {
           que vous savez déjà : vous pouvez enregistrer un brouillon et le
           compléter plus tard.
         </p>
-        {abo ? (
-          <FormulaireGestion dateParDefaut={new Date().toISOString().slice(0, 10)} />
+        {places ? (
+          <FormulaireGestion dateParDefaut={new Date().toISOString().slice(0, 10)} quota={places} />
         ) : (
           <div className="carte mt-6 p-5 text-sm">
             <p>

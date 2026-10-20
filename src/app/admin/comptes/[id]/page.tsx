@@ -398,7 +398,7 @@ Ajouter la gestion
                         <span className="mr-2 rounded bg-brand-sky-tint/40 px-1.5 py-0.5 font-mono text-xs text-brand-black">
                           {g.reference}
                         </span>
-                        <span className="font-medium">{nomSalarie(g)}</span>
+                        <span className="font-medium">{nomSalarie(g) || "(salarié sans nom)"}</span>
                         <span className="ml-2 text-foreground/60">
                           {TYPES_GESTION[g.type_gestion]} ·{" "}
                           {g.statut === "en_cours"

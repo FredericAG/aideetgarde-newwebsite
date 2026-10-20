@@ -187,6 +187,27 @@ export default async function TableauDeBordPage({
               Vous n&apos;avez pas encore d&apos;abonnement.
             </p>
           )}
+          {abonnement?.statut === "actif" && placesUtilisees >= abonnement.quota_gestions && (
+            <p className="mt-4 rounded-lg border-2 border-brand-jaune bg-white p-3 text-sm">
+              {placesUtilisees > abonnement.quota_gestions ? (
+                <>
+                  <strong>Vous dépassez votre abonnement</strong> : {placesUtilisees} gestions en
+                  cours ou en attente de validation pour {abonnement.quota_gestions} prévues.
+                  Aide &amp; Garde va vous contacter pour l&apos;ajuster ; aucune nouvelle gestion
+                  ne pourra démarrer d&apos;ici là.
+                </>
+              ) : (
+                <>
+                  <strong>Votre abonnement est complet</strong> ({placesUtilisees} /{" "}
+                  {abonnement.quota_gestions}). Pour ajouter un salarié, terminez une gestion ou{" "}
+                  <Link href="/aide" className="text-brand-teal underline">
+                    contactez-nous
+                  </Link>{" "}
+                  pour faire évoluer votre abonnement.
+                </>
+              )}
+            </p>
+          )}
         </section>
 
         {/* --- Gestions en préparation (brique 3) --- */}

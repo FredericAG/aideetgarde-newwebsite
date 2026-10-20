@@ -3,6 +3,8 @@
 --
 -- À exécuter UNE FOIS dans Supabase > SQL Editor, APRÈS brique9b
 -- (peut être relancé sans danger).
+-- NB : les fonctions d'envoi ont été corrigées le 20/10 (voir brique3c) ;
+-- cette version intègre déjà ces corrections.
 --
 -- Cycle de vie d'une gestion (décision de Frédéric du 20/10/2026) :
 --
@@ -121,9 +123,6 @@ begin
   if v_uid is null then
     raise exception 'Session expirée, reconnectez-vous.';
   end if;
-  if coalesce(trim(p_nom), '') = '' then
-    raise exception 'Indiquez au moins le nom du salarié pour enregistrer.';
-  end if;
   if p_type_gestion not in ('garde_enfants', 'aide_domicile', 'employe_maison') then
     raise exception 'Type d''emploi inconnu.';
   end if;
@@ -144,7 +143,7 @@ begin
       date_debut, type_contrat, date_fin_prevue, heures, unite_heures,
       salaire_horaire_net, precisions)
     values (
-      v_uid, v_abo, 'brouillon', p_type_gestion, coalesce(trim(p_prenom), ''), trim(p_nom),
+      v_uid, v_abo, 'brouillon', p_type_gestion, coalesce(trim(p_prenom), ''), coalesce(trim(p_nom), ''),
       coalesce(p_date_debut, current_date), p_type_contrat, p_date_fin_prevue, p_heures,
       p_unite_heures, p_salaire_horaire_net, coalesce(p_precisions, ''))
     returning id into v_id;
@@ -154,7 +153,7 @@ begin
   update public.gestions set
     type_gestion = p_type_gestion,
     prenom_salarie = coalesce(trim(p_prenom), ''),
-    nom_salarie = trim(p_nom),
+    nom_salarie = coalesce(trim(p_nom), ''),
     date_debut = coalesce(p_date_debut, date_debut),
     type_contrat = p_type_contrat,
     date_fin_prevue = p_date_fin_prevue,
@@ -188,15 +187,15 @@ begin
     raise exception 'Gestion introuvable ou déjà envoyée.';
   end if;
 
-  if coalesce(v_g.prenom_salarie, '') = '' then v_manque := v_manque || 'le prénom du salarié'; end if;
-  if v_g.type_contrat is null then v_manque := v_manque || 'le type de contrat'; end if;
+  if coalesce(v_g.prenom_salarie, '') = '' then v_manque := array_append(v_manque, 'le prénom du salarié'); end if;
+  if v_g.type_contrat is null then v_manque := array_append(v_manque, 'le type de contrat'); end if;
   if v_g.type_contrat = 'CDD' and v_g.date_fin_prevue is null then
-    v_manque := v_manque || 'la date de fin du CDD';
+    v_manque := array_append(v_manque, 'la date de fin du CDD');
   end if;
   if v_g.heures is null or v_g.unite_heures is null then
-    v_manque := v_manque || 'le nombre d''heures';
+    v_manque := array_append(v_manque, 'le nombre d''heures');
   end if;
-  if v_g.salaire_horaire_net is null then v_manque := v_manque || 'le salaire horaire net'; end if;
+  if v_g.salaire_horaire_net is null then v_manque := array_append(v_manque, 'le salaire horaire net'); end if;
   if array_length(v_manque, 1) > 0 then
     raise exception 'Avant d''envoyer, complétez : %.', array_to_string(v_manque, ', ');
   end if;
