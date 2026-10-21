@@ -5,6 +5,9 @@ import { configSystempay } from "@/lib/systempay";
 import { BoutonTraitement } from "./BoutonTraitement";
 import { VerifierConfiguration } from "./VerifierConfiguration";
 import { EmailCopiable } from "@/components/EmailCopiable";
+import { RechercheComptes } from "../RechercheComptes";
+import { FiltresColonnes } from "../FiltresColonnes";
+import { CLES_FILTRES_ABONNEMENTS, filtresAbonnements } from "@/lib/filtres-comptes";
 
 export const metadata = { title: "Abonnements — Administration Aide & Garde" };
 
@@ -27,7 +30,19 @@ interface LigneAbonnement {
 
 type Filtre = "actifs" | "depassement" | "sans_gestion" | "resilies";
 
-const PAR_PAGE = 50;
+/** 200 lignes par page ; « Tout afficher » jusqu'à 1 000 (limite de Supabase). */
+const TAILLES = { normal: 200, tout: 1000 } as const;
+
+/** Même simplification que la fonction SQL texte_recherche (accents, majuscules). */
+function simplifier(t: string): string {
+  return t
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/œ/g, "o")
+    .replace(/æ/g, "a")
+    .replace(/[%_\\(),"]/g, " ");
+}
 
 function un(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
@@ -81,6 +96,16 @@ export default async function AbonnementsPage({
   const filtre: Filtre =
     f === "depassement" || f === "sans_gestion" || f === "resilies" ? f : "actifs";
   const page = Math.max(1, Number(un(sp.page)) || 1);
+  const toutAfficher = un(sp.taille) === "tout";
+  const parPage = toutAfficher ? TAILLES.tout : TAILLES.normal;
+  // Recherche générale et filtres par colonne (comme la liste des comptes) :
+  // ils portent sur tous les abonnements, actifs et résiliés.
+  const recherche = (un(sp.q) ?? "").trim();
+  const filtresCol = Object.fromEntries(
+    CLES_FILTRES_ABONNEMENTS.map((k) => [k, (un(sp[k]) ?? "").trim()]),
+  ) as Record<(typeof CLES_FILTRES_ABONNEMENTS)[number], string>;
+  const filtreActif = CLES_FILTRES_ABONNEMENTS.some((k) => filtresCol[k]);
+  const enRecherche = Boolean(recherche) || filtreActif;
 
   const { supabase } = await requireAdmin("/admin/abonnements");
 
@@ -90,19 +115,53 @@ export default async function AbonnementsPage({
   // Liste filtrée et paginée par la base ; chiffres clés calculés par la
   // vue admin_abonnements_resume (aucune limite de nombre de lignes).
   let requete = supabase.from("admin_comptes").select(colonnes, { count: "exact" });
-  if (filtre === "resilies") requete = requete.eq("abonnement_statut", "resilie");
+  const mots = (t: string) => simplifier(t).split(/\s+/).filter(Boolean).slice(0, 5);
+  if (enRecherche) {
+    const fc = filtresCol;
+    requete = requete.in("abonnement_statut", ["actif", "resilie"]);
+    for (const mot of mots(recherche)) requete = requete.like("recherche", `%${mot}%`);
+    if (fc.fref) requete = requete.ilike("reference_client", `%${fc.fref.replace(/[%_\\]/g, "")}%`);
+    for (const mot of mots(fc.femp)) requete = requete.like("employeur_tri", `%${mot}%`);
+    const an = Number(fc.fdeb);
+    if (an > 2000 && an < 2100) {
+      requete = requete.gte("abonnement_debut", `${an}-01-01`).lt("abonnement_debut", `${an + 1}-01-01`);
+    }
+    const tarif = Number(fc.ftar.replace(",", ".").replace(/[^\d.]/g, ""));
+    if (fc.ftar && Number.isFinite(tarif) && tarif > 0) requete = requete.eq("tarif_mensuel", tarif);
+    if (fc.fpla === "libres") requete = requete.gt("places_restantes", 0);
+    if (fc.fpla === "complet") requete = requete.lte("places_restantes", 0);
+    if (fc.fpla === "aucune") requete = requete.eq("places_utilisees", 0);
+    if (fc.fver === "resiliation") requete = requete.eq("abonnement_statut", "actif").not("fin_prevue", "is", null);
+    if (fc.fver === "depassement") requete = requete.eq("quota_depasse", true);
+    if (fc.fver === "sans_gestion") requete = requete.eq("categorie", "a_surveiller");
+    if (fc.fver === "rien") {
+      requete = requete
+        .eq("abonnement_statut", "actif")
+        .is("fin_prevue", null)
+        .eq("quota_depasse", false)
+        .neq("categorie", "a_surveiller");
+    }
+    if (fc.fpai) requete = requete.eq("abonnement_statut", "actif");
+    if (fc.fpai === "hors_site") requete = requete.or("mode_paiement.is.null,mode_paiement.eq.manuel");
+    if (fc.fpai === "a_jour" || fc.fpai === "en_retard" || fc.fpai === "impaye") {
+      requete = requete.eq("mode_paiement", "systempay").eq("statut_paiement", fc.fpai);
+    }
+    requete = requete.order("nom_tri");
+  } else if (filtre === "resilies") requete = requete.eq("abonnement_statut", "resilie");
   else {
     requete = requete.eq("abonnement_statut", "actif");
     if (filtre === "depassement") requete = requete.eq("quota_depasse", true);
     if (filtre === "sans_gestion") requete = requete.eq("categorie", "a_surveiller");
   }
-  requete =
-    filtre === "resilies"
-      ? requete.order("abonnement_fin", { ascending: false, nullsFirst: false })
-      : filtre === "sans_gestion"
-        ? requete.order("abonnement_debut", { ascending: true })
-        : requete.order("nom_tri");
-  requete = requete.range((page - 1) * PAR_PAGE, page * PAR_PAGE - 1);
+  if (!enRecherche) {
+    requete =
+      filtre === "resilies"
+        ? requete.order("abonnement_fin", { ascending: false, nullsFirst: false })
+        : filtre === "sans_gestion"
+          ? requete.order("abonnement_debut", { ascending: true })
+          : requete.order("nom_tri");
+  }
+  requete = requete.range((page - 1) * parPage, page * parPage - 1);
 
   const debutMois = new Date();
   debutMois.setDate(1);
@@ -175,11 +234,20 @@ export default async function AbonnementsPage({
     { cle: "sans_gestion", libelle: "Sans gestion", nb: n(r.nb_sans_gestion), alerte: true },
     { cle: "resilies", libelle: "Résiliés", nb: n(r.nb_resilies) },
   ];
-  const lien = (cle: Filtre, p?: number) =>
-    `/admin/abonnements?${new URLSearchParams({
-      ...(cle !== "actifs" ? { filtre: cle } : {}),
-      ...(p && p > 1 ? { page: String(p) } : {}),
-    }).toString()}`;
+  // Onglet : efface la recherche et les filtres. Page : les conserve.
+  const lien = (cle: Filtre, p?: number, taille?: "tout" | null) => {
+    const q = new URLSearchParams();
+    if (cle !== "actifs" && !enRecherche) q.set("filtre", cle);
+    if (p && p > 1) q.set("page", String(p));
+    const t = taille === undefined ? (toutAfficher ? "tout" : null) : taille;
+    if (t) q.set("taille", t);
+    if (p !== undefined || taille !== undefined) {
+      if (recherche) q.set("q", recherche);
+      for (const k of CLES_FILTRES_ABONNEMENTS) if (filtresCol[k]) q.set(k, filtresCol[k]);
+    }
+    const s = q.toString();
+    return s ? `/admin/abonnements?${s}` : "/admin/abonnements";
+  };
 
   return (
     <div className="flex flex-1 justify-center px-4 py-10 sm:px-6">
@@ -318,9 +386,9 @@ export default async function AbonnementsPage({
               key={x.cle}
               href={lien(x.cle)}
               scroll={false}
-              aria-current={filtre === x.cle ? "page" : undefined}
+              aria-current={filtre === x.cle && !enRecherche ? "page" : undefined}
               className={`btn btn-sm ${
-                filtre === x.cle
+                filtre === x.cle && !enRecherche
                   ? "btn-primaire"
                   : x.alerte && x.nb > 0
                     ? "btn-secondaire bg-brand-jaune/40"
@@ -332,24 +400,47 @@ export default async function AbonnementsPage({
           ))}
         </nav>
 
+        {/* Recherche générale, juste au-dessus du tableau */}
+        <div className="mt-4">
+          <RechercheComptes placeholder="Rechercher un abonné : nom, email, référence (C00012, AG00034), salarié, ville…" />
+        </div>
+        {enRecherche && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 text-sm text-foreground/70">
+            <span>
+              {total} abonnement(s) trouvé(s)
+              {recherche ? ` pour « ${recherche} »` : ""}, actifs et résiliés.
+            </span>
+            {filtreActif && (
+              <Link
+                href={recherche ? `/admin/abonnements?q=${encodeURIComponent(recherche)}` : "/admin/abonnements"}
+                scroll={false}
+                className="font-medium text-brand-teal underline"
+              >
+                Effacer les filtres des colonnes
+              </Link>
+            )}
+          </p>
+        )}
+
         <div className="mt-4 overflow-x-auto rounded-xl border border-brand-gray/25">
-          <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[60rem] border-collapse text-left text-sm">
             <thead className="entete-liste">
               <tr>
-                <th className="px-3 py-2">Réf.</th>
-                <th className="px-3 py-2">Abonné</th>
-                <th className="px-3 py-2">{filtre === "resilies" ? "Période" : "Depuis le"}</th>
+                <th className="w-[5.5rem] px-2 py-2">Réf.</th>
+                <th className="min-w-[19rem] px-3 py-2">Abonné</th>
+                <th className="px-3 py-2">{filtre === "resilies" && !enRecherche ? "Période" : "Depuis le"}</th>
                 <th className="px-3 py-2">Tarif</th>
                 <th className="px-3 py-2">Places</th>
                 <th className="px-3 py-2">À vérifier</th>
                 <th className="px-3 py-2">Paiement</th>
               </tr>
+              <FiltresColonnes colonnes={filtresAbonnements()} />
             </thead>
             <tbody>
               {affichees.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-3 py-6 text-center text-foreground/60">
-                    Aucun abonnement dans cette catégorie.
+                    {enRecherche ? "Aucun abonnement ne correspond." : "Aucun abonnement dans cette catégorie."}
                   </td>
                 </tr>
               )}
@@ -368,7 +459,7 @@ export default async function AbonnementsPage({
                         : "";
                 return (
                   <tr key={a.id} className="relative border-t border-brand-gray/20 even:bg-[#f7f7f7] hover:bg-brand-sky-tint/25">
-                    <td className="px-3 py-2.5 font-mono text-xs text-foreground/60">{a.reference_client}</td>
+                    <td className="px-2 py-2.5 font-mono text-xs text-foreground/60">{a.reference_client}</td>
                     <td className="px-3 py-2.5">
                       <Link
                         href={`/admin/comptes/${a.id}`}
@@ -412,18 +503,21 @@ export default async function AbonnementsPage({
           </table>
         </div>
 
-        {total > PAR_PAGE && (
-          <nav aria-label="Pages" className="mt-3 flex items-center justify-between text-sm">
+        {(total > TAILLES.normal || toutAfficher) && (
+          <nav aria-label="Pages" className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-foreground/60">
-              {(page - 1) * PAR_PAGE + 1}–{Math.min(page * PAR_PAGE, total)} sur {total}
+              {(page - 1) * parPage + 1}–{Math.min(page * parPage, total)} sur {total}
             </span>
-            <span className="flex gap-2">
+            <span className="flex flex-wrap gap-2">
+              <Link href={lien(filtre, 1, toutAfficher ? null : "tout")} scroll={false} className="btn btn-secondaire btn-sm">
+                {toutAfficher ? `Par pages de ${TAILLES.normal}` : `Tout afficher${total > TAILLES.tout ? ` (${TAILLES.tout} premiers)` : ""}`}
+              </Link>
               {page > 1 && (
                 <Link href={lien(filtre, page - 1)} className="btn btn-secondaire btn-sm">
                   ← Précédents
                 </Link>
               )}
-              {page * PAR_PAGE < total && (
+              {page * parPage < total && (
                 <Link href={lien(filtre, page + 1)} className="btn btn-secondaire btn-sm">
                   Suivants →
                 </Link>

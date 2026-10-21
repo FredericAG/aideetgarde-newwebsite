@@ -196,6 +196,14 @@ export default async function FicheComptePage({
           )}
           {compte.email && <EmailCopiable email={compte.email} />}
           {compte.email ? " · " : ""}inscrit le {formatDate(compte.created_at)}
+          {(compte as { email_confirme_le?: string | null }).email_confirme_le === null && (
+            <span
+              className="ml-2 rounded-full bg-brand-jaune px-2 py-0.5 text-[11px] font-bold text-brand-black"
+              title="Le lien du mail de confirmation n'a jamais été cliqué : ce compte ne peut pas se connecter."
+            >
+              Email non confirmé
+            </span>
+          )}
         </p>
         <p className="mt-1 text-sm text-foreground/70">
           {[compte.telephone, compte.adresse, `${compte.code_postal} ${compte.ville}`.trim()]
@@ -287,9 +295,12 @@ export default async function FicheComptePage({
               {actif.fin_prevue && (
                 <p className="mt-2 rounded-md border-2 border-brand-jaune bg-brand-jaune/25 p-2 text-sm">
                   <strong>Résiliation demandée par l&apos;abonné</strong> le{" "}
-                  {formatDate(actif.resiliation_demandee_le)} : fin le {formatDate(actif.fin_prevue)}.
-                  Plus aucun prélèvement par le site. Si un abonnement de l&apos;ancien site est encore
-                  prélevé, l&apos;arrêter dans le Back Office Systempay.
+                  {formatDate(actif.resiliation_demandee_le)} : fin le {formatDate(actif.fin_prevue)}.{" "}
+                  {actif.mode_paiement === "systempay"
+                    ? actif.prochaine_echeance && actif.prochaine_echeance <= actif.fin_prevue
+                      ? `Le mois en cours reste dû : dernier prélèvement par le site le ${formatDate(actif.prochaine_echeance)}, aucun ensuite.`
+                      : "Le mois en cours est déjà réglé : aucun prélèvement ne sera plus fait par le site."
+                    : "Abonnement hors site : le mois en cours reste dû. Arrêter ensuite le prélèvement de l'ancien site dans le Back Office Systempay (après celui de ce mois)."}
                 </p>
               )}
               {actif.mode_paiement === "systempay" ? (

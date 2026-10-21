@@ -10,7 +10,7 @@ import {
 import { RechercheComptes } from "./RechercheComptes";
 import { FiltresColonnes } from "./FiltresColonnes";
 import { EmailCopiable } from "@/components/EmailCopiable";
-import { CLES_FILTRES } from "@/lib/filtres-comptes";
+import { CLES_FILTRES, filtresComptes } from "@/lib/filtres-comptes";
 import { BoutonRelance } from "./BoutonRelance";
 import type { ModeleRelance } from "@/lib/relances";
 
@@ -32,14 +32,18 @@ interface LigneCompte {
   nb_terminees: number;
   salaries: string;
   nb_actions: number;
-  categorie: "actif" | "a_surveiller" | "inactif";
+  categorie: "actif" | "a_surveiller" | "inactif" | "non_confirme";
   nb_homonymes: number;
 }
 
-type Vue = "actifs" | "surveiller" | "actions" | "inactifs";
+type Vue = "actifs" | "surveiller" | "actions" | "inactifs" | "non_confirmes";
 type Tri = "nom" | "inscription" | "abonnement" | "gestions" | "actions";
 
-const PAR_PAGE = 50;
+/**
+ * Lignes par page : 200 par défaut ; « Tout afficher » jusqu'à 1 000, le
+ * maximum renvoyé par Supabase en une seule requête (réglage « Max rows »).
+ */
+const TAILLES = { normal: 200, tout: 1000 } as const;
 
 const COLONNES_TRI: Record<Tri, string> = {
   nom: "nom_tri",
@@ -67,15 +71,17 @@ function un(v: string | string[] | undefined): string | undefined {
 /**
  * Espace d'administration : liste des comptes pensée pour des milliers
  * d'abonnés. Recherche, tri, filtres et pagination sont faits par la base
- * (vue `admin_comptes`) : seules les 50 lignes affichées sont chargées.
+ * (vue `admin_comptes`) : seules les lignes affichées sont chargées (200 par
+ * page, ou jusqu'à 1 000 avec « Tout afficher »).
  *
  * Onglets :
  * - Clients actifs : au moins une gestion en cours ou à valider ;
  * - À surveiller : abonnement actif mais aucune gestion en cours ni en
  *   attente (abonnement payé pour rien ? remboursement à prévoir ?) ;
  * - Avec actions : quelque chose attend l'administrateur ;
- * - Inactifs : ni gestion ni abonnement actif, affichés seulement à la
- *   demande.
+ * - Archivés (page à part) : ni gestion ni abonnement actif ;
+ * - Non confirmés (page à part, à côté des archivés) : inscriptions dont
+ *   l'email n'a jamais été confirmé (le compte ne peut pas se connecter).
  */
 export async function ListeComptes({
   searchParams,
@@ -89,7 +95,9 @@ export async function ListeComptes({
   const recherche = (un(sp.q) ?? "").trim();
   const vueDemandee = un(sp.vue);
   const vue: Vue = archives
-    ? "inactifs"
+    ? vueDemandee === "non_confirmes"
+      ? "non_confirmes"
+      : "inactifs"
     : vueDemandee === "surveiller" || vueDemandee === "actions"
       ? vueDemandee
       : "actifs";
@@ -99,6 +107,8 @@ export async function ListeComptes({
   // Par défaut : actions en premier (ordre décroissant), sinon ordre croissant.
   const ordre = un(sp.ordre) === "asc" || un(sp.ordre) === "desc" ? un(sp.ordre)! : tri === "actions" || tri === "inscription" ? "desc" : "asc";
   const page = Math.max(1, Number(un(sp.page)) || 1);
+  const toutAfficher = un(sp.taille) === "tout";
+  const PAR_PAGE = toutAfficher ? TAILLES.tout : TAILLES.normal;
   // Filtres par colonne (ligne sous les titres du tableau).
   const filtres = Object.fromEntries(
     CLES_FILTRES.map((k) => [k, (un(sp[k]) ?? "").trim()]),
@@ -135,13 +145,19 @@ export async function ListeComptes({
     if (filtres.fges === "aucune") requete = requete.eq("places_utilisees", 0);
     if (filtres.fact === "avec") requete = requete.gt("nb_actions", 0);
     if (filtres.fact === "sans") requete = requete.eq("nb_actions", 0);
-    if (archives) requete = requete.eq("categorie", "inactif");
+    if (archives) requete = requete.eq("categorie", vue === "non_confirmes" ? "non_confirme" : "inactif");
   } else if (vue === "actions") {
     requete = requete.gt("nb_actions", 0);
   } else {
     requete = requete.eq(
       "categorie",
-      vue === "surveiller" ? "a_surveiller" : vue === "inactifs" ? "inactif" : "actif",
+      vue === "surveiller"
+        ? "a_surveiller"
+        : vue === "inactifs"
+          ? "inactif"
+          : vue === "non_confirmes"
+            ? "non_confirme"
+            : "actif",
     );
   }
   requete = requete
@@ -181,16 +197,22 @@ export async function ListeComptes({
   const lignes = (listeRes.data ?? []) as LigneCompte[];
 
   // Dernière relance par compte affiché (brique 9c ; sans le script, aucune).
-  const relancesRes = lignes.length
-    ? await supabase
+  // Par paquets de 150 comptes : une liste d'identifiants trop longue
+  // dépasserait la taille maximale d'une adresse de requête.
+  const paquets: string[][] = [];
+  for (let i = 0; i < lignes.length; i += 150) paquets.push(lignes.slice(i, i + 150).map((l) => l.id));
+  const relancesRes = await Promise.all(
+    paquets.map((ids) =>
+      supabase
         .from("relances")
         .select("employeur_id, modele, envoye_le")
-        .in("employeur_id", lignes.map((l) => l.id))
+        .in("employeur_id", ids)
         .eq("envoye", true)
-        .order("envoye_le", { ascending: false })
-    : { data: [] };
+        .order("envoye_le", { ascending: false }),
+    ),
+  );
   const derniereRelance = new Map<string, string>();
-  for (const r of (relancesRes.data ?? []) as { employeur_id: string; modele: string; envoye_le: string }[]) {
+  for (const r of relancesRes.flatMap((x) => x.data ?? []) as { employeur_id: string; modele: string; envoye_le: string }[]) {
     const cle = `${r.employeur_id}:${r.modele}`;
     if (!derniereRelance.has(cle)) derniereRelance.set(cle, formatDate(r.envoye_le));
   }
@@ -221,7 +243,8 @@ export async function ListeComptes({
     const p = new URLSearchParams();
     const base: Record<string, string | undefined> = {
       q: recherche || undefined,
-      vue: vue === "actifs" || archives ? undefined : vue,
+      vue: vue === "actifs" || vue === "inactifs" ? undefined : vue,
+      taille: toutAfficher ? "tout" : undefined,
       tri: tri === "actions" ? undefined : tri,
       ordre: un(sp.ordre),
       page: undefined,
@@ -269,10 +292,40 @@ export async function ListeComptes({
           {archives ? "Comptes archivés" : "Comptes"}
         </h1>
         {archives && (
-          <p className="mt-2 text-sm text-foreground/70">
-            Comptes sans gestion en cours ni en attente, et sans abonnement actif :
-            anciens clients, ou inscrits qui n&apos;ont pas encore souscrit. Ils
-            ne sont pas supprimés : leurs documents restent consultables.
+          <nav aria-label="Comptes à part" className="mt-4 flex flex-wrap gap-2">
+            {(
+              [
+                ["inactifs", "Archivés", resume.get("inactif")?.comptes ?? 0],
+                ["non_confirmes", "Inscriptions non confirmées", resume.get("non_confirme")?.comptes ?? 0],
+              ] as const
+            ).map(([v, libelle, nb]) => (
+              <Link
+                key={v}
+                href={lien({ vue: v === "inactifs" ? undefined : v, page: undefined })}
+                scroll={false}
+                aria-current={vue === v ? "page" : undefined}
+                className={`btn btn-sm ${vue === v ? "btn-primaire" : "btn-secondaire"}`}
+              >
+                {libelle} ({nb})
+              </Link>
+            ))}
+          </nav>
+        )}
+        {archives && (
+          <p className="mt-3 text-sm text-foreground/70">
+            {vue === "non_confirmes" ? (
+              <>
+                Inscriptions dont l&apos;email n&apos;a jamais été confirmé (lien du mail non
+                cliqué, adresse erronée ou inexistante) : ces comptes ne peuvent pas se
+                connecter. Ils sortent d&apos;ici dès que l&apos;abonné clique sur le lien reçu.
+              </>
+            ) : (
+              <>
+                Comptes sans gestion en cours ni en attente, et sans abonnement actif :
+                anciens clients, ou inscrits qui n&apos;ont pas encore souscrit. Ils
+                ne sont pas supprimés : leurs documents restent consultables.
+              </>
+            )}
           </p>
         )}
 
@@ -339,9 +392,16 @@ export async function ListeComptes({
                 {o.libelle} ({o.nb})
               </Link>
             ))}
-            <Link href="/admin/archives" className="ml-auto text-sm text-foreground/60 underline">
-              Comptes archivés ({resume.get("inactif")?.comptes ?? 0})
-            </Link>
+            <span className="ml-auto flex flex-wrap gap-x-4 text-sm text-foreground/60">
+              <Link href="/admin/archives" className="underline">
+                Comptes archivés ({resume.get("inactif")?.comptes ?? 0})
+              </Link>
+              {(resume.get("non_confirme")?.comptes ?? 0) > 0 && (
+                <Link href="/admin/archives?vue=non_confirmes" className="underline">
+                  Non confirmés ({resume.get("non_confirme")?.comptes ?? 0})
+                </Link>
+              )}
+            </span>
           </nav>
         )}
 
@@ -354,7 +414,11 @@ export async function ListeComptes({
             <span>
               {total} compte(s) trouvé(s)
               {recherche ? ` pour « ${recherche} »` : ""}
-              {archives ? " parmi les comptes archivés." : ", dans tous les comptes (y compris archivés)."}
+              {archives
+                ? vue === "non_confirmes"
+                  ? " parmi les inscriptions non confirmées."
+                  : " parmi les comptes archivés."
+                : ", dans tous les comptes (y compris archivés et non confirmés)."}
             </span>
             {filtreActif && (
               <Link
@@ -377,18 +441,18 @@ export async function ListeComptes({
 
         {/* Liste des comptes */}
         <div className="mt-4 overflow-x-auto rounded-xl border border-brand-gray/25">
-          <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+          <table className="w-full min-w-[60rem] border-collapse text-left text-sm">
             <thead className="entete-liste">
               <tr>
-                <th className="px-3 py-2">Réf.</th>
-                <th className="px-3 py-2">{enteteTri("nom", "Employeur")}</th>
+                <th className="w-[5.5rem] px-2 py-2">Réf.</th>
+                <th className="min-w-[19rem] px-3 py-2">{enteteTri("nom", "Employeur")}</th>
                 <th className="px-3 py-2">{enteteTri("inscription", "Inscrit le")}</th>
                 <th className="px-3 py-2">{enteteTri("abonnement", "Abonnement")}</th>
                 <th className="px-3 py-2">{enteteTri("gestions", "Gestions")}</th>
                 <th className="px-3 py-2">Salariés</th>
                 <th className="px-3 py-2 text-right">{enteteTri("actions", "Actions")}</th>
               </tr>
-              <FiltresColonnes />
+              <FiltresColonnes colonnes={filtresComptes()} />
             </thead>
             <tbody>
               {lignes.length === 0 && (
@@ -407,7 +471,7 @@ export async function ListeComptes({
                       c.categorie === "a_surveiller" ? "bg-brand-jaune/15" : ""
                     }`}
                   >
-                    <td className="px-3 py-2.5 align-top font-mono text-xs text-foreground/60">
+                    <td className="px-2 py-2.5 align-top font-mono text-xs text-foreground/60">
                       {c.reference_client}
                     </td>
                     <td className="px-3 py-2.5 align-top">
@@ -420,16 +484,24 @@ export async function ListeComptes({
                       </Link>
                       {c.nb_homonymes > 1 && (
                         <span
-                          className="ml-2 rounded-full bg-brand-jaune px-2 py-0.5 text-[11px] font-bold text-brand-black"
+                          className="ml-2 whitespace-nowrap rounded-full bg-brand-jaune px-2 py-0.5 text-[11px] font-bold text-brand-black"
                           title={`${c.nb_homonymes} comptes portent ce nom : vérifiez la référence, l'email, la ville ou les salariés.`}
                         >
                           Homonyme ×{c.nb_homonymes}
                         </span>
                       )}
-                      <span className="block text-xs text-foreground/60">
-                        {c.email && <EmailCopiable email={c.email} />}
-                        {c.email && c.code_postal ? " · " : ""}
+                      {c.categorie === "non_confirme" && vue !== "non_confirmes" && (
+                        <span
+                          className="ml-2 whitespace-nowrap rounded-full bg-foreground/10 px-2 py-0.5 text-[11px] font-bold text-foreground/70"
+                          title="L'email de ce compte n'a jamais été confirmé : il ne peut pas se connecter."
+                        >
+                          Email non confirmé
+                        </span>
+                      )}
+                      <span className="mt-0.5 block text-xs text-foreground/60">
                         {c.code_postal}
+                        {c.email && c.code_postal ? " · " : ""}
+                        {c.email && <EmailCopiable email={c.email} />}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top tabular-nums">{formatDate(c.created_at)}</td>
@@ -463,7 +535,7 @@ export async function ListeComptes({
                           .join(" · ")}
                       </span>
                     </td>
-                    <td className="max-w-[16rem] px-3 py-2.5 align-top text-xs text-foreground/80">
+                    <td className="max-w-[14rem] px-3 py-2.5 align-top text-xs text-foreground/80">
                       <span className="line-clamp-2" title={c.salaries}>
                         {c.salaries || "—"}
                       </span>
@@ -495,12 +567,26 @@ export async function ListeComptes({
         </div>
 
         {/* Pagination */}
-        {total > PAR_PAGE && (
+        {(total > TAILLES.normal || toutAfficher) && (
           <nav aria-label="Pages" className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-foreground/60">
               {(page - 1) * PAR_PAGE + 1}–{Math.min(page * PAR_PAGE, total)} sur {total}
             </span>
-            <span className="flex gap-2">
+            <span className="flex flex-wrap gap-2">
+              {toutAfficher ? (
+                <Link href={lien({ taille: undefined })} scroll={false} className="btn btn-secondaire btn-sm">
+                  Par pages de {TAILLES.normal}
+                </Link>
+              ) : (
+                <Link
+                  href={lien({ taille: "tout" })}
+                  scroll={false}
+                  className="btn btn-secondaire btn-sm"
+                  title={total > TAILLES.tout ? `Affiche les ${TAILLES.tout} premiers` : undefined}
+                >
+                  Tout afficher{total > TAILLES.tout ? ` (${TAILLES.tout} premiers)` : ""}
+                </Link>
+              )}
               {page > 1 && (
                 <Link href={lien({ page: String(page - 1) })} className="btn btn-secondaire btn-sm">
                   ← Précédents

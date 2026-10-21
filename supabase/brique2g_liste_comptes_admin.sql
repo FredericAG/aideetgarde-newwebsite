@@ -4,7 +4,11 @@
 --
 -- À exécuter UNE FOIS dans Supabase > SQL Editor, APRÈS brique3c
 -- (peut être relancé sans danger ; à relancer après chaque mise à jour :
--- 21/10 tarif et dates d'abonnement, puis 21/10 filtres par colonne).
+-- 21/10 tarif et dates d'abonnement, puis 21/10 filtres par colonne, puis
+-- 21/10 comptes non confirmés et filtres de l'onglet Abonnements).
+--
+-- Depuis la mise à jour du 21/10 (paiement et résiliation affichés dans la
+-- liste des abonnements), à lancer APRÈS brique5a et brique5b.
 --
 -- 1. Référence client (C00001, C00002…) : attribuée une fois pour toutes,
 --    visible de l'administrateur seulement. Elle départage les homonymes au
@@ -45,6 +49,43 @@ alter table public.profiles
 
 create unique index if not exists profiles_reference_client_unique
   on public.profiles (reference_client);
+
+-- 1 bis. Inscriptions non confirmées (mise à jour du 21/10) -------------------
+-- Un compte dont l'email n'a jamais été confirmé (lien du mail jamais
+-- cliqué, adresse erronée) ne peut pas se connecter : il est rangé à part
+-- (« Non confirmés ») au lieu d'encombrer la liste des comptes.
+-- La date de confirmation vient de auth.users (inaccessible depuis le
+-- site) : elle est recopiée dans profiles et tenue à jour par un trigger.
+alter table public.profiles add column if not exists email_confirme_le timestamptz;
+
+update public.profiles p
+   set email_confirme_le = u.email_confirmed_at
+  from auth.users u
+ where u.id = p.id
+   and p.email_confirme_le is distinct from u.email_confirmed_at;
+
+create or replace function public.recopier_confirmation_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.profiles
+     set email_confirme_le = new.email_confirmed_at
+   where id = new.id
+     and email_confirme_le is distinct from new.email_confirmed_at;
+  return new;
+end;
+$$;
+revoke all on function public.recopier_confirmation_email() from public, anon, authenticated;
+
+-- Nom en « z… » : passe après le trigger qui crée le profil à l'inscription
+-- (les triggers d'un même moment s'exécutent par ordre alphabétique).
+drop trigger if exists zz_recopier_confirmation_email on auth.users;
+create trigger zz_recopier_confirmation_email
+  after insert or update of email_confirmed_at on auth.users
+  for each row execute function public.recopier_confirmation_email();
 
 -- 2. Index utiles au calcul des compteurs --------------------------------------
 create index if not exists gestions_employeur_statut_idx on public.gestions (employeur_id, statut);
@@ -94,6 +135,13 @@ select
   abo.tarif_mensuel   as tarif_mensuel,
   abo.date_debut      as abonnement_debut,
   abo.date_fin        as abonnement_fin,
+  -- Paiement et résiliation (briques 5a et 5b).
+  abo.mode_paiement,
+  abo.statut_paiement,
+  abo.prochaine_echeance,
+  abo.fin_prevue,
+  abo.quota_gestions - (coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0)) as places_restantes,
+  p.email_confirme_le,
   coalesce(g.en_cours, 0)   as nb_en_cours,
   coalesce(g.envoyees, 0)   as nb_envoyees,
   coalesce(g.brouillons, 0) as nb_brouillons,
@@ -107,10 +155,12 @@ select
   --  actif       : au moins une gestion en cours ou en attente de validation
   --  a_surveiller: abonnement actif mais aucune gestion en cours ni en
   --                attente (abonnement payé pour rien ?)
+  --  non_confirme: inscription dont l'email n'a jamais été confirmé
   --  inactif     : ni gestion en cours ou en attente, ni abonnement actif
   case
     when coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0) > 0 then 'actif'
     when abo.statut = 'actif' then 'a_surveiller'
+    when p.email_confirme_le is null then 'non_confirme'
     else 'inactif'
   end as categorie,
   -- Nombre de comptes portant exactement le même prénom et le même nom.
@@ -123,7 +173,8 @@ select
   ) as recherche
 from public.profiles p
 left join lateral (
-  select a.statut, a.quota_gestions, a.tarif_mensuel, a.date_debut, a.date_fin
+  select a.statut, a.quota_gestions, a.tarif_mensuel, a.date_debut, a.date_fin,
+         a.mode_paiement, a.statut_paiement, a.prochaine_echeance, a.fin_prevue
     from public.abonnements a
    where a.employeur_id = p.id
    order by (a.statut = 'actif') desc, a.date_debut desc

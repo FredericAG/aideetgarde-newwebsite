@@ -9,7 +9,11 @@ import { useEffect, useRef, useState, useTransition } from "react";
  * le nom, le prénom, l'email, la référence client, la ville, le téléphone,
  * les salariés et les références de gestion, sans tenir compte des accents.
  */
-export function RechercheComptes() {
+export function RechercheComptes({
+  placeholder = "Rechercher : nom, email, référence (C00012, AG00034), salarié, ville, téléphone…",
+}: {
+  placeholder?: string;
+}) {
   const router = useRouter();
   const chemin = usePathname();
   const params = useSearchParams();
@@ -45,7 +49,7 @@ export function RechercheComptes() {
           setValeur(e.target.value);
           lancer(e.target.value);
         }}
-        placeholder="Rechercher : nom, email, référence (C00012, AG00034), salarié, ville, téléphone…"
+        placeholder={placeholder}
         autoComplete="off"
         className="w-full rounded-full border-2 border-brand-jaune bg-white px-5 py-2.5 text-sm outline-none focus:border-brand-violet"
       />

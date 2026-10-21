@@ -430,4 +430,20 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | R5.3 | « Oui, résilier » | Message vert avec la date de fin ; bloc jaune « Résiliation demandée » ; Prochain prélèvement : sa date suivie de « (dernier) » s'il tombe avant la fin du mois, sinon « aucun (résiliation) » ; email de confirmation à l'abonné et alerte à Aide & Garde | |
 | R5.4 | Admin : fiche du compte et onglet Abonnements | Bandeau « Résiliation demandée par l'abonné » ; pastille « Résiliation au 31/10/2026 » | |
 | R5.5 | Abonné : « Annuler la résiliation » | Confirmation, puis abonnement normal, prélèvements inchangés ; alerte à Aide & Garde | |
-| R5.6 | Simuler la fin du mois : `update abonnements set fin_prevue = current_date - 1 where fin_prevue is not null;` puis Admin > « Lancer le traitement maintenant » | « Résiliations appliquées : 1 » ; abonnement « Résilié », gestions inchangées ; l'abonné voit « Choisir ma formule » pour se réabonner | |
+| R5.6 | Si la résiliation a été annulée en R5.5, résilier de nouveau. Puis simuler la fin du mois dans Supabase > SQL Editor : `update abonnements set fin_prevue = current_date - 1 where fin_prevue is not null;` puis Admin > « Lancer le traitement maintenant » | « Résiliations appliquées : 1 » ; abonnement « Résilié », gestions inchangées ; l'abonné voit « Choisir ma formule » pour se réabonner | |
+
+**Ce qui se passe chez Systempay (R5.2 à R5.6)** : rien. Il n'existe pas d'« abonnement » chez Systempay pour les abonnés du nouveau site : Systempay garde seulement la carte enregistrée (alias), et c'est le site qui demande chaque prélèvement, le matin de l'échéance. Résilier fixe une date de fin côté site : la tâche du matin ne crée plus d'échéance après cette date. Annuler efface la date de fin : les prélèvements continuent. Pour un abonnement « hors site » (saisi par l'administration, comme les abonnements actuels), le site ne prélève jamais : il faut arrêter l'abonnement de l'ancien site dans le Back Office Systempay.
+
+## Ergonomie de l'administration (21/10, lot 3)
+
+**Préparation** : relancer `supabase/brique2g_liste_comptes_admin.sql` **après** 5a et 5b. Commit + Push, déploiement « Ready ».
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| A3.1 | Comptes : le compte `richard.gotainer@recette.invalid` (jamais confirmé) | Absent des onglets ; lien « Non confirmés (1) » à droite des onglets | |
+| A3.2 | Archivés > « Inscriptions non confirmées » | Le compte y figure ; texte d'explication ; onglet « Archivés » à côté | |
+| A3.3 | Recherche générale « gotainer » dans Comptes | Trouvé, avec la pastille « Email non confirmé » ; même pastille sur sa fiche | |
+| A3.4 | Colonne Employeur | Plus large ; code postal puis email ; bouton « Copier » toujours visible ; au clic « Copié » sans décalage | |
+| A3.5 | Bas de la liste (si plus de 200 comptes) | « 1–200 sur N », bouton « Tout afficher » puis « Par pages de 200 » | |
+| A3.6 | Abonnements : barre de recherche et ligne de filtres | Taper un nom : la liste se filtre ; « Paiement : Hors site » affiche les abonnements saisis par l'administration ; « À vérifier : Résiliation demandée » affiche ceux en cours de résiliation ; « Effacer les filtres des colonnes » | |
+| A3.7 | Fiche d'un compte en cours de résiliation | Bandeau : « le mois en cours reste dû » (abonnement hors site : arrêter l'ancien prélèvement après celui du mois ; abonnement payé sur le site : date du dernier prélèvement) | |
