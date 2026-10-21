@@ -1,7 +1,7 @@
 import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { DocumentsParCategorie } from "@/components/DocumentsParCategorie";
 import { IconePoubelle } from "@/components/IconePoubelle";
-import { TYPES_DOCUMENT, formatPeriode, type DocumentRow } from "@/lib/data";
+import { formatPeriode, libelleDocument, type DocumentRow } from "@/lib/data";
 import { supprimerDocument } from "./actions";
 
 /**
@@ -28,9 +28,9 @@ export function DocumentsGestion({
           <BoutonConfirme
             className="rounded-full p-1.5 text-red-700 hover:bg-red-50"
             enCours="…"
-            libelle={`Supprimer « ${d.titre} »`}
+            libelle={`Supprimer « ${libelleDocument(d)} »`}
             question="Supprimer ce document ?"
-            precision={`${TYPES_DOCUMENT[d.type_document] ?? "Document"}${d.periode ? ` ${formatPeriode(d.periode)}` : ""} — « ${d.titre} ». Le fichier PDF est effacé définitivement ; l'abonné ne pourra plus le télécharger.`}
+            precision={`${libelleDocument(d)}${d.periode ? ` ${formatPeriode(d.periode)}` : ""}. Le fichier PDF est effacé définitivement ; l'abonné ne pourra plus le télécharger.`}
             oui="Oui, supprimer"
           >
             <IconePoubelle />

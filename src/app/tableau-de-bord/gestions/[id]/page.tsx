@@ -28,6 +28,7 @@ import {
   type DocumentRow,
   type Gestion,
   type TriDocuments,
+  intituleDocument,
 } from "@/lib/data";
 
 /**
@@ -85,7 +86,7 @@ export default async function DetailGestionPage({
   const [{ data: docs }, { data: decls }, { data: avenants }] = await Promise.all([
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
+      .select("id, gestion_id, type_document, periode, titre, complement, storage_path, created_at, consulte_le")
       .eq("gestion_id", id),
     supabase
       .from("declarations_mensuelles")
@@ -270,7 +271,7 @@ export default async function DetailGestionPage({
               vue="abonne"
               action={(d) =>
                 d.storage_path ? (
-                  <BoutonTelechargement documentId={d.id} titre={d.titre} />
+                  <BoutonTelechargement documentId={d.id} titre={intituleDocument(d)} />
                 ) : null
               }
             />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { LienTelechargement } from "@/components/LienTelechargement";
-import { TYPES_DOCUMENT, libelleMois, type DocumentRow } from "@/lib/data";
+import { libelleDocument, libelleMois, type DocumentRow } from "@/lib/data";
 
 /**
  * Bandeau des documents que l'abonné n'a pas encore téléchargés, en tête de
@@ -41,7 +41,7 @@ export function NouveauxDocuments({
       </h2>
       <ul className="liste-alternee divide-y divide-brand-gray/15">
         {nouveaux.map((d) => {
-          const libelle = TYPES_DOCUMENT[d.type_document] ?? "Document";
+          const libelle = libelleDocument(d);
           const salarie = salaries?.[d.id];
           return (
             <li key={d.id} className="flex items-center gap-3 px-4 py-2 text-sm">

@@ -12,6 +12,7 @@ export type TypeDocument =
   | "solde_tout_compte"
   | "attestation_france_travail"
   | "attestation_salaire"
+  | "attestation_employeur"
   | "attestation_honneur"
   | "licenciement"
   | "rupture_conventionnelle"
@@ -127,6 +128,8 @@ export interface DocumentRow {
   type_document: TypeDocument;
   periode: string | null;
   titre: string;
+  /** Précision facultative (« Démission », « n° 2 »), script brique2h. */
+  complement?: string | null;
   storage_path: string | null;
   created_at: string;
   /** Premier téléchargement par l'abonné ; vide = document « nouveau ». */
@@ -158,8 +161,9 @@ export const TYPES_DOCUMENT: Record<TypeDocument, string> = {
   solde_tout_compte: "Solde de tout compte",
   attestation_france_travail: "Attestation France Travail",
   attestation_salaire: "Attestation de salaire",
+  attestation_employeur: "Attestation employeur",
   attestation_honneur: "Attestation sur l'honneur",
-  licenciement: "Courrier de licenciement",
+  licenciement: "Procédure de licenciement",
   rupture_conventionnelle: "Rupture conventionnelle",
   courrier: "Courrier / lettre",
   attestation: "Autre attestation",
@@ -205,19 +209,57 @@ export function categorieDocument(type: TypeDocument): CategorieDocument {
  * valider (dépôt en masse, brique 4).
  */
 export const CODES_TYPES: Record<string, TypeDocument> = {
+  // Norme du 21/10 : BP pour les bulletins. BPG reste reconnu (fichiers
+  // actuels, reprise de l'ancien site).
+  BP: "bulletin",
   BPG: "bulletin",
   STC: "solde_tout_compte",
   CT: "certificat_travail",
   FT: "attestation_france_travail",
   AS: "attestation_salaire",
   ATTHON: "attestation_honneur",
-  // Propositions, à valider :
+  AE: "attestation_employeur",
   CTRA: "contrat",
   AV: "avenant",
   LIC: "licenciement",
   RUPT: "rupture_conventionnelle",
   LET: "courrier",
+  // Anciens codes, reconnus pour la reprise : APE = attestation Pôle emploi.
+  APE: "attestation_france_travail",
 };
+
+/** Code de chaque type dans les noms de fichiers (norme du 21/10). */
+export const CODE_DU_TYPE: Record<TypeDocument, string> = {
+  bulletin: "BP",
+  contrat: "CTRA",
+  avenant: "AV",
+  certificat_travail: "CT",
+  solde_tout_compte: "STC",
+  attestation_france_travail: "FT",
+  attestation_salaire: "AS",
+  attestation_employeur: "AE",
+  attestation_honneur: "ATTHON",
+  licenciement: "LIC",
+  rupture_conventionnelle: "RUPT",
+  courrier: "LET",
+  attestation: "ATT",
+  autre: "DOC",
+};
+
+/**
+ * Libellé d'un document dans les listes : son type, suivi de la précision
+ * éventuelle (« Courrier / lettre — Démission »). La période est affichée à
+ * part ; le nom de l'employeur et du salarié ne sont jamais répétés.
+ */
+export function libelleDocument(d: Pick<DocumentRow, "type_document" | "complement">): string {
+  const type = TYPES_DOCUMENT[d.type_document] ?? "Document";
+  return d.complement ? `${type} — ${d.complement}` : type;
+}
+
+/** Libellé et période sur une ligne, pour les infobulles et la lecture vocale. */
+export function intituleDocument(d: Pick<DocumentRow, "type_document" | "complement" | "periode">): string {
+  return `${libelleDocument(d)}${d.periode ? ` ${formatPeriode(d.periode)}` : ""}`;
+}
 
 /** "2026-10-15" → "15/10/2026" (sans passer par Date : pas de décalage de fuseau). */
 export function formatDate(iso: string | null | undefined): string {

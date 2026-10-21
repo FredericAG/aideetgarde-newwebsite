@@ -4,7 +4,7 @@ import { useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { BUCKET, TAILLE_MAX_PDF, TYPES_DOCUMENT } from "@/lib/data";
-import { analyserNomFichier, titreParDefaut } from "@/lib/nom-fichier";
+import { analyserNomFichier } from "@/lib/nom-fichier";
 import { enregistrerDocument, preparerDepot } from "./actions";
 
 const inputClass =
@@ -13,7 +13,7 @@ const inputClass =
 /**
  * Dépôt d'un PDF sur une gestion (glisser-déposer ou clic).
  *
- * À la sélection du fichier, le type, la période et le titre sont
+ * À la sélection du fichier, le type et la période sont
  * préremplis d'après son nom (modifiables avant validation).
  *
  * Trois temps :
@@ -29,7 +29,6 @@ export function DepotDocument({
   gestionId,
   typeInitial = "bulletin",
   periodeInitiale = "",
-  titreInitial = "",
   remplacerInitial = false,
 }: {
   compteId: string;
@@ -38,8 +37,6 @@ export function DepotDocument({
   typeInitial?: string;
   /** Mois proposé d'office (AAMM), ex. celui de la déclaration à traiter. */
   periodeInitiale?: string;
-  /** Titre proposé d'office : « nom de l'employeur – nom du salarié ». */
-  titreInitial?: string;
   /** Bulletin corrigé attendu : le dépôt remplace le bulletin déjà en ligne. */
   remplacerInitial?: boolean;
 }) {
@@ -48,7 +45,9 @@ export function DepotDocument({
   const [fichier, setFichier] = useState<File | null>(null);
   const [type, setType] = useState(typeInitial);
   const [periode, setPeriode] = useState(periodeInitiale);
-  const [titre, setTitre] = useState(titreInitial);
+  // Précision facultative (« Démission », « n° 2 ») : le titre est calculé
+  // par le serveur (type, période, précision), sans répéter les noms.
+  const [complement, setComplement] = useState("");
   const [remplacer, setRemplacer] = useState(remplacerInitial);
   const [survol, setSurvol] = useState(false);
   const [envoi, setEnvoi] = useState(false);
@@ -68,19 +67,12 @@ export function DepotDocument({
       return;
     }
     setFichier(f);
-    // Les valeurs déjà proposées (mois de la déclaration à traiter, titre
-    // « employeur – salarié ») sont prioritaires ; le nom du fichier ne sert
-    // qu'à compléter ce qui est encore vide. Tout reste modifiable.
+    // Les valeurs déjà proposées (mois de la déclaration à traiter) sont
+    // prioritaires ; le nom du fichier ne sert qu'à compléter ce qui est
+    // encore vide. Tout reste modifiable.
     const analyse = analyserNomFichier(f.name);
     if (!periode && analyse.periode) setPeriode(analyse.periode);
     if (!periodeInitiale && analyse.type) setType(analyse.type);
-    if (!titre) {
-      setTitre(
-        analyse.type
-          ? titreParDefaut(analyse.type, analyse.periode)
-          : f.name.replace(/\.pdf$/i, ""),
-      );
-    }
   }
 
   function onDrop(e: DragEvent<HTMLDivElement>) {
@@ -92,10 +84,6 @@ export function DepotDocument({
   async function deposer() {
     if (!fichier) {
       setMessage({ ok: false, texte: "Choisissez d'abord un fichier PDF." });
-      return;
-    }
-    if (!titre.trim()) {
-      setMessage({ ok: false, texte: "Le titre du document est obligatoire." });
       return;
     }
     if (type === "bulletin" && !periode.trim()) {
@@ -110,7 +98,7 @@ export function DepotDocument({
         gestionId,
         typeDocument: type,
         periode,
-        titre,
+        complement,
         remplacer: type === "bulletin" && remplacer,
       };
       const preparation = await preparerDepot(meta);
@@ -142,7 +130,7 @@ export function DepotDocument({
       setMessage({ ok: resultat.ok, texte: resultat.message });
       if (resultat.ok) {
         setFichier(null);
-        setTitre(titreInitial);
+        setComplement("");
         setPeriode("");
         setType(typeInitial);
         setRemplacer(false);
@@ -223,11 +211,13 @@ export function DepotDocument({
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium">
-          Titre
+          Précision (facultatif)
           <input
             type="text"
-            value={titre}
-            onChange={(e) => setTitre(e.target.value)}
+            value={complement}
+            maxLength={60}
+            placeholder="ex. Démission, n° 2"
+            onChange={(e) => setComplement(e.target.value)}
             className={`${inputClass} w-56`}
           />
         </label>

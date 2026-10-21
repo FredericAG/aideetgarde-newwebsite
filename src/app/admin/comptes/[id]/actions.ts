@@ -12,7 +12,7 @@ import {
   type TypeDocument,
 } from "@/lib/data";
 import { prevenirAbonne } from "@/lib/prevenir";
-import { cheminStockage } from "@/lib/nom-fichier";
+import { cheminStockage, titreDocument } from "@/lib/nom-fichier";
 
 /**
  * Actions serveur du back-office. Une action serveur est un point d'entrée
@@ -55,7 +55,7 @@ function messageErreur(error: { code?: string; message: string }): string {
       return "Un bulletin de salaire existe déjà pour ce mois dans cette gestion. Pour le remplacer, supprimez d'abord l'ancien, puis déposez le nouveau.";
     }
     if (error.message.includes("documents_sans_doublon")) {
-      return "Ce document existe déjà pour cette gestion (même type, même période et même titre).";
+      return "Ce document existe déjà pour cette gestion (même type, même période et même précision).";
     }
     if (error.message.includes("abonnements_un_actif_par_employeur")) {
       return "Ce compte a déjà un abonnement actif.";
@@ -219,7 +219,10 @@ export interface MetaDocument {
   gestionId: string;
   typeDocument: string;
   periode: string;
-  titre: string;
+  /** Calculé par le serveur (type, période, précision) : la valeur reçue est ignorée. */
+  titre?: string;
+  /** Précision facultative (« Démission », « n° 2 »), 60 caractères au plus. */
+  complement?: string;
   /** Bulletin corrigé : remplace le bulletin déjà en ligne pour ce mois. */
   remplacer?: boolean;
 }
@@ -236,11 +239,18 @@ export interface ResultatPreparation extends ResultatAction {
 
 type ClientAdmin = Awaited<ReturnType<typeof requireAdmin>>["supabase"];
 
+/** Précision nettoyée et titre recalculé à partir du type, de la période et de la précision. */
+function normaliser<T extends MetaDocument>(m: T): T & { titre: string; complement: string } {
+  const complement = (m.complement ?? "").trim().replace(/\s+/g, " ");
+  const type = (m.typeDocument in TYPES_DOCUMENT ? m.typeDocument : "autre") as TypeDocument;
+  return { ...m, complement, titre: titreDocument(type, m.periode.trim(), complement) };
+}
+
 /** Contrôles communs aux deux temps du dépôt ; renvoie un message d'erreur ou null. */
 function controlerMeta(m: MetaDocument): string | null {
   if (!isUuid(m.compteId) || !isUuid(m.gestionId)) return "Identifiants invalides.";
   if (!(m.typeDocument in TYPES_DOCUMENT)) return "Type de document invalide.";
-  if (!m.titre.trim()) return "Le titre du document est obligatoire.";
+  if ((m.complement ?? "").trim().length > 60) return "La précision ne doit pas dépasser 60 caractères.";
   const periode = m.periode.trim();
   if (periode && !/^\d{2}(0[1-9]|1[0-2])$/.test(periode)) {
     return "La période doit être au format AAMM avec un mois de 01 à 12 (ex. 2609 pour septembre 2026).";
@@ -281,7 +291,7 @@ async function calculerChemin(
     documentId,
     type: m.typeDocument,
     periode: m.periode.trim(),
-    titre: m.titre.trim(),
+    titre: (m.titre ?? "").trim(),
   });
 }
 
@@ -291,7 +301,8 @@ async function calculerChemin(
  * rien), puis fournit au navigateur l'identifiant et le chemin lisible
  * sous lequel il doit ranger le fichier.
  */
-export async function preparerDepot(m: MetaDocument): Promise<ResultatPreparation> {
+export async function preparerDepot(meta: MetaDocument): Promise<ResultatPreparation> {
+  const m = normaliser(meta);
   const erreur = controlerMeta(m);
   if (erreur) return { ok: false, message: erreur };
   const { supabase } = await requireAdmin(`/admin/comptes/${m.compteId}`);
@@ -319,7 +330,7 @@ export async function preparerDepot(m: MetaDocument): Promise<ResultatPreparatio
     ) {
       return {
         ok: false,
-        message: "Ce document existe déjà pour cette gestion (même type, même période et même titre).",
+        message: "Ce document existe déjà pour cette gestion (même type, même période et même précision).",
       };
     }
   }
@@ -337,8 +348,9 @@ export async function preparerDepot(m: MetaDocument): Promise<ResultatPreparatio
  * d'échec, on supprime le fichier envoyé pour ne laisser aucun orphelin.
  */
 export async function enregistrerDocument(
-  m: MetaDocument & { documentId: string; storagePath: string; nomFichier: string },
+  meta: MetaDocument & { documentId: string; storagePath: string; nomFichier: string },
 ): Promise<ResultatAction> {
+  const m = normaliser(meta);
   if (!isUuid(m.documentId)) return { ok: false, message: "Identifiants invalides." };
   const { supabase } = await requireAdmin(`/admin/comptes/${m.compteId}`);
 
@@ -382,6 +394,7 @@ export async function enregistrerDocument(
         .from("documents")
         .update({
           titre: m.titre.trim(),
+          complement: m.complement || null,
           storage_path: cheminAttendu,
           nom_fichier_origine: m.nomFichier.slice(0, 255),
           created_at: new Date().toISOString(),
@@ -403,6 +416,7 @@ export async function enregistrerDocument(
         gestion_id: m.gestionId,
         type_document: m.typeDocument,
         titre: m.titre.trim(),
+        complement: m.complement || null,
         periode: periode || null,
         storage_path: cheminAttendu,
         nom_fichier_origine: m.nomFichier.slice(0, 255),

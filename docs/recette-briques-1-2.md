@@ -447,3 +447,18 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | A3.5 | Bas de la liste (si plus de 200 comptes) | « 1–200 sur N », bouton « Tout afficher » puis « Par pages de 200 » | |
 | A3.6 | Abonnements : barre de recherche et ligne de filtres | Taper un nom : la liste se filtre ; « Paiement : Hors site » affiche les abonnements saisis par l'administration ; « À vérifier : Résiliation demandée » affiche ceux en cours de résiliation ; « Effacer les filtres des colonnes » | |
 | A3.7 | Fiche d'un compte en cours de résiliation | Bandeau : « le mois en cours reste dû » (abonnement hors site : arrêter l'ancien prélèvement après celui du mois ; abonnement payé sur le site : date du dernier prélèvement) | |
+
+## Documents, tableau de bord et onglet Documents (21/10, lot 5)
+
+**Préparation** : exécuter `supabase/brique2h_types_et_precision.sql` **avant** le Commit + Push (le site lit la nouvelle colonne « précision »).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| D5.1 | Admin : déposer un PDF | Champ « Précision (facultatif) » au lieu de « Titre » ; type « Attestation employeur » dans la liste ; « Procédure de licenciement » | |
+| D5.2 | Déposer un courrier avec la précision « Démission » | Ligne « Courrier / lettre — Démission » ; un second dépôt identique est refusé (même type, période, précision) | |
+| D5.3 | Abonné : détail d'une gestion et onglet Documents | Colonnes Document / Période / Mis en ligne le ; plus de « Employeur – Salarié » répété | |
+| D5.4 | Télécharger un bulletin (ordinateur puis téléphone) | Fichier `NOMEMPLOYEUR_NOMSALARIE_BP_AAMM.pdf` | |
+| D5.5 | Tableau de bord | « Bonjour Prénom » ; seulement alertes utiles, nouveaux documents, en préparation, Mes salariés ; liens « Tous mes documents » et résumé de l'abonnement | |
+| D5.6 | Onglet Documents avec plusieurs salariés | Pas de « Tous » ; pastilles par salarié (puis « Terminées »), nombre de nouveaux documents sur la pastille ; salarié avec nouveau document sélectionné par défaut | |
+| D5.7 | Téléphone : onglet Documents | Pastilles qui défilent horizontalement ; lignes compactes (document, période, bouton) | |
+

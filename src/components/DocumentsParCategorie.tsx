@@ -1,9 +1,9 @@
 import { TableauDepliable } from "@/components/TableauDepliable";
-import { TitreDocument } from "@/components/TitreDocument";
+import { LienTelechargement } from "@/components/LienTelechargement";
 import {
   CATEGORIES_DOCUMENT,
-  TYPES_DOCUMENT,
   categorieDocument,
+  libelleDocument,
   formatDate,
   formatPeriode,
   type DocumentRow,
@@ -17,7 +17,10 @@ const tdBase = "px-3 py-2 align-middle";
  * contractuels, bulletins de paie, autres), chacune dans un tableau aux
  * colonnes titrées et à la ligne de titres colorée (violet / turquoise /
  * orange, comme l'ancien espace client). Mêmes colonnes partout pour un
- * alignement vertical. 5 documents par catégorie, puis dépliage.
+ * alignement vertical : Document (type et précision éventuelle, lien de
+ * téléchargement), Période, date, action. On est déjà dans la gestion d'un
+ * salarié : ni son nom ni celui de l'employeur ne sont répétés (retour du
+ * 21/10). 5 documents par catégorie, puis dépliage.
  *
  * - vue « admin » : dernière colonne de date = premier téléchargement par
  *   l'abonné (tiret rouge s'il ne l'a pas encore fait).
@@ -67,18 +70,16 @@ export function DocumentsParCategorie({
             classeEntete={`entete-${cat.cle}`}
             colonnes={
               <>
-                <col className="w-44" />
-                <col className="w-20" />
                 <col />
+                <col className="w-24" />
                 <col className="w-32" />
                 <col className={admin ? "w-14" : "w-40"} />
               </>
             }
             entete={
               <tr>
-                <th className={th}>Type</th>
+                <th className={th}>Document</th>
                 <th className={th}>Période</th>
-                <th className={th}>{admin ? "Titre (vu par l'abonné)" : "Document"}</th>
                 <th
                   className={th}
                   title={admin ? "Premier téléchargement par l'abonné" : undefined}
@@ -92,17 +93,20 @@ export function DocumentsParCategorie({
             }
             lignes={docs.map((d) => (
               <tr key={d.id} className={admin ? "even:bg-[#f7f7f7] hover:bg-brand-sky-tint/20" : "hover:bg-brand-sky-tint/20"}>
-                <td className={`${td} c-type text-foreground/80`}>
-                  {TYPES_DOCUMENT[d.type_document] ?? d.type_document}
-                </td>
-                <td className={`${td} c-periode tabular-nums`}>
-                  {d.periode ? formatPeriode(d.periode) : "—"}
-                </td>
-                <td className={`${td} c-doc break-words`}>
-                  <TitreDocument doc={d} />
+                <td className={`${td} c-type break-words`}>
+                  {d.storage_path ? (
+                    <LienTelechargement documentId={d.id} className="font-medium text-brand-teal hover:underline">
+                      {libelleDocument(d)}
+                    </LienTelechargement>
+                  ) : (
+                    <span className="font-medium">{libelleDocument(d)}</span>
+                  )}
                   {!admin && d.storage_path && !d.consulte_le && (
                     <span className="pastille-nouveau ml-2">Nouveau</span>
                   )}
+                </td>
+                <td className={`${td} c-periode tabular-nums`}>
+                  {d.periode ? formatPeriode(d.periode) : "—"}
                 </td>
                 <td className={`${td} c-masque-mobile tabular-nums`}>
                   {!d.storage_path ? (

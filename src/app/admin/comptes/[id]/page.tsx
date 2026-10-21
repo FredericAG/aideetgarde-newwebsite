@@ -113,7 +113,7 @@ export default async function FicheComptePage({
       .order("date_debut", { ascending: false }),
     supabase
       .from("documents")
-      .select("id, gestion_id, type_document, periode, titre, storage_path, created_at, consulte_le")
+      .select("id, gestion_id, type_document, periode, titre, complement, storage_path, created_at, consulte_le")
       .eq("employeur_id", id)
       .order("periode", { ascending: false, nullsFirst: false }),
     supabase
@@ -536,9 +536,6 @@ Ajouter la gestion
                 const remplacerDepot =
                   (cible && remplacerCible) ||
                   enAttente.find((d) => d.periode === periodeDepot)?.statut === "modification";
-                const titreDepot = `${compte.nom} ${compte.prenom} – ${g.nom_salarie} ${g.prenom_salarie}`
-                  .replace(/\s+/g, " ")
-                  .trim();
                 return (
                   <li
                     key={g.id}
@@ -800,7 +797,6 @@ Rouvrir
                           gestionId={g.id}
                           typeInitial={cible ? typeCible : "bulletin"}
                           periodeInitiale={periodeDepot}
-                          titreInitial={titreDepot}
                           remplacerInitial={remplacerDepot}
                         />
                       </div>

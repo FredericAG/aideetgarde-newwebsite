@@ -1,4 +1,4 @@
-import { CODES_TYPES, TYPES_DOCUMENT, formatPeriode, type TypeDocument } from "@/lib/data";
+import { CODES_TYPES, CODE_DU_TYPE, TYPES_DOCUMENT, formatPeriode, type TypeDocument } from "@/lib/data";
 
 /**
  * Outils autour des noms de fichiers des documents.
@@ -57,6 +57,17 @@ export function analyserNomFichier(nom: string): AnalyseNomFichier {
   return { type, periode };
 }
 
+/**
+ * Titre enregistré d'un document (norme du 21/10) : type, période et
+ * précision éventuelle, ex. « Courrier / lettre 03/2026 — Démission ». Il
+ * sert aux contrôles de doublons et au stockage ; l'abonné voit le type,
+ * la précision et la période dans des colonnes séparées.
+ */
+export function titreDocument(type: TypeDocument, periode: string | null, complement?: string | null): string {
+  const base = titreParDefaut(type, periode || null);
+  return complement ? `${base} — ${complement}` : base;
+}
+
 /** Titre proposé : "Bulletin de salaire 05/2022". */
 export function titreParDefaut(type: TypeDocument, periode: string | null): string {
   return periode ? `${TYPES_DOCUMENT[type]} ${formatPeriode(periode)}` : TYPES_DOCUMENT[type];
@@ -93,4 +104,37 @@ export function cheminStockage(p: {
   const dossierGestion = `${slug(`${p.gestion.nom_salarie} ${p.gestion.prenom_salarie}`)}_${p.gestion.id}`;
   const fichier = `${p.periode || "sans-periode"}_${slug(p.type, 20)}_${slug(p.titre, 50)}__${p.documentId}.pdf`;
   return `${dossierEmployeur}/${dossierGestion}/${fichier}`;
+}
+
+/** Élément d'un nom de fichier normé : majuscules sans accents, sans « _ ». */
+function elementNorme(texte: string | null | undefined): string {
+  return (texte ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9' -]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Nom du fichier téléchargé par l'abonné (norme du 21/10, sans la
+ * référence de gestion réservée à l'administration) :
+ * `DUPONT_MARTIN_BP_2605.pdf`, `DUPONT_MARTIN_LET_2603_DEMISSION.pdf`.
+ */
+export function nomTelechargement(p: {
+  employeur: string;
+  salarie: string;
+  type: TypeDocument;
+  periode: string | null;
+  complement?: string | null;
+}): string {
+  const elements = [
+    elementNorme(p.employeur),
+    elementNorme(p.salarie),
+    CODE_DU_TYPE[p.type] ?? "DOC",
+    p.periode ?? "",
+    elementNorme(p.complement),
+  ].filter(Boolean);
+  return `${elements.join("_").slice(0, 150)}.pdf`;
 }

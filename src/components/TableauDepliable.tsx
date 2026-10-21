@@ -55,7 +55,9 @@ export function TableauDepliable({
         >
           {deplie
             ? "▲ Réduire"
-            : `▼ Afficher les ${reste} document${reste > 1 ? "s" : ""} suivant${reste > 1 ? "s" : ""}`}
+            : reste === 1
+              ? "▼ Afficher le document suivant"
+              : `▼ Afficher les ${reste} documents suivants`}
         </button>
       )}
     </div>

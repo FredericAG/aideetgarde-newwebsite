@@ -79,17 +79,18 @@ Liste confirmée par Frédéric le 19/10/2026. **En place** (script `brique2e_ty
 
 | Type | Code dans les noms de fichiers |
 |---|---|
-| Bulletin de salaire | BPG |
-| Contrat de travail | CTRA (proposition) |
-| Avenant | AV (proposition) |
+| Bulletin de salaire | BP (norme du 21/10 ; BPG, code actuel, reste reconnu pour la reprise) |
+| Contrat de travail | CTRA |
+| Avenant | AV |
 | Certificat de travail | CT |
 | Solde de tout compte | STC |
 | Attestation France Travail | FT |
 | Attestation de salaire | AS |
+| Attestation employeur | AE (ajouté le 21/10, script `brique2h`) |
 | Attestation sur l'honneur | ATTHON |
-| Courrier de licenciement | LIC (proposition) |
-| Procédure de rupture conventionnelle | RUPT (proposition) |
-| Courrier / lettre (démission, engagement d'un mineur, attestation d'emploi…) | LET (proposition) |
+| Procédure de licenciement (informations et courriers) | LIC |
+| Rupture conventionnelle (informations, Cerfa) | RUPT |
+| Courrier / lettre (démission, engagement d'un mineur, attestation d'emploi…) | LET |
 | Autre attestation | — |
 | Autre | — |
 
@@ -103,6 +104,7 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Pour les autres types : pas deux documents avec le même type, la même période et le même titre dans une gestion (comparaison insensible aux majuscules et aux espaces en trop). | En place |
 | La période est au format AAMM, avec un mois de 01 à 12. | En place |
 | Lors d'un dépôt en masse, un bulletin pour un mois déjà rempli n'est jamais écrasé silencieusement : il apparaît en « conflit » et l'admin choisit explicitement de remplacer ou d'ignorer. | À faire (brique 4) |
+| **Remplacement proposé plutôt que refus** (demande du 21/10) : si le document déposé existe déjà dans la gestion (même type, même période, même complément), le site ne refuse plus : il demande « Un bulletin de mai 2026 existe déjà (déposé le …, téléchargé par l'abonné le … / pas encore téléchargé). Le remplacer ? Oui, remplacer / Non, garder l'existant ». Au dépôt unitaire : fenêtre de confirmation. Au dépôt en masse : choix ligne par ligne dans le récapitulatif, avec « Tout remplacer » / « Tout ignorer ». Un fichier **strictement identique** (même contenu) est signalé « déjà déposé, identique » et ignoré par défaut. Le document remplacé redevient « Nouveau » pour l'abonné. Le remplacement est tracé côté admin (« remplace la version du … »). | Validé le 21/10 — à faire (brique 4) |
 
 ### 5.3 Stockage et conservation
 
@@ -111,7 +113,8 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | Les PDF sont stockés dans un espace **privé** : aucun fichier n'a d'adresse publique. Un abonné ne peut lire que ses propres fichiers ; l'administrateur peut tout lire, déposer et supprimer. | En place |
 | Les documents restent **en permanence** dans l'espace de l'abonné. Il peut les retélécharger autant de fois qu'il le souhaite (par exemple après la perte de son ordinateur), sans intervention de l'admin. | En place |
 | À chaque clic, le site fabrique un lien de téléchargement valable 60 secondes : un lien copié ou transféré cesse de fonctionner au bout d'une minute. | En place |
-| Le fichier téléchargé porte un nom lisible (titre et période), pas un code. | En place |
+| Le fichier téléchargé porte un nom lisible (titre et période), pas un code. | En place — remplacé par la règle suivante pour les fichiers déposés selon la norme |
+| **Nom du fichier téléchargé = nom déposé, sans la référence de gestion** (demande du 21/10) : `AG00123_DUPONT_MARTIN_BP_2605.pdf` est téléchargé par l'abonné sous le nom `DUPONT_MARTIN_BP_2605.pdf`, sur ordinateur comme sur téléphone. Le nom d'origine est conservé à part dans la base (le nom technique dans le stockage ne change pas). La référence AGxxxxx reste ainsi réservée à l'administration. Fichier déposé hors norme : nom lisible actuel (titre et période). Sur iPhone, le PDF s'ouvre d'abord dans l'aperçu ; le nom s'applique quand l'abonné l'enregistre (« Enregistrer dans Fichiers ») ou le partage. | Validé le 21/10 — à faire (brique 4) |
 | Dans la console Supabase, les dossiers et fichiers portent des noms lisibles : `nom-employeur_<identifiant>/nom-salarie_<identifiant>/<AAMM>_<type>_<titre>__<identifiant>.pdf`. Les identifiants garantissent l'unicité et la sécurité ; les noms ne servent qu'à s'y retrouver. Les fichiers déposés avant le 19/10 gardent leur ancien nom codé. | En place (19/10) |
 | Retrouver un document parmi des milliers doit se faire depuis l'espace Administration du site (recherche par nom d'employeur, de salarié, période, type), pas en parcourant la console Supabase. | À faire (avec la brique 4) |
 | Supprimer un document supprime aussi son fichier ; supprimer une gestion supprime ses documents et leurs fichiers. | En place |
@@ -124,14 +127,18 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 
 | Règle | Statut |
 |---|---|
-| Ordre des informations sur chaque ligne de document : **type**, puis **période**, puis le **titre cliquable** (lien de téléchargement). Colonnes alignées. | En place (19/10) |
+| Ordre des informations sur chaque ligne de document : **type**, puis **période**, puis le **titre cliquable** (lien de téléchargement). Colonnes alignées. | Remplacé le 21/10 (ligne suivante) |
+| **Lignes de documents simplifiées** (retour du 21/10) : on est déjà sur le compte de l'abonné et dans la gestion d'un salarié, donc ni le nom de l'employeur ni celui du salarié ne sont répétés. Colonnes : **Document** (type et précision éventuelle, lien de téléchargement : « Avenant — n° 2 », « Courrier / lettre — Démission »), **Période**, **Mis en ligne le** (admin : « Téléchargé le »), bouton. Le titre libre disparaît : à la place, une **précision facultative** (60 caractères) saisie au dépôt. | En place (21/10, script `brique2h` à exécuter avant la mise en ligne) — à recetter |
+| **Nom du fichier téléchargé** : `NOMEMPLOYEUR_NOMSALARIE_CODE_AAMM[_PRÉCISION].pdf`, construit à partir des noms enregistrés (majuscules sans accents), y compris pour les documents déjà en ligne. Codes « ATT » (autre attestation) et « DOC » (autre) pour les deux types sans code. | En place (21/10) — à recetter |
+| **Tableau de bord simplifié** (retour du 21/10, bonnes pratiques : une page d'accueil montre ce qui demande une action, le reste est à un clic) : « Bonjour Prénom » ; alertes seulement si nécessaire (prélèvement refusé, abonnement complet ou dépassé, pas d'abonnement) ; nouveaux documents à télécharger ; gestions en préparation ; **Mes salariés** (salarié et emploi, dernier bulletin, statut du mois avec bouton « Déclarer ») ; en bas, liens « Tous mes documents » et résumé d'une ligne de l'abonnement. Retirés : grande carte d'abonnement (onglet Abonnement), « Vos 5 derniers documents » et gestions terminées (onglet Documents), date d'inscription. | En place (21/10) — à recetter |
+| **Onglet Documents harmonisé** (retour du 21/10) : plus d'option « Tous ». Une pastille par salarié (gestions en cours, puis « Terminées »), qui défile horizontalement sur téléphone ; le nombre de nouveaux documents figure sur la pastille. Sélection par défaut : le salarié qui a un nouveau document, sinon celui dont le dernier document est le plus récent. Sous les pastilles, une carte du salarié (emploi, depuis le…, nombre de documents, « Voir la gestion ») puis ses documents par catégorie. L'encadré « nouveaux documents » n'est plus répété sur cette page (pastilles « Nouveau » dans les listes). | En place (21/10) — à recetter |
 | Tri par défaut : du plus récent au plus ancien (période, puis date de dépôt). | En place |
 | L'abonné peut changer le tri dans le détail d'une gestion : plus récents, plus anciens, ordre alphabétique, par type (bulletins, contrats, avenants, soldes de tout compte…). Le tri choisi reste dans l'adresse de la page (il survit au rafraîchissement). | En place (19/10) |
 | **Document nouvellement disponible mis en avant** : tant que l'abonné ne l'a pas téléchargé, un document apparaît **en haut** du tableau de bord et du détail de la gestion, dans un encadré « Un nouveau document est disponible », avec un **grand bouton de téléchargement** (« ⬇ Télécharger : Bulletin de salaire de [mois] »). Dans les listes, il porte une pastille « Nouveau ». Le premier téléchargement par l'abonné le fait passer en « consulté » : l'encadré et la pastille disparaissent. Un bulletin remplacé (corrigé) redevient « nouveau ». | En place (19/10, brique 7c) |
 | Dans la carte « Déclaration du mois », quand le bulletin est établi, un grand bouton « ⬇ Télécharger le bulletin de [mois] » est affiché à côté de la demande de modification. | En place (19/10) |
 | Côté administrateur, chaque document indique la date de premier téléchargement par l'abonné, ou un tiret rouge s'il ne l'a pas encore téléchargé (utile en cas de réclamation « je n'ai rien reçu »). Les téléchargements de l'administrateur ne comptent pas. | En place (19/10, présentation 20/10) |
 | **Tableau de bord, « Mes gestions en cours »** : tableau Salarié / Emploi / Depuis le / Dernier bulletin (lien de téléchargement direct, pastille « Nouveau ») / Statut du mois en cours (« Déclarer [mois] », « Déclaration envoyée », « Correction en cours », « ✓ Disponible ») / bouton « Détail ». Un bulletin déjà en ligne pour le mois vaut « Disponible », même s'il a été déposé sans déclaration. | En place (20/10) |
-| « Vos 5 derniers documents » : tableau Type / Période / Document / Salarié. | En place (20/10) |
+| « Vos 5 derniers documents » : tableau Type / Période / Document / Salarié. | Retiré du tableau de bord le 21/10 |
 | **Détail d'une gestion (abonné)** : documents répartis dans les mêmes **trois catégories** que côté administration, tableaux aux colonnes titrées Type / Période / Document / Mis en ligne le, et un bouton « ⬇ Télécharger » par ligne (pas de suppression côté abonné). Pastille « Nouveau » tant que le document n'a pas été téléchargé. 5 documents par catégorie puis dépliage. Le tri choisi (récents, anciens, alphabétique, par type) s'applique à l'intérieur de chaque catégorie. Sur téléphone : une fiche par document, lignes alternées. | En place (20/10) |
 | **Lignes de titres colorées par catégorie**, inspirées de l'ancien espace client : violet (éléments contractuels), turquoise (bulletins de paie), orange (autres) ; texte blanc, nettement distinctes des lignes de documents alternées blanc / gris. Turquoise et orange sont plus foncés que sur l'ancien site pour que le texte blanc reste lisible (contraste ≥ 4,5:1). Un petit carré de la même couleur précède le nom de la catégorie (repère conservé sur téléphone, où les titres de colonnes sont remplacés par les intitulés dans chaque fiche). | En place (20/10) |
 | Après un clic sur un bouton de téléchargement, le document **disparaît aussitôt** de l'encadré « nouveau document » (l'encadré disparaît avec le dernier) ; les pastilles « Nouveau » se mettent à jour d'elles-mêmes une à deux secondes plus tard, sans actualiser la page. | En place (20/10) |
@@ -171,6 +178,7 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 |---|---|
 | Dans la fiche d'un compte, chaque gestion a une zone de dépôt : glisser un PDF ou cliquer pour le choisir. | En place |
 | Dès que le PDF est choisi, le **type**, la **période** et le **titre** sont préremplis d'après le nom du fichier (ex. « LHOPITALLIERKOT BOBOLABPG225 - 05-2022.pdf » → Bulletin de salaire, 2205, « Bulletin de salaire 05/2022 »). L'admin vérifie et corrige si besoin avant de déposer. | En place (19/10) — version provisoire, remplacée par la convention de la brique 4 |
+| Dépôt unitaire d'un fichier à la norme (§ 5.6) : mêmes contrôles qu'en masse. Si la référence du nom (AG00123) n'est pas celle de la gestion où le fichier est glissé, ou si les noms ne correspondent pas, avertissement « Ce fichier semble destiné à une autre gestion » avant tout envoi. | Validé le 21/10 — à faire (brique 4) |
 | Les doublons sont refusés **avant** l'envoi du fichier (pas d'attente inutile pour un fichier qui sera refusé). | En place (19/10) |
 | Le fichier part directement du navigateur vers le stockage, sans passer par le serveur du site (pas de limite de taille liée à Vercel). | En place |
 
@@ -185,19 +193,73 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 3. Les envois se font en parallèle avec une barre de progression ; un échec sur un fichier n'interrompt pas les autres, et le récapitulatif final liste les échecs à reprendre.
 4. Les règles anti-doublons (5.2) s'appliquent exactement comme au dépôt unitaire.
 
-**Convention de nommage — validée sur le principe le 19/10/2026** (Frédéric peut adapter son logiciel de paie pour produire les noms choisis)
+**Convention de nommage — validée sur le principe le 19/10/2026, complétée le 21/10** (Frédéric peut adapter son logiciel de paie pour produire les noms choisis)
 
-Les noms et prénoms ne suffisent pas à garantir l'absence de doute : homonymes, accents, noms composés, changement de nom après mariage, plusieurs gestions entre les mêmes personnes au fil des années. La proposition est donc retenue : chaque gestion a une **référence unique et définitive** (`AG00001`, `AG00002`…), attribuée automatiquement, impossible à modifier — **En place** (script `brique2f`). **Elle reste une référence d'administration** : affichée dans l'espace Administration uniquement, jamais dans l'espace de l'abonné (décision de Frédéric, 19/10). Le nom de fichier commence par cette référence :
+Les noms et prénoms ne suffisent pas à garantir l'absence de doute : homonymes, accents, noms composés, changement de nom après mariage, plusieurs gestions entre les mêmes personnes au fil des années. Chaque gestion a donc une **référence unique et définitive** (`AG00001`, `AG00002`…), attribuée automatiquement, impossible à modifier — **En place** (script `brique2f`). **Elle reste une référence d'administration** : affichée dans l'espace Administration uniquement, jamais dans l'espace de l'abonné (décision de Frédéric, 19/10).
 
-`AG00123_BPG_2605.pdf` → gestion AG00123, bulletin de paie, mai 2026.
+**Norme de Frédéric, validée le 21/10** (remplace `<référence>_<code type>_<AAMM>`) — décisions : nom de famille seul, sans prénom ; AAMM obligatoire pour tout fichier ; complément facultatif (courriers notamment) ; code BP pour les bulletins ; document remplacé = ancien fichier supprimé, trace gardée côté admin. Tout nouveau document suit cette norme.
 
-Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre éventuel (noms, mentions) étant ignoré pour le rangement. Codes types : ceux du tableau 5.1.
+`<Réf gestion>_<Nom employeur>_<Nom salarié>_<Code type>_<AAMM>[_<complément>].pdf`
+
+Exemple : `AG00123_DUPONT_MARTIN_BP_2605.pdf` → gestion AG00123, employeur Dupont, salariée Martin, bulletin de paie, mai 2026.
+
+| Élément | Règle |
+|---|---|
+| Séparateur | Le tiret bas `_` sépare les éléments ; il est **interdit à l'intérieur** d'un élément. Espaces, tirets et apostrophes sont admis dans les noms (`DE LA FONTAINE`, `MARTIN-DIOP`, `N'DIAYE`). |
+| Réf gestion | `AG` + 5 chiffres. **Seule clé de rangement.** |
+| Nom employeur, nom salarié | Nom de famille seul, **sans prénom** (décision du 21/10). Majuscules sans accents recommandées (le site tolère accents et minuscules). **Contrôle de cohérence** : comparés, sans tenir compte des accents, majuscules, espaces et tirets, aux noms de la gestion AG00123. S'ils ne correspondent pas, le fichier n'est pas rangé : « à vérifier » (protège d'une faute de frappe dans la référence, ex. AG00132 au lieu de AG00123). Un clic « Confirmer quand même » (ex. nom d'usage différent) range le fichier. |
+| Code type | Un code du tableau 5.1 (BP, CTRA, AV, CT, STC, FT, AS, ATTHON, LIC, RUPT, LET). Inconnu → « non reconnu ». |
+| AAMM | **Obligatoire pour tous les types** : mois de paie pour un bulletin, mois du document pour les autres (signature du contrat, date d'effet de l'avenant, fin de contrat…). Mois de 01 à 12. |
+| Complément (facultatif) | Précise un document qui n'est pas unique dans le mois : `_DEMISSION`, `_ATTESTATION EMPLOI`, `_2`. Il devient le titre affiché pour les courriers (LET) et départage deux documents du même type et du même mois. |
+
+Ce que voit l'abonné : le **titre** affiché reste lisible (« Bulletin de salaire 05/2026 », « Courrier — Démission 05/2026 ») ; le **fichier téléchargé** porte le nom déposé sans la référence : `DUPONT_MARTIN_BP_2605.pdf` (§ 5.3).
+
+Lecture du nom par le site : premier élément = référence ; puis, depuis la fin, le complément éventuel, l'AAMM et le code type ; les deux éléments restants = employeur et salarié. Un nom qui ne suit pas exactement ce schéma (élément manquant, `_` en trop, date invalide) est « non reconnu », jamais deviné.
+
+**Ancienne version d'un document remplacé (décision du 21/10)** : l'ancien fichier est supprimé du stockage ; une ligne de trace est gardée côté admin (date du remplacement, nom de l'ancien fichier, date de téléchargement de l'ancienne version par l'abonné, ou « jamais téléchargée »).
 
 **Questions ouvertes pour Frédéric**
 
 - ~~Le logiciel de paie peut-il produire ces noms ?~~ Oui (Frédéric, 19/10). Il faudra y reporter la référence de chaque gestion : l'admin proposera une liste exportable des références.
 - Validation des codes proposés pour les types qui n'en ont pas encore (CTRA, AV, LIC, RUPT, LET).
-- Pour la reprise des PDF existants (brique 13), qui n'ont pas de référence : rapprochement par noms, avec la même règle (aucun rangement en cas de doute, liste des cas ambigus à valider à la main).
+- ~~Norme du 21/10 : format des noms, AAMM pour tous les types, sort de l'ancienne version~~ Tranché le 21/10 (voir ci-dessus).
+- Pour la reprise des PDF existants (brique 13), qui n'ont pas de référence : voir § 5.6 bis.
+
+### 5.6 bis Reprise des PDF de l'ancien site (brique 13)
+
+**Besoin (Frédéric, 21/10)** : environ 300 gestions à reprendre. Les PDF actuels n'ont pas de référence de gestion, mais leur nom contient toujours le nom de l'employeur, du salarié et le type. Mélange de glisser-déposer et de confirmation manuelle quand le site a un doute.
+
+**Périmètre (décision du 21/10)** : dossiers des gestions **en cours** et des gestions **terminées depuis moins de 3 ans**. Types ajoutés pour la reprise : attestation employeur (AE) ; « Informations … licenciement » → procédure de licenciement (LIC) ; Cerfa et informations de rupture conventionnelle → RUPT ; APE → attestation France Travail. Les autres fichiers non typés (MP, attestations Pajemploi, semainiers…) seront typés plus tard si besoin.
+
+**Préalable** : les comptes et les gestions existent déjà dans la nouvelle base (reprise des abonnés, brique 13), avec les noms de l'employeur et du salarié et les dates de début et de fin de chaque gestion. Plan Supabase Pro et sauvegarde des fichiers en place (vrais documents, § 5.3).
+
+**Atelier de reprise (page d'administration dédiée)**
+
+1. **Glisser un dossier entier** (ou des centaines de PDF). Le navigateur lit chaque nom (type, période, noms) sans rien envoyer. Le nom du dossier d'origine est aussi utilisé s'il désigne le client.
+2. **Rapprochement avec les gestions**, sans tenir compte des accents, majuscules, espaces et tirets, y compris pour des noms collés (`LHOPITALLIERKOT BOBOLABPG225`) :
+   - **Certain** (vert) : une seule gestion dont le nom de l'employeur ET celui du salarié figurent dans le nom du fichier ;
+   - **À départager** (jaune) : plusieurs gestions possibles (homonymes, ou plusieurs gestions successives entre les mêmes personnes). La **période** du document départage d'abord : la gestion dont les dates couvrent le mois du document. S'il reste un doute, liste courte des candidates, choix d'un clic ;
+   - **Non reconnu** (rouge) : champ de recherche (nom, référence AG, ville) pour désigner la gestion à la main.
+3. **Apprentissage** : une confirmation manuelle vaut pour tous les fichiers qui portent la même « signature » de noms (ex. `LHOPITALLIERKOT BOBOLA` → AG00123). Avec 300 gestions, au plus 300 confirmations, en pratique beaucoup moins. Les correspondances confirmées sont mémorisées d'une séance à l'autre.
+4. **Récapitulatif par gestion** avant tout envoi : documents reconnus, type et période lus, conflits (deux bulletins pour le même mois), période illisible à saisir. Correction possible ligne par ligne.
+5. **Envoi** : « Ranger N fichiers », en parallèle, barre de progression ; un échec n'arrête pas les autres ; liste finale des échecs à reprendre. La reprise peut se faire en plusieurs fois (par client, par année) : un fichier déjà repris (contenu identique) est reconnu et ignoré.
+6. **Nom des fichiers repris** : chaque document reçoit le nom de la nouvelle norme (`AG00123_DUPONT_MARTIN_BP_2205.pdf`) ; l'abonné le télécharge sans la référence (`DUPONT_MARTIN_BP_2205.pdf`). Le nom d'origine est gardé dans la trace côté admin.
+7. **Discrétion** : les documents repris ne déclenchent **ni notification ni email**, et n'apparaissent pas comme « Nouveau » (l'abonné les a déjà eus sur l'ancien site).
+8. **Fin de reprise** : export de la liste des gestions avec leur référence AG, nom de l'employeur et du salarié, à reporter dans le logiciel de paie pour les nouveaux noms de fichiers.
+
+**Constats sur le dossier actuel (lecture des noms seulement, 21/10 ; exemples ci-dessous inventés)**
+
+- **Organisation** : un dossier par employeur (environ 600, anciens clients compris), puis le plus souvent **un sous-dossier par salarié** : `DUPONT/MARTIN/…`. Quelques anciens dossiers ont des fichiers directement à la racine de l'employeur, avec des sous-dossiers pour d'autres salariés. Quelques dossiers d'employeurs ne diffèrent que par un accent ou un prénom (`PEREZ` / `PÉREZ`, `LEFRANCOIS` / `Lefrançois`, `DUPONT` / `DUPONT Paul`) : doublons ou clients distincts, à confirmer à la main.
+- **Bulletins** : `DUPONTMARTINBPG249.pdf`, `DUPONT MARTIN BPG2604.pdf`, anciens `DUPONTMARTINBP1610.pdf`. Noms collés ou séparés par une espace ; codes BP (anciens) puis BPG ; période **AAM** (mois sans zéro : `249` = 09/2024) ou **AAMM** (`2604` = 04/2026). Lecture sans ambiguïté : l'année fait toujours 2 chiffres, le reste est le mois.
+- **Fin de contrat** : `…CT247.pdf`, `…STC2604.pdf`, `…CT.pdf` (sans période), `…APE.pdf` (attestation Pôle emploi = France Travail), `… FT.pdf` ; parfois sans noms (`CT216.pdf`), le dossier donnant alors la destination.
+- **Autres documents** : `Contrat DUPONT MARTIN.pdf`, `Avenant 2 DUPONT MARTIN.pdf`, `Lettre démission DUPONT MARTIN.pdf`, `Informations … licenciement DUPONT MARTIN.pdf`, `…-CERFA signé.pdf`, `AE2203 DUPONT MARTIN.pdf`, `MP DUPONT MARTIN.pdf`, attestations Pajemploi, semainiers.
+- **Fichiers de travail mêlés aux documents** : .docx, .xlsm (« Gestion … », « Docs Légaux … », « Paie … »), brouillons, autorisations de prélèvement : jamais repris (filtre automatique : PDF seulement, liste d'exclusions).
+- **Même bulletin en double** (deux orthographes du nom pour le même mois, ex. après une correction) : le plus récent est proposé, l'autre signalé.
+- **Volume** : de quelques fichiers à environ 60 par gestion, 20 à 400 Ko chacun : de l'ordre de 3 à 5 Go pour 300 gestions. **Plan Supabase Pro obligatoire** (le plan gratuit est limité à 1 Go).
+
+**Conséquences sur l'atelier** : la **destination vient d'abord des dossiers** (dossier employeur → compte, sous-dossier salarié → gestion), le nom du fichier sert de contrôle et donne le type et la période. On glisse un dossier d'employeur (ou plusieurs, ou tout `Contrats clients`) : chaque couple dossier employeur / sous-dossier salarié est rapproché une fois des gestions (automatiquement si un seul candidat, sinon un clic), puis tous ses fichiers suivent. Pour un document sans période (contrat, `CT.pdf`), la date du fichier est proposée comme AAMM, modifiable. Le dossier étant sur Dropbox, les fichiers « en ligne uniquement » seront téléchargés par Dropbox au moment de l'envoi (plus lent, sans autre conséquence).
+
+**Correspondance des types (proposition, à valider)** : BP, BPG → bulletin ; CT → certificat de travail ; STC → solde de tout compte ; APE, FT → attestation France Travail ; « Contrat » → contrat ; « Avenant n » → avenant (complément n) ; « Lettre démission » → courrier (complément DEMISSION) ; « … licenciement » → courrier de licenciement ; CERFA → rupture conventionnelle ; AE → ? ; MP → ? ; attestations Pajemploi, semainiers → ? (reprendre en « Autre » ou ignorer).
 
 ### 5.7 Copie des notifications par email (brique 9b)
 
@@ -262,6 +324,43 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 | Doublure par email de chaque mise en ligne (pour les abonnés sans notifications ou sur iPhone non installé). | À faire — l'email reste le canal fiable |
 | Fonctionnement hors connexion. | À faire (brique 9) |
 
+## 6 bis. Centre d'aide (FAQ) — proposition du 21/10, à valider
+
+**Besoin (Frédéric, 21/10)** : une arborescence d'aides et d'informations (secteur, site, bulletins et autres documents émis), dans un onglet à part, avec le simulateur de coût. Base : présentation « site aide et garde » (61 diapositives).
+
+**Emplacement** : l'onglet **Aide** existant devient le centre d'aide (pas de 6e onglet : 5 au plus sur téléphone). Contact (téléphone, email) en bas de chaque page.
+
+**Arborescence proposée** (thèmes de la présentation, regroupés en 3 portes d'entrée)
+
+| Porte d'entrée | Thème | Questions (une par page ou par bloc dépliable) |
+|---|---|---|
+| Comprendre mes documents | Le bulletin de paie | Les heures (mensualisées, effectives, déclarées à l'Urssaf, taux horaire reconstitué) · L'écart de salaire (exonération des heures supplémentaires) · Les congés payés sur le bulletin (acquis, pris, solde) |
+| | Les documents de fin de contrat | Certificat de travail, solde de tout compte, attestation France Travail : à quoi ils servent, quoi faire signer |
+| Employer un salarié à domicile | Le contrat | Le CDD · La situation irrégulière · Le repas · L'enfant supplémentaire (garde partagée) · La période d'essai (calcul, rupture, délai de prévenance) |
+| | Les aides de la CAF | Obtenir le CMG · Comment fonctionnent déclaration, prélèvement Urssaf et crédit d'impôt · Les montants du CMG · Les chèques préfinancés · Pajemploi+ |
+| | La fin du contrat | Licenciement (3 étapes, exemples de délais) · Démission · Rupture conventionnelle (5 étapes) · Justifier la rupture (motif économique, personnel) · Indemnités (congés payés, licenciement, rupture conventionnelle) · Documents à fournir · Préavis (licenciement, démission, rupture conventionnelle) |
+| | L'arrêt de travail | Indemnités (sécurité sociale, IRCEM) · Accident du travail · Arrêt maladie · Congé maternité · Congés payés pendant un arrêt |
+| | Les congés | Les 10 % inclus · Le repos hebdomadaire · Les jours pris au-delà de ce qui est acquis · Quand prendre ses congés |
+| | Les jours fériés | Le 1er mai · Les autres jours fériés |
+| | La santé du salarié | La visite d'information et de prévention · La complémentaire santé |
+| Utiliser mon espace | Le site Aide & Garde (à rédiger) | Déclarer le mois · Télécharger un document · Ajouter un salarié · Les notifications · L'abonnement et la résiliation |
+| Outils | Simulateur de coût | Coût mensuel et annuel avant et après aides (port du simulateur déjà codé) |
+
+**Bonnes pratiques retenues**
+
+- Une **recherche** en tête du centre d'aide (questions et mots clés, sans tenir compte des accents).
+- Pages **courtes**, une question par page, réponse en une phrase puis le détail ; **exemples chiffrés** et **tableaux en texte** (délais de prévenance, préavis, indemnités) plutôt qu'en images, pour la lecture sur téléphone, l'accessibilité et le référencement.
+- **Aide contextuelle** : liens depuis l'endroit où la question se pose (« Comprendre mon bulletin » à côté d'un bulletin, « Les heures » dans la déclaration du mois, « Documents de fin de contrat » sur un certificat de travail).
+- Pages **publiques** (sauf « Utiliser mon espace » si on préfère) : elles servent aussi au référencement et aux réponses générées par IA (§ 8). Chaque page porte une date de mise à jour.
+- Contenu rédigé dans le site (fichiers de contenu), modifiable sans toucher au code ; une version par loi en vigueur, revue chaque année (comme la table des valeurs légales datées).
+
+**Contenu à vérifier avant publication** (la présentation contient des règles qui ont changé) :
+
+- **CMG** : réformé au 1er septembre 2025 (nouveau mode de calcul, extension de l'âge pour les familles monoparentales) ; les montants et âges de la présentation sont à reprendre.
+- **Congés payés pendant un arrêt maladie** : la loi du 22 avril 2024 limite l'acquisition (4 semaines par an en cas de maladie non professionnelle) et le report (15 mois) ; la mention « sans limite de temps » est à corriger.
+- Montants datés (taux horaires minimums 8,77 € / 9,67 €, 4,70 € par repas, plafond de 471 €), « Pôle emploi » devenu France Travail, une coquille « ???? Dépend du nouveau bulletin » (diapositive 37).
+- **Simulateur** : un seul cas de référence vérifié contre l'Excel (`claude/Simulateur_cout_reprise.md`), 6 cas de test en attente, et règles CMG antérieures à la réforme 2025 à confirmer avant mise en ligne.
+
 ## 7. Hébergement et localisation des données
 
 | Règle | Statut |
@@ -289,6 +388,10 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 21/10/2026 — Types AE / LIC / RUPT, précision au lieu du titre libre, lignes de documents sans répétition des noms, nom du fichier téléchargé normé, tableau de bord simplifié, onglet Documents par pastilles, périmètre de la reprise (en cours + terminées < 3 ans), proposition de centre d'aide (§ 6 bis).
+- 21/10/2026 — Reprise des PDF : constats sur l'organisation actuelle (dossiers employeur / salarié, codes, périodes AAM), destination par les dossiers, correspondance des types à valider.
+- 21/10/2026 — Norme de nommage validée (sans prénom, AAMM pour tout fichier, complément facultatif, code BP, remplacement avec trace) ; atelier de reprise des PDF de l'ancien site (§ 5.6 bis).
+- 21/10/2026 — Norme de nommage des PDF déposés en masse (référence, employeur, salarié, type, AAMM), nom du fichier téléchargé sans la référence, remplacement proposé au lieu d'un refus : propositions à valider (§ 5.2, 5.3, 5.5, 5.6).
 - 21/10/2026 — Comptes non confirmés rangés à part, liste sur une page (200 / tout), bouton Copier fixe, recherche et filtres dans l'onglet Abonnements, bandeau de résiliation de l'administrateur conforme à « le mois reste dû ».
 - 21/10/2026 — Brique 5b : résiliation par l'abonné (fin du mois civil, annulable), onglet Abonnement.
 - 21/10/2026 — Relances par email standardisées (9c), vérification de la configuration du paiement, gestions en colonnes sur téléphone, œil sur les mots de passe, code postal seul dans la liste.

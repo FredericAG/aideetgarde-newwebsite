@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
-import { BUCKET, formatPeriode, isUuid } from "@/lib/data";
+import { BUCKET, isUuid, type TypeDocument } from "@/lib/data";
+import { nomTelechargement } from "@/lib/nom-fichier";
 
 /**
  * Téléchargement d'un PDF : /documents/<id>/telecharger
@@ -29,7 +30,7 @@ export async function GET(
 
   const { data: doc } = await supabase
     .from("documents")
-    .select("titre, periode, storage_path, employeur_id, consulte_le")
+    .select("type_document, complement, periode, storage_path, employeur_id, gestion_id, consulte_le")
     .eq("id", id)
     .maybeSingle();
 
@@ -40,15 +41,24 @@ export async function GET(
     });
   }
 
-  // Nom de fichier lisible pour l'utilisateur, ex. "Bulletin octobre - 10-2026.pdf"
-  const periode = doc.periode ? ` - ${formatPeriode(doc.periode).replace("/", "-")}` : "";
-  const nom = `${doc.titre}${periode}`
-    .replace(/[^\p{L}\p{N} _.-]/gu, "_")
-    .slice(0, 120);
+  // Nom du fichier enregistré (norme du 21/10, sans la référence de
+  // gestion) : « DUPONT_MARTIN_BP_2605.pdf », sur ordinateur comme sur
+  // téléphone. Noms lus dans la base (mêmes règles d'accès que le document).
+  const [{ data: employeur }, { data: gestion }] = await Promise.all([
+    supabase.from("profiles").select("nom").eq("id", doc.employeur_id).maybeSingle(),
+    supabase.from("gestions").select("nom_salarie").eq("id", doc.gestion_id).maybeSingle(),
+  ]);
+  const nom = nomTelechargement({
+    employeur: (employeur?.nom as string | undefined) ?? "",
+    salarie: (gestion?.nom_salarie as string | undefined) ?? "",
+    type: doc.type_document as TypeDocument,
+    periode: (doc.periode as string | null) ?? null,
+    complement: (doc.complement as string | null) ?? null,
+  });
 
   const { data, error } = await supabase.storage
     .from(BUCKET)
-    .createSignedUrl(doc.storage_path as string, 60, { download: `${nom}.pdf` });
+    .createSignedUrl(doc.storage_path as string, 60, { download: nom });
 
   if (error || !data?.signedUrl) {
     return new NextResponse(
