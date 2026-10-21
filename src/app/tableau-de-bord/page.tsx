@@ -272,7 +272,7 @@ export default async function TableauDeBordPage({
                   </span>
                   <Link
                     href={`/tableau-de-bord/gestions/${g.id}`}
-                    className={`btn btn-sm w-full sm:w-auto ${g.statut === "brouillon" ? "btn-primaire" : "btn-secondaire"}`}
+                    className={`btn btn-sm self-start sm:self-auto ${g.statut === "brouillon" ? "btn-primaire" : "btn-secondaire"}`}
                   >
                     {g.statut === "brouillon" ? "Compléter et envoyer" : "Voir"}
                   </Link>
@@ -298,15 +298,24 @@ export default async function TableauDeBordPage({
             </p>
           ) : (
             <div className="mt-3 overflow-hidden rounded-xl border border-brand-gray/25">
-              <table className="tableau-adaptatif">
+              {/* Colonnes aussi sur téléphone (Salarié, Bulletin, Mois en
+                  cours) : l'emploi et la date de début passent sous le nom,
+                  les intitulés ne sont pas répétés à chaque gestion. */}
+              <table className="w-full border-collapse text-left text-sm">
                 <thead className="entete-teal">
                   <tr>
-                    <th scope="col">Salarié</th>
-                    <th scope="col">Emploi</th>
-                    <th scope="col">Depuis le</th>
-                    <th scope="col">Dernier bulletin</th>
-                    <th scope="col">{`Statut — ${libelleMois(moisCourant)}`}</th>
-                    <th scope="col">
+                    <th scope="col" className="px-3 py-2">Salarié</th>
+                    <th scope="col" className="px-3 py-2 max-sm:hidden">Emploi</th>
+                    <th scope="col" className="px-3 py-2 max-sm:hidden">Depuis le</th>
+                    <th scope="col" className="px-3 py-2">
+                      <span className="sm:hidden">Bulletin</span>
+                      <span className="max-sm:hidden">Dernier bulletin</span>
+                    </th>
+                    <th scope="col" className="px-3 py-2">
+                      <span className="sm:hidden capitalize">{libelleMois(moisCourant).split(" ")[0]}</span>
+                      <span className="max-sm:hidden">{`Statut — ${libelleMois(moisCourant)}`}</span>
+                    </th>
+                    <th scope="col" className="px-3 py-2 max-sm:hidden">
                       <span className="sr-only">Détail</span>
                     </th>
                   </tr>
@@ -324,28 +333,31 @@ export default async function TableauDeBordPage({
                         ? "traitee"
                         : declaration;
                     return (
-                      <tr key={g.id}>
-                        <td className="cellule-pleine">
+                      <tr key={g.id} className="border-t border-brand-gray/20 even:bg-[#f7f7f7] max-sm:even:bg-[var(--carte)]">
+                        <td className="px-2 py-2 align-middle sm:px-3 sm:py-2.5">
                           <Link
                             href={`/tableau-de-bord/gestions/${g.id}`}
                             className="font-bold text-brand-teal hover:underline"
                           >
                             {nomSalarie(g)}
                           </Link>
+                          <span className="block text-xs text-foreground/60 sm:hidden">
+                            {TYPES_GESTION[g.type_gestion]}
+                          </span>
                         </td>
-                        <td data-label="Emploi">{TYPES_GESTION[g.type_gestion]}</td>
-                        <td data-label="Depuis le" className="tabular-nums">
-                          {formatDate(g.date_debut)}
-                        </td>
-                        <td data-label="Dernier bulletin">
+                        <td className="px-3 py-2.5 max-sm:hidden">{TYPES_GESTION[g.type_gestion]}</td>
+                        <td className="px-3 py-2.5 tabular-nums max-sm:hidden">{formatDate(g.date_debut)}</td>
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5">
                           {dernier ? (
-                            <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
+                            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5">
                               <LienTelechargement
                                 documentId={dernier.id}
                                 className="font-medium text-brand-teal underline"
                                 title="Télécharger"
                               >
-                                ⬇ {dernier.periode ? libelleMois(dernier.periode) : "Bulletin"}
+                                ⬇{" "}
+                                <span className="sm:hidden">{dernier.periode ? formatPeriode(dernier.periode) : "PDF"}</span>
+                                <span className="max-sm:hidden">{dernier.periode ? libelleMois(dernier.periode) : "Bulletin"}</span>
                               </LienTelechargement>
                               {!dernier.consulte_le && (
                                 <span className="pastille-nouveau">Nouveau</span>
@@ -355,30 +367,33 @@ export default async function TableauDeBordPage({
                             <span className="text-foreground/50">—</span>
                           )}
                         </td>
-                        <td data-label={`Statut — ${libelleMois(moisCourant)}`}>
+                        <td className="px-2 py-2 sm:px-3 sm:py-2.5">
                           {statut === "traitee" ? (
                             <span className="font-bold text-brand-teal">✓ Disponible</span>
                           ) : statut === "modification" ? (
                             <span className="font-bold text-brand-violet">Correction en cours</span>
                           ) : statut === "envoyee" ? (
-                            <span className="text-foreground/80">Déclaration envoyée</span>
+                            <span className="text-foreground/80">
+                              <span className="max-sm:hidden">Déclaration </span>envoyée
+                            </span>
                           ) : statut === "close" ? (
                             <Link href={`/tableau-de-bord/gestions/${g.id}#declaration`} className="text-foreground/70 underline">
-                              Close par Aide &amp; Garde
+                              Close<span className="max-sm:hidden"> par Aide &amp; Garde</span>
                             </Link>
                           ) : (
                             <Link
                               href={`/tableau-de-bord/gestions/${g.id}#declaration`}
-                              className="btn btn-primaire btn-sm"
+                              className="btn btn-primaire btn-sm whitespace-nowrap"
                             >
-                              Déclarer {libelleMois(moisCourant).split(" ")[0]}
+                              Déclarer
+                              <span className="max-sm:hidden"> {libelleMois(moisCourant).split(" ")[0]}</span>
                             </Link>
                           )}
                         </td>
-                        <td className="cellule-pleine sm:text-right">
+                        <td className="px-3 py-2.5 text-right max-sm:hidden">
                           <Link
                             href={`/tableau-de-bord/gestions/${g.id}`}
-                            className="btn btn-secondaire btn-sm w-full sm:w-auto"
+                            className="btn btn-secondaire btn-sm"
                           >
                             Détail
                           </Link>
@@ -435,7 +450,7 @@ export default async function TableauDeBordPage({
           ) : (
             <div className="mt-3 overflow-hidden rounded-xl border border-brand-gray/25">
               <table className="tableau-documents w-full text-left text-sm">
-                <thead className="bg-[var(--carte)] text-brand-teal">
+                <thead className="entete-teal">
                   <tr>
                     <th scope="col" className="px-3 py-2">Type</th>
                     <th scope="col" className="px-3 py-2">Période</th>

@@ -312,12 +312,13 @@ button:disabled {
   .tableau-adaptatif tbody tr:nth-child(even) {
     background: #f7f7f7;
   }
-  /* Variante : ligne de titres turquoise de la charte, texte blanc. */
-  .tableau-adaptatif thead.entete-teal {
+  /* Ligne de titres turquoise de la charte, texte blanc. */
+  thead.entete-teal {
     background: var(--brand-teal);
   }
-  .tableau-adaptatif thead.entete-teal th {
+  thead.entete-teal th {
     color: #fff;
+    font-weight: 700;
   }
   @media (max-width: 639px) {
     /* Les intitulés sont répétés dans chaque fiche (data-label). */

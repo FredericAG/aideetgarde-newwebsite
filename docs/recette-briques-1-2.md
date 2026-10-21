@@ -400,3 +400,19 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | E.13 | Téléphone : barre d'onglets | Fond violet bordé de jaune, rubrique en cours sur pastille blanche (abonné et admin) | |
 | E.14 | Abonné : carte « Déclarer le mois » d'un mois avec bulletin | Boutons de taille courante, alignés | |
 | E.15 | Abonné : tableau de bord | Bandeau des nouveaux documents compact ; carte abonnement à bandeau turquoise, pastille « Actif », chiffres clés lisibles, bouton « Gérer mon abonnement » | |
+
+## Retours du 21/10 (suite) — Relances, paiement, téléphone
+
+**Préparation** : exécuter `supabase/brique9c_relances.sql`. Commit + Push.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| F.1 | Admin > Abonnements > « Vérifier la configuration » | Une ligne ✓ ou ✗ par point (clé Supabase, Systempay, clé publique, CRON_SECRET, adresse IPN, Brevo), avec la marche à suivre en cas de ✗ | |
+| F.2 | Refaire P.3 (« Continuer vers le paiement ») | Formulaire de carte ; sinon le message rouge indique maintenant la cause technique (mode test) : me l'envoyer | |
+| F.3 | Comptes > « À surveiller » : bouton « ✉ Relancer » en fin de ligne | Fenêtre avec destinataire, sujet et texte exacts ; « Non, annuler » ne fait rien | |
+| F.4 | « Oui, envoyer » (sur ton propre compte de test, pas un compte `@recette.invalid`) | « ✓ Envoyé », email reçu avec le bouton « Créer une gestion » ; « relancé le … » sous le bouton | |
+| F.5 | Relancer une deuxième fois | La fenêtre prévient « Déjà relancé le … pour ce motif » | |
+| F.6 | Fiche d'un compte > « Relancer l'abonné par email » | 5 boutons, ceux qui correspondent au compte en violet ; historique des relances | |
+| F.7 | Liste des comptes, colonne Employeur | Email et code postal, sans la ville | |
+| F.8 | Connexion / inscription / nouveau mot de passe : icône œil | Le mot de passe s'affiche puis se masque | |
+| F.9 | Téléphone : tableau de bord > Mes gestions en cours | Tableau en colonnes (Salarié / Bulletin / mois), titres une seule fois, lignes compactes | |

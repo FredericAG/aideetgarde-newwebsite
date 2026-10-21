@@ -5,6 +5,8 @@ import { ContratAdmin } from "./ContratAdmin";
 import { DepotDocument } from "./DepotDocument";
 import { CloreDemande } from "./CloreDemande";
 import { EmailCopiable } from "@/components/EmailCopiable";
+import { BoutonRelance } from "../../BoutonRelance";
+import { MODELES_RELANCE, contenuRelance, type ModeleRelance } from "@/lib/relances";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { IconePoubelle } from "@/components/IconePoubelle";
@@ -89,7 +91,7 @@ export default async function FicheComptePage({
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
-  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes] = await Promise.all([
+  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes, relancesRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -132,7 +134,22 @@ export default async function FicheComptePage({
       .eq("employeur_id", id)
       .order("created_at", { ascending: false })
       .limit(12),
+    // Relances envoyées (brique 9c ; sans le script, aucune).
+    supabase
+      .from("relances")
+      .select("id, modele, sujet, envoye_le, envoye, detail")
+      .eq("employeur_id", id)
+      .order("envoye_le", { ascending: false })
+      .limit(10),
   ]);
+  const relances = (relancesRes.data ?? []) as {
+    id: string;
+    modele: string;
+    sujet: string;
+    envoye_le: string;
+    envoye: boolean;
+    detail: string | null;
+  }[];
   const paiements = paiementsRes.data ?? [];
   const avenants = (avenantsRes.data ?? []) as DemandeAvenant[];
   const declarations = (declsRes.data ?? []) as Declaration[];
@@ -202,6 +219,59 @@ export default async function FicheComptePage({
             {erreur}
           </p>
         )}
+
+        {/* ------------------------------------------ Contacter l'abonné */}
+        {compte.email && (() => {
+          const aBrouillon = gestions.some((g) => g.statut === "brouillon");
+          const aEnCours = gestions.some((g) => g.statut === "en_cours");
+          const conseilles: Record<ModeleRelance, boolean> = {
+            abonnement_sans_gestion: Boolean(actif) && enCours.length === 0,
+            brouillon_a_envoyer: aBrouillon,
+            declaration_mois: aEnCours,
+            inscrit_sans_abonnement: !actif,
+            paiement_refuse: Boolean(actif && actif.statut_paiement && actif.statut_paiement !== "a_jour"),
+          };
+          const derniere = (m: string) => {
+            const r = relances.find((x) => x.modele === m && x.envoye);
+            return r ? formatDate(r.envoye_le) : null;
+          };
+          const destinataire = `${`${compte.prenom} ${compte.nom}`.trim()} <${compte.email}>`;
+          return (
+            <section className="mt-6 rounded-lg border border-brand-violet/30 p-4" aria-label="Contacter l'abonné">
+              <h2 className="font-bold text-brand-violet">Relancer l&apos;abonné par email</h2>
+              <p className="mt-1 text-xs text-foreground/60">
+                Messages standardisés : le texte exact est affiché avant l&apos;envoi, pour confirmation.
+                Les motifs qui correspondent à la situation du compte sont en violet.
+              </p>
+              <div className="mt-3 flex flex-wrap items-start gap-3">
+                {MODELES_RELANCE.map((m) => (
+                  <BoutonRelance
+                    key={m}
+                    compteId={id}
+                    destinataire={destinataire}
+                    modele={m}
+                    libelle={contenuRelance(m).bouton}
+                    derniere={derniere(m)}
+                    className={`btn btn-sm ${conseilles[m] ? "btn-primaire" : "btn-secondaire"}`}
+                  />
+                ))}
+              </div>
+              {relances.length > 0 && (
+                <details className="mt-3 text-xs">
+                  <summary className="text-foreground/70">Historique des relances ({relances.length})</summary>
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {relances.map((r) => (
+                      <li key={r.id}>
+                        {formatDate(r.envoye_le)} — {r.sujet}
+                        {!r.envoye && <span className="text-red-700"> (non envoyé : {r.detail})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </section>
+          );
+        })()}
 
         {/* ------------------------------------------------ Abonnement */}
         <section className="mt-8 rounded-lg border border-brand-teal/20 p-5">

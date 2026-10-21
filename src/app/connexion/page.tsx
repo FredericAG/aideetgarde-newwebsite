@@ -1,5 +1,6 @@
 "use client";
 
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
@@ -78,8 +79,7 @@ function ConnexionForm() {
 
           <label className="flex flex-col gap-1 text-sm font-medium">
             Mot de passe
-            <input
-              type="password"
+            <ChampMotDePasse
               required
               autoComplete="current-password"
               value={password}

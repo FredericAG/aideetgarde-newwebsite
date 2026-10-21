@@ -1,5 +1,6 @@
 "use client";
 
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -39,8 +40,7 @@ export function NouveauMotDePasseForm() {
     <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm font-medium">
         Nouveau mot de passe
-        <input
-          type="password"
+        <ChampMotDePasse
           required
           minLength={8}
           autoComplete="new-password"
@@ -52,8 +52,7 @@ export function NouveauMotDePasseForm() {
 
       <label className="flex flex-col gap-1 text-sm font-medium">
         Confirmer le mot de passe
-        <input
-          type="password"
+        <ChampMotDePasse
           required
           minLength={8}
           autoComplete="new-password"

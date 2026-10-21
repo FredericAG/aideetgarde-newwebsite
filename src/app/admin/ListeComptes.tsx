@@ -11,6 +11,8 @@ import { RechercheComptes } from "./RechercheComptes";
 import { FiltresColonnes } from "./FiltresColonnes";
 import { EmailCopiable } from "@/components/EmailCopiable";
 import { CLES_FILTRES } from "@/lib/filtres-comptes";
+import { BoutonRelance } from "./BoutonRelance";
+import type { ModeleRelance } from "@/lib/relances";
 
 /** Une ligne de la vue `admin_comptes` (supabase/brique2g_liste_comptes_admin.sql). */
 interface LigneCompte {
@@ -177,6 +179,28 @@ export async function ListeComptes({
   ]);
 
   const lignes = (listeRes.data ?? []) as LigneCompte[];
+
+  // Dernière relance par compte affiché (brique 9c ; sans le script, aucune).
+  const relancesRes = lignes.length
+    ? await supabase
+        .from("relances")
+        .select("employeur_id, modele, envoye_le")
+        .in("employeur_id", lignes.map((l) => l.id))
+        .eq("envoye", true)
+        .order("envoye_le", { ascending: false })
+    : { data: [] };
+  const derniereRelance = new Map<string, string>();
+  for (const r of (relancesRes.data ?? []) as { employeur_id: string; modele: string; envoye_le: string }[]) {
+    const cle = `${r.employeur_id}:${r.modele}`;
+    if (!derniereRelance.has(cle)) derniereRelance.set(cle, formatDate(r.envoye_le));
+  }
+  // Relance proposée en fin de ligne selon la situation du compte.
+  const relanceConseillee = (c: LigneCompte): ModeleRelance | null =>
+    c.categorie === "a_surveiller"
+      ? "abonnement_sans_gestion"
+      : c.categorie === "inactif" && !c.abonnement_statut
+        ? "inscrit_sans_abonnement"
+        : null;
   const total = listeRes.count ?? 0;
   const resume = new Map(
     (resumeRes.data ?? []).map((r) => [
@@ -404,8 +428,8 @@ export async function ListeComptes({
                       )}
                       <span className="block text-xs text-foreground/60">
                         {c.email && <EmailCopiable email={c.email} />}
-                        {c.email && (c.code_postal || c.ville) ? " · " : ""}
-                        {[c.code_postal, c.ville].filter(Boolean).join(" ")}
+                        {c.email && c.code_postal ? " · " : ""}
+                        {c.code_postal}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top tabular-nums">{formatDate(c.created_at)}</td>
@@ -452,6 +476,13 @@ export async function ListeComptes({
                         >
                           {c.nb_actions} action{c.nb_actions > 1 ? "s" : ""}
                         </Link>
+                      ) : relanceConseillee(c) && c.email ? (
+                        <BoutonRelance
+                          compteId={c.id}
+                          destinataire={`${nomAffiche} <${c.email}>`}
+                          modele={relanceConseillee(c)!}
+                          derniere={derniereRelance.get(`${c.id}:${relanceConseillee(c)}`)}
+                        />
                       ) : (
                         <span className="text-foreground/40">—</span>
                       )}

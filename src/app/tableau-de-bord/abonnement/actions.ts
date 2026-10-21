@@ -25,6 +25,20 @@ const MESSAGE_INDISPONIBLE =
   "Le paiement en ligne est momentanément indisponible. Réessayez dans quelques minutes ou contactez-nous.";
 
 /**
+ * Message d'indisponibilité. En mode TEST uniquement, la cause technique
+ * est ajoutée pour faciliter la recette ; en production, l'abonné ne voit
+ * jamais de détail technique (il reste dans les journaux Vercel).
+ */
+function indisponible(raison: string): EtatPaiement {
+  console.error("Paiement indisponible :", raison);
+  const enTest = !configSystempay() || configSystempay()?.mode === "TEST";
+  return {
+    etape: "choix",
+    erreur: enTest ? `${MESSAGE_INDISPONIBLE} (Détail technique, mode test : ${raison})` : MESSAGE_INDISPONIBLE,
+  };
+}
+
+/**
  * Ouvre le formulaire de paiement : premier mois d'une nouvelle formule
  * (souscription) ou échéance impayée (régularisation). Le montant est
  * TOUJOURS recalculé ici, jamais repris du navigateur.
@@ -36,7 +50,9 @@ export async function preparerPaiement(
   const { supabase, user, profile } = await requireUser("/tableau-de-bord/abonnement");
   const config = configSystempay();
   const db = clientServeur();
-  if (!config || !db || !profile) return { etape: "choix", erreur: MESSAGE_INDISPONIBLE };
+  if (!config) return indisponible("clés Systempay absentes (SYSTEMPAY_BOUTIQUE, SYSTEMPAY_MOT_DE_PASSE, NEXT_PUBLIC_SYSTEMPAY_CLE_PUBLIQUE)");
+  if (!db) return indisponible("clé SUPABASE_SECRET_KEY absente");
+  if (!profile) return indisponible("profil introuvable");
   if (!user.email) return { etape: "choix", erreur: "Votre compte n'a pas d'adresse email." };
 
   const type = formData.get("type") === "regularisation" ? "regularisation" : "souscription";
@@ -99,10 +115,7 @@ export async function preparerPaiement(
     employeur_id: user.id,
     mode: config.mode,
   });
-  if (error) {
-    console.error("Création de commande :", error.message);
-    return { etape: "choix", erreur: MESSAGE_INDISPONIBLE };
-  }
+  if (error) return indisponible(`enregistrement de la commande refusé par la base : ${error.message}`);
 
   const site = await adresseSite();
   const res = await creerFormulairePaiement({
@@ -116,12 +129,11 @@ export async function preparerPaiement(
     description: `${libelle} (${formatEuros(montant)})`,
   });
   if (!res.ok) {
-    console.error("Systempay CreatePayment :", res.erreur);
     await db.from("commandes").update({ statut: "abandonnee", message: res.erreur.slice(0, 300) }).eq("order_id", orderId);
-    return { etape: "choix", erreur: MESSAGE_INDISPONIBLE };
+    return indisponible(`Systempay a refusé la création du formulaire : ${res.erreur}`);
   }
   const formToken = String(res.answer.formToken ?? "");
-  if (!formToken) return { etape: "choix", erreur: MESSAGE_INDISPONIBLE };
+  if (!formToken) return indisponible("Systempay n'a pas renvoyé de formulaire (formToken vide)");
   return { etape: "formulaire", formToken, orderId, montant, libelle };
 }
 

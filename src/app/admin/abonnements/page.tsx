@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatEuros } from "@/lib/data";
 import { configSystempay } from "@/lib/systempay";
 import { BoutonTraitement } from "./BoutonTraitement";
+import { VerifierConfiguration } from "./VerifierConfiguration";
 import { EmailCopiable } from "@/components/EmailCopiable";
 
 export const metadata = { title: "Abonnements — Administration Aide & Garde" };
@@ -224,6 +225,9 @@ export default async function AbonnementsPage({
               )}
             </h2>
             {paiementsInstalles && <BoutonTraitement />}
+          </div>
+          <div className="mt-3">
+            <VerifierConfiguration />
           </div>
           {!paiementsInstalles ? (
             <p className="mt-2 text-foreground/70">

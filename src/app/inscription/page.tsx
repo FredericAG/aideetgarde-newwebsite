@@ -1,5 +1,6 @@
 "use client";
 
+import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -131,8 +132,7 @@ export default function InscriptionPage() {
           </Field>
 
           <Field label="Mot de passe">
-            <input
-              type="password"
+            <ChampMotDePasse
               required
               minLength={8}
               autoComplete="new-password"
@@ -143,8 +143,7 @@ export default function InscriptionPage() {
           </Field>
 
           <Field label="Confirmer le mot de passe">
-            <input
-              type="password"
+            <ChampMotDePasse
               required
               minLength={8}
               autoComplete="new-password"
