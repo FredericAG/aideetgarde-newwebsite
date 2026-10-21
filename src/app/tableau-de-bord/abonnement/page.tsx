@@ -126,12 +126,7 @@ export default async function AbonnementPage({
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
       <div className="w-full max-w-3xl">
-        <p className="text-sm">
-          <Link href="/tableau-de-bord" className="text-brand-teal underline">
-            ← Tableau de bord
-          </Link>
-        </p>
-        <h1 className="mt-4 font-display font-black text-2xl text-brand-teal">Mon abonnement</h1>
+        <h1 className="font-display font-black text-2xl text-brand-teal">Mon abonnement</h1>
 
         {config?.mode === "TEST" && (
           <div className="mt-6 rounded-lg border-2 border-dashed border-brand-violet bg-white p-3 text-sm">

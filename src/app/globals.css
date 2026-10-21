@@ -466,3 +466,11 @@ button:disabled {
 :root:has(.theme-admin) ::placeholder {
   color: rgb(244 241 251 / 0.45);
 }
+
+/* Onglet actif de l'en-tête dans l'administration (thème sombre) : fond
+   jaune et texte foncé, pour qu'il se distingue nettement des autres
+   onglets (le violet ressort peu sur le fond sombre). */
+:root:has(.theme-admin) .onglet-entete[aria-current="page"] {
+  background: var(--brand-jaune);
+  color: var(--brand-black);
+}

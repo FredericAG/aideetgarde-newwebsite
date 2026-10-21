@@ -63,12 +63,23 @@ export function filtresComptes(): FiltreColonne[] {
   ];
 }
 
-export function filtresAbonnements(): FiltreColonne[] {
+/**
+ * Filtres de l'onglet Abonnements. `tarifs` : tarifs mensuels existants,
+ * proposés en liste déroulante (retour du 21/10) ; sans liste, saisie libre.
+ */
+export function filtresAbonnements(tarifs: number[] = []): FiltreColonne[] {
   return [
     { cle: "fref", type: "texte", placeholder: "C00…", label: "Filtrer par référence" },
     { cle: "femp", type: "texte", placeholder: "Nom, email, ville…", label: "Filtrer par abonné" },
     { cle: "fdeb", type: "liste", label: "Filtrer par année de début", options: anneesRecentes() },
-    { cle: "ftar", type: "texte", placeholder: "12,90", label: "Filtrer par tarif mensuel" },
+    tarifs.length
+      ? {
+          cle: "ftar",
+          type: "liste",
+          label: "Filtrer par tarif mensuel",
+          options: tarifs.map((t): [string, string] => [String(t), `${t.toFixed(2).replace(".", ",")} €`]),
+        }
+      : { cle: "ftar", type: "texte", placeholder: "12,90", label: "Filtrer par tarif mensuel" },
     {
       cle: "fpla",
       type: "liste",

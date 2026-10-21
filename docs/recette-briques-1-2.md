@@ -461,4 +461,18 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | D5.5 | Tableau de bord | « Bonjour Prénom » ; seulement alertes utiles, nouveaux documents, en préparation, Mes salariés ; liens « Tous mes documents » et résumé de l'abonnement | |
 | D5.6 | Onglet Documents avec plusieurs salariés | Pas de « Tous » ; pastilles par salarié (puis « Terminées »), nombre de nouveaux documents sur la pastille ; salarié avec nouveau document sélectionné par défaut | |
 | D5.7 | Téléphone : onglet Documents | Pastilles qui défilent horizontalement ; lignes compactes (document, période, bouton) | |
+| D5.8 | En-tête (ordinateur), abonné puis administrateur | L'onglet de la page affichée est mis en valeur (violet côté abonné, jaune dans l'administration) ; une gestion garde « Tableau de bord » actif, une fiche de compte garde « Comptes » | |
+| D5.9 | Page Abonnement | Plus de lien « ← Tableau de bord » | |
+| D5.10 | Tableau de bord | Encart « Mon abonnement » : salariés suivis x / y avec jauge, tarif, depuis le, lien « Gérer » | |
+| D5.11 | Admin > Abonnements, colonne Tarif | Liste déroulante des tarifs existants ; le choix filtre la liste | |
+
+## Centre d'aide (21/10)
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| H.1 | Onglet Aide | Centre d'aide : recherche, « Comprendre mes documents », « Employer un salarié à domicile », « Utiliser mon espace », Outils (simulateur « Bientôt »), contact | |
+| H.2 | Taper « préavis démission » | Les questions correspondantes s'affichent ; un clic ouvre la page du thème avec la question dépliée | |
+| H.3 | Ouvrir un thème | Fil d'Ariane, bandeau « en cours de relecture », questions dépliables, tableaux lisibles sur téléphone | |
+| H.4 | Documents d'un salarié | Liens « Comprendre mon bulletin » et « Les documents de fin de contrat » au-dessus des catégories | |
+| H.5 | Relecture du contenu | Cocher `docs/centre-aide-relecture.md`, puis demander la publication (fin du bandeau, indexation) | |
 

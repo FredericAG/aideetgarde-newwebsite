@@ -163,6 +163,45 @@ export default async function TableauDeBordPage({
             )}
           </p>
         )}
+        {/* --- Synthèse de l'abonnement (remise le 21/10 : places utilisées
+            par rapport aux places prévues, d'un coup d'œil) --- */}
+        {abonnement?.statut === "actif" && (
+          <section aria-label="Mon abonnement" className="mt-6 overflow-hidden rounded-xl border border-brand-teal/25 bg-white">
+            <div className="flex items-center justify-between gap-3 bg-brand-teal px-4 py-2 text-white">
+              <h2 className="text-sm font-bold">Mon abonnement</h2>
+              <Link href="/tableau-de-bord/abonnement" className="text-xs font-bold text-white underline">
+                Gérer
+              </Link>
+            </div>
+            <dl className="grid grid-cols-3 divide-x divide-brand-gray/15 text-center">
+              <div className="px-2 py-3">
+                <dt className="text-xs font-bold text-foreground/70">Salariés suivis</dt>
+                <dd className="mt-0.5 text-base font-bold tabular-nums text-brand-teal sm:text-xl">
+                  {placesUtilisees} <span className="text-sm text-foreground/60">/ {abonnement.quota_gestions}</span>
+                </dd>
+                <div className="mx-auto mt-1.5 h-1.5 w-16 overflow-hidden rounded-full bg-brand-gray/20" aria-hidden="true">
+                  <div
+                    className={`h-full rounded-full ${quotaDepasse ? "bg-red-600" : "bg-brand-violet"}`}
+                    style={{ width: `${Math.min(100, (placesUtilisees / Math.max(1, abonnement.quota_gestions)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              <div className="px-2 py-3">
+                <dt className="text-xs font-bold text-foreground/70">Tarif mensuel</dt>
+                <dd className="mt-0.5 text-base font-bold tabular-nums text-brand-teal sm:text-xl">
+                  {formatEuros(abonnement.tarif_mensuel)}
+                </dd>
+              </div>
+              <div className="px-2 py-3">
+                <dt className="text-xs font-bold text-foreground/70">Depuis le</dt>
+                <dd className="mt-0.5 text-base font-bold tabular-nums text-brand-teal sm:text-xl">
+                  {formatDate(abonnement.date_debut)}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
         {!abonnement || abonnement.statut !== "actif" ? (
           <div className="carte mt-6 flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
             <span>
@@ -326,11 +365,6 @@ export default async function TableauDeBordPage({
             <Link href="/tableau-de-bord/documents" className="font-medium text-brand-teal underline">
               Tous mes documents
             </Link>
-            {abonnement?.statut === "actif" && (
-              <Link href="/tableau-de-bord/abonnement" className="text-foreground/70 underline">
-                Abonnement : {placesUtilisees}/{abonnement.quota_gestions} salariés · {formatEuros(abonnement.tarif_mensuel)} / mois
-              </Link>
-            )}
           </p>
         </section>
 

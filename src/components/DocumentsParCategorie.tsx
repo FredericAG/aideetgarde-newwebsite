@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TableauDepliable } from "@/components/TableauDepliable";
 import { LienTelechargement } from "@/components/LienTelechargement";
 import {
@@ -142,6 +143,17 @@ export function DocumentsParCategorie({
                 {cat.titre} ({docs.length})
               </span>
               <span className="text-xs text-foreground/50">{cat.aide}</span>
+              {/* Aide contextuelle (centre d'aide, § 6 bis). */}
+              {!admin && cat.cle === "bulletin" && (
+                <Link href="/aide/bulletin-de-paie" className="text-xs font-medium text-brand-teal underline">
+                  Comprendre mon bulletin
+                </Link>
+              )}
+              {!admin && cat.cle === "contractuel" && (
+                <Link href="/aide/documents-de-fin-de-contrat" className="text-xs font-medium text-brand-teal underline">
+                  Les documents de fin de contrat
+                </Link>
+              )}
             </h3>
             <div className="mt-1">
               {admin ? (

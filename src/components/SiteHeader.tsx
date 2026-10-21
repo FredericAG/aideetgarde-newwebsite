@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
+import { OngletEntete } from "@/components/OngletEntete";
 import { getSessionCourante } from "@/lib/auth";
 import { compterActionsAdmin } from "@/lib/actions-admin";
 
@@ -37,7 +38,7 @@ export async function SiteHeader() {
               {isAdmin ? (
                 /* Administrateur : onglets de gestion, pas ceux d'un abonné. */
                 <>
-                  <Link href="/admin" className="btn btn-secondaire btn-sm">
+                  <OngletEntete href="/admin" exact sousPages={["/admin/comptes"]}>
                     Comptes
                     {actions > 0 && (
                       <span
@@ -47,34 +48,34 @@ export async function SiteHeader() {
                         {actions}
                       </span>
                     )}
-                  </Link>
-                  <Link href="/admin/abonnements" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/admin/abonnements">
                     Abonnements
-                  </Link>
-                  <Link href="/admin/archives" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/admin/archives">
                     Archivés
-                  </Link>
-                  <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/mon-compte">
                     Mon compte
-                  </Link>
+                  </OngletEntete>
                 </>
               ) : (
                 <>
-                  <Link href="/tableau-de-bord" className="btn btn-secondaire btn-sm">
+                  <OngletEntete href="/tableau-de-bord" exact sousPages={["/tableau-de-bord/gestions"]}>
                     Tableau de bord
-                  </Link>
-                  <Link href="/tableau-de-bord/documents" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/tableau-de-bord/documents">
                     Documents
-                  </Link>
-                  <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/tableau-de-bord/abonnement">
                     Abonnement
-                  </Link>
-                  <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/mon-compte">
                     Mon compte
-                  </Link>
-                  <Link href="/aide" className="btn btn-secondaire btn-sm">
+                  </OngletEntete>
+                  <OngletEntete href="/aide">
                     Aide
-                  </Link>
+                  </OngletEntete>
                 </>
               )}
               <DeconnexionButton className="ml-2 text-sm font-medium text-brand-teal underline disabled:opacity-60" />

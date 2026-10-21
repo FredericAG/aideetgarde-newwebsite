@@ -170,7 +170,7 @@ export default async function AbonnementsPage({
     .toISOString()
     .slice(0, 10);
 
-  const [listeRes, resumeRes, defautsRes, aVerifierRes, cartesRes, encaisseRes] = await Promise.all([
+  const [listeRes, resumeRes, defautsRes, aVerifierRes, cartesRes, encaisseRes, tarifsRes] = await Promise.all([
     requete,
     supabase.from("admin_abonnements_resume").select("*").maybeSingle(),
     supabase
@@ -194,7 +194,12 @@ export default async function AbonnementsPage({
       .order("carte_expiration")
       .limit(100),
     supabase.from("admin_encaissements_mois").select("*").eq("mois", moisCourant),
+    // Tarifs existants, pour la liste déroulante de la colonne Tarif.
+    supabase.from("abonnements").select("tarif_mensuel").limit(1000),
   ]);
+  const tarifs = [...new Set((tarifsRes.data ?? []).map((t) => Number(t.tarif_mensuel)).filter((t) => t > 0))].sort(
+    (a, b) => a - b,
+  );
 
   const affichees = (listeRes.data ?? []) as LigneAbonnement[];
   const total = listeRes.count ?? 0;
@@ -434,7 +439,7 @@ export default async function AbonnementsPage({
                 <th className="px-3 py-2">À vérifier</th>
                 <th className="px-3 py-2">Paiement</th>
               </tr>
-              <FiltresColonnes colonnes={filtresAbonnements()} />
+              <FiltresColonnes colonnes={filtresAbonnements(tarifs)} />
             </thead>
             <tbody>
               {affichees.length === 0 && (
