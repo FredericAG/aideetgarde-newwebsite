@@ -36,8 +36,23 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 | Un employeur a au plus un abonnement actif. L'abonnement porte un quota de gestions simultanées (4 par défaut, modifiable par l'admin) et un tarif mensuel. | En place |
 | Seules les gestions « en cours » comptent dans le quota. Terminer une gestion libère une place sans toucher à l'abonnement. | En place |
 | « Terminer une gestion » et « Résilier l'abonnement » sont deux actions distinctes : résilier ne termine pas les gestions en cours. | En place (côté admin) |
-| L'abonné demande lui-même la résiliation (effet en fin de mois), avec confirmation. | À faire (brique 5/6) |
-| Grille tarifaire à paliers (plafond 25,80 € à partir de 4 salariés). | À trancher (brique 12) |
+| **Souscription en ligne** (page « Mon abonnement ») : l'abonné choisit le nombre de salariés suivis, paie le premier mois par carte dans le formulaire Systempay intégré à la page (3-D Secure). La carte est enregistrée chez Systempay sous forme d'alias (Aide & Garde ne voit jamais le numéro). L'abonnement est actif dès le paiement accepté ; email de confirmation à l'abonné, alerte à Aide & Garde. Les formules plus petites que le nombre de salariés déjà suivis ne sont pas proposées. | En place en mode TEST (21/10, brique 5a) — à recetter |
+| **Prélèvement mensuel déclenché par le site** (décision du 21/10, voir § 3.1) : chaque matin, le site débite les échéances du jour avec l'alias de la carte, à la date anniversaire de la souscription (jour 1 à 28 ; souscription un 29, 30 ou 31 → prélèvement le 28). Réponse immédiate de Systempay : le site sait toujours si un mois est payé. | En place en mode TEST — à recetter |
+| **Refus d'une échéance** : nouvel essai automatique 3 jours puis 7 jours après l'échéance ; email à l'abonné à chaque refus (même s'il a désactivé les notifications : c'est une information de paiement). Après 3 refus : « Impayé », email à l'abonné et alerte à Aide & Garde, plus aucune nouvelle échéance n'est créée tant que ce n'est pas réglé. L'abonné peut régler en ligne avec une nouvelle carte, qui remplace l'ancienne. | En place en mode TEST — à recetter |
+| **Filet de sécurité** : un paiement resté « en attente » (navigateur fermé, notification manquée) est vérifié auprès de Systempay le lendemain matin ; un débit dont la réponse s'est perdue est vérifié avant tout nouvel essai. Une notification reçue deux fois ne compte qu'une fois. Jamais de double débit. | En place |
+| Paiement reçu en double ou d'un montant inattendu : rien n'est activé, Aide & Garde est alerté (« Paiements à vérifier ») et rembourse depuis le Back Office Systempay. | En place |
+| Abonnements saisis par l'administration (données de test, anciens abonnés avant la reprise) : « hors site », jamais prélevés par le nouveau site. Modifier le tarif d'un abonnement payé en ligne change le montant des prochains prélèvements. | En place |
+| L'abonné demande lui-même la résiliation (effet en fin de période payée ?), avec confirmation ; changement de formule en ligne. | À faire (brique 5b) — date d'effet à trancher |
+| Grille tarifaire à paliers (plafond 25,80 € à partir de 4 salariés). **Grille provisoire en place** : 1 salarié 12,90 €, 2 : 19,20 €, 3 et 4 : 25,80 € (fichier `src/lib/formules.ts`). | À trancher (brique 12) |
+
+### 3.1 Pourquoi le site déclenche lui-même les prélèvements (décision du 21/10)
+
+Deux façons de faire un abonnement mensuel avec Systempay :
+
+- **Abonnement géré par Systempay** (`Charge/CreateSubscription`, celui de l'ancien site) : Systempay prélève seul chaque mois et prévient le site par une notification. Si la notification se perd, le site ne sait pas que le mois est payé : c'est exactement le décalage historique. Changer le montant ou gérer les refus passe par d'autres appels.
+- **Prélèvement déclenché par le site** (« paiement 0 clic » avec l'alias, retenu) : le site demande lui-même le débit chaque mois et reçoit la réponse immédiatement. Plus de dépendance à une notification ; changement de formule, résiliation et relances deviennent de simples règles du site. Contrepartie : la tâche quotidienne doit tourner (Vercel, chaque matin ; si elle saute un jour, elle rattrape le lendemain) ; le premier paiement reste confirmé par notification ET par vérification.
+
+À confirmer auprès de la BRED : le contrat doit inclure le paiement par alias (« 0 clic ») et l'API REST du formulaire embarqué. Les abonnements de l'ancien site (gérés par Systempay) pourront être convertis à la reprise (brique 13) avec leur alias existant, sans que l'abonné ressaisisse sa carte.
 
 ## 4. Gestions
 
@@ -129,7 +144,7 @@ Les codes sans mention sont ceux déjà utilisés par Frédéric. Les « proposi
 | **Liste des comptes pour des milliers d'abonnés** (21/10) : une ligne par compte — Réf. client, Employeur (Prénom NOM, email, code postal et ville), Inscrit le, Abonnement (actif / résilié / aucun), Gestions (en cours / quota, à valider, brouillons, terminées), Salariés, Actions (bouton violet « N actions »). Recherche instantanée (nom, email, référence client ou de gestion, salarié, ville, téléphone ; sans tenir compte des accents ; plusieurs mots possibles). Tri en cliquant sur les titres de colonnes. Pagination par 50 ; tri, recherche et pagination faits par la base (vue `admin_comptes`) pour rester fluide. | En place (21/10, brique 2g) — à recetter |
 | **Onglets** : *Clients actifs* (au moins une gestion en cours ou à valider, par défaut, comptes avec actions en tête) ; *À surveiller : abonnement sans gestion* (abonnement actif sans gestion en cours ni en attente — abonnement à suspendre ou rembourser ?), signalé par un bandeau jaune ; *Avec actions à effectuer* ; *Inactifs* (ni gestion ni abonnement actif) affichés seulement à la demande, en fin de barre. Le bandeau du haut donne la somme des actions de toutes les lignes. | En place (21/10) |
 | **Navigation de l'administrateur** (21/10) : l'administrateur n'a plus les onglets d'un abonné (tableau de bord, documents, aide). Ses onglets : **Comptes** (liste des comptes, pastille du nombre d'actions à effectuer), **Abonnements** (suivi), **Archivés** (comptes inactifs), **Mon compte**. Mêmes onglets en bas de l'écran sur téléphone. Le logo et les pages abonné le ramènent à l'administration. | En place (21/10) — à recetter |
-| **Onglet Abonnements** : chiffres clés (abonnements actifs, montant mensuel théorique, places utilisées / totales, nombre à vérifier) ; filtres Actifs / Quota dépassé / Sans gestion / Résiliés ; tableau Réf., Abonné, Depuis le, Tarif, Places, À vérifier, Paiement. Le bloc « Paiements refusés et relances » (échéances refusées, relances, cartes expirant, comptes à suspendre) arrivera avec Systempay (briques 5 et 6). | En place (21/10) ; paiements à venir |
+| **Onglet Abonnements** : chiffres clés (abonnements actifs, montant mensuel théorique, places utilisées / totales, nombre à vérifier) ; filtres Actifs / Quota dépassé / Sans gestion / Résiliés ; tableau Réf., Abonné, Depuis le, Tarif, Places, À vérifier, Paiement. Bloc **« Paiements à suivre »** (brique 5a) : échéances refusées (nombre de refus, prochain essai, code de la banque) et impayées, paiements à vérifier (double paiement, montant inattendu), cartes qui expirent d'ici la fin du mois suivant, bouton « Lancer le traitement maintenant ». Chiffre clé « Encaissé ce mois ». Colonne Paiement : Hors site / À jour (prochain prélèvement) / Refusé, nouvel essai / Impayé. Suspension des comptes impayés : brique 6. | En place (21/10) — à recetter |
 | **Onglet Archivés** : comptes sans gestion en cours ni en attente et sans abonnement actif, avec la même recherche et le même tri ; rien n'est supprimé. | En place (21/10) |
 | **Homonymes** : référence client unique `C00001…` (administration seulement, aussi en tête de la fiche du compte) ; pastille « Homonyme ×N » quand plusieurs comptes portent le même prénom et nom ; email, ville et salariés affichés sur chaque ligne pour départager. | En place (21/10) |
 | Fiche d'un compte : **une seule gestion dépliée à la fois** (« Détail : N document(s) · k déclaration(s) à traiter »), fond blanc et cadre violet ; les autres sont sur fond gris clair. À l'arrivée, la gestion visée par un lien « Déposer le bulletin » est dépliée, sinon la première qui attend une action. | En place (20/10) |
@@ -238,6 +253,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 | Serveurs du site : Vercel, région Paris (`cdg1`). | En place (19/10) |
 | Emails : Brevo (société française). | En place |
 | Opérateur d'hébergement : rester sur Supabase + Vercel, à Paris (analyse dans `Hebergement_operateur_francais_analyse.md`). | Décidé (Frédéric, 19/10/2026) |
+| **Droits d'accès écrits en clair** : chaque script SQL accorde lui-même les droits de chaque table (abonnés et administrateur), aucun accès pour les visiteurs non connectés. Conforme à la règle Supabase du 30/10/2026 (plus de droits automatiques sur les nouvelles tables). En cas de reconstruction de la base : exécuter `droits_api_explicites.sql` en dernier. Ne pas réactiver l'exposition automatique dans les réglages Supabase. | En place (21/10) |
 | Les échanges avec les API Urssaf (Cesu, Pajemploi) partent du serveur du site à Paris, sont journalisés, et leurs identifiants d'accès restent des secrets serveur. | À faire (brique 0bis) |
 
 ## 8. Référencement (moteurs de recherche et réponses générées par IA)
@@ -255,6 +271,8 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 21/10/2026 — Droits d'accès explicites (changement Supabase du 30/10), § 7.
+- 21/10/2026 — Brique 5a : souscription et paiement en ligne (mode test), prélèvements mensuels déclenchés par le site, refus et régularisation, suivi des paiements dans l'administration (§ 3, § 3.1).
 - 21/10/2026 — Navigation propre à l'administrateur : onglets Comptes, Abonnements, Archivés.
 - 21/10/2026 — Liste des comptes de l'administration pour des milliers d'abonnés (recherche, tri, onglets, homonymes, comptes à surveiller).
 - 20/10/2026 — Brique 3c : messages explicites à l'envoi d'une gestion (champs manquants, quota), brouillon sans nom.

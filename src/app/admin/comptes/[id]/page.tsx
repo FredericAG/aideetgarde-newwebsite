@@ -85,7 +85,7 @@ export default async function FicheComptePage({
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
-  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes] = await Promise.all([
+  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -121,7 +121,15 @@ export default async function FicheComptePage({
       .select("*")
       .eq("employeur_id", id)
       .order("created_at", { ascending: false }),
+    // Paiements Systempay (brique 5a ; sans le script, liste vide).
+    supabase
+      .from("paiements")
+      .select("id, created_at, montant, statut, code_erreur, carte_masquee, order_id, mode, source")
+      .eq("employeur_id", id)
+      .order("created_at", { ascending: false })
+      .limit(12),
   ]);
+  const paiements = paiementsRes.data ?? [];
   const avenants = (avenantsRes.data ?? []) as DemandeAvenant[];
   const declarations = (declsRes.data ?? []) as Declaration[];
 
@@ -202,6 +210,27 @@ export default async function FicheComptePage({
                 {formatEuros(actif.tarif_mensuel)} / mois · {enCours.length} /{" "}
                 {actif.quota_gestions} places utilisées (gestions en cours ou à valider).
               </p>
+              {actif.mode_paiement === "systempay" ? (
+                <p className="mt-1 text-sm">
+                  Payé en ligne · carte {actif.carte_masquee ? `•••• ${actif.carte_masquee.slice(-4)}` : "—"}
+                  {actif.carte_expiration ? ` (fin ${formatDate(actif.carte_expiration).slice(3)})` : ""} ·
+                  prochain prélèvement le {formatDate(actif.prochaine_echeance)} ·{" "}
+                  <span className={actif.statut_paiement === "a_jour" ? "text-brand-teal" : "font-bold text-red-700"}>
+                    {actif.statut_paiement === "impaye"
+                      ? "impayé"
+                      : actif.statut_paiement === "en_retard"
+                        ? "échéance refusée, nouvel essai prévu"
+                        : "à jour"}
+                  </span>
+                  <span className="block text-xs text-foreground/60">
+                    Modifier le tarif ci-dessous change le montant des prochains prélèvements.
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-foreground/60">
+                  Abonnement saisi par l&apos;administration : il n&apos;est pas prélevé par le site.
+                </p>
+              )}
               {enCours.length > actif.quota_gestions && (
                 <p className="mt-2 rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-700">
                   Quota dépassé : terminez des gestions ou augmentez le quota. Aucune
@@ -316,6 +345,28 @@ Créer l&apos;abonnement
                     `${formatDate(a.date_debut)} → ${formatDate(a.date_fin)}${a.motif_fin ? ` (${a.motif_fin})` : ""}`,
                 )
                 .join(" ; ")}
+            </div>
+          )}
+
+          {paiements.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-bold text-brand-teal">Derniers paiements</h3>
+              <ul className="liste-alternee mt-2 divide-y divide-brand-gray/15 overflow-hidden rounded-lg border border-brand-gray/25 text-xs">
+                {paiements.map((p) => (
+                  <li key={p.id} className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2">
+                    <span className="tabular-nums">{formatDate(p.created_at)}</span>
+                    <span className="tabular-nums font-medium">{formatEuros(Number(p.montant))}</span>
+                    <span className={p.statut === "PAID" ? "text-brand-teal" : "font-medium text-red-700"}>
+                      {p.statut === "PAID" ? "Payé" : `Refusé${p.code_erreur ? ` (${p.code_erreur})` : ""}`}
+                    </span>
+                    <span className="text-foreground/50">
+                      {p.carte_masquee ? `•••• ${String(p.carte_masquee).slice(-4)} · ` : ""}
+                      {p.mode === "TEST" ? "test · " : ""}
+                      <span className="font-mono">{p.order_id}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </section>

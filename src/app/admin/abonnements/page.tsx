@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatEuros } from "@/lib/data";
+import { configSystempay } from "@/lib/systempay";
+import { BoutonTraitement } from "./BoutonTraitement";
 
 export const metadata = { title: "Abonnements — Administration Aide & Garde" };
 
@@ -29,11 +31,42 @@ function un(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
+interface PaiementAbonnement {
+  employeur_id: string;
+  mode_paiement: "manuel" | "systempay";
+  statut_paiement: "a_jour" | "en_retard" | "impaye";
+  prochaine_echeance: string | null;
+}
+
+interface EcheanceEnDefaut {
+  id: string;
+  employeur_id: string;
+  date_echeance: string;
+  montant: number;
+  statut: string;
+  tentatives: number;
+  prochaine_tentative: string;
+  derniere_erreur: string | null;
+  profiles: { prenom: string; nom: string; reference_client: string | null } | null;
+}
+
+interface CommandeAVerifier {
+  order_id: string;
+  employeur_id: string;
+  montant: number;
+  message: string | null;
+  created_at: string;
+  profiles: { prenom: string; nom: string; reference_client: string | null } | null;
+}
+
+function nomCourt(p: { prenom: string; nom: string } | null): string {
+  return p ? `${p.prenom} ${p.nom.toUpperCase()}`.trim() || "(sans nom)" : "(compte supprimé)";
+}
+
 /**
- * Suivi des abonnements (administration). Aujourd'hui : abonnements actifs,
- * quota dépassé, abonnements sans gestion, résiliés, et le montant mensuel
- * théorique. Les paiements refusés et les relances s'ajouteront au
- * branchement de Systempay (briques 5 et 6).
+ * Suivi des abonnements (administration) : chiffres clés, paiements à
+ * suivre (échéances refusées ou impayées, paiements à vérifier, cartes qui
+ * expirent), puis la liste des abonnements avec filtres.
  */
 export default async function AbonnementsPage({
   searchParams,
@@ -68,9 +101,37 @@ export default async function AbonnementsPage({
         : requete.order("nom_tri");
   requete = requete.range((page - 1) * PAR_PAGE, page * PAR_PAGE - 1);
 
-  const [listeRes, resumeRes] = await Promise.all([
+  const debutMois = new Date();
+  debutMois.setDate(1);
+  const moisCourant = debutMois.toISOString().slice(0, 7) + "-01";
+  const finMoisProchain = new Date(debutMois.getFullYear(), debutMois.getMonth() + 2, 0)
+    .toISOString()
+    .slice(0, 10);
+
+  const [listeRes, resumeRes, defautsRes, aVerifierRes, cartesRes, encaisseRes] = await Promise.all([
     requete,
     supabase.from("admin_abonnements_resume").select("*").maybeSingle(),
+    supabase
+      .from("echeances")
+      .select("id, employeur_id, date_echeance, montant, statut, tentatives, prochaine_tentative, derniere_erreur, profiles(prenom, nom, reference_client)")
+      .or("statut.eq.impayee,and(statut.eq.a_payer,tentatives.gt.0)")
+      .order("date_echeance")
+      .limit(200),
+    supabase
+      .from("commandes")
+      .select("order_id, employeur_id, montant, message, created_at, profiles(prenom, nom, reference_client)")
+      .eq("statut", "a_verifier")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("abonnements")
+      .select("employeur_id, carte_masquee, carte_expiration, profiles(prenom, nom, reference_client)")
+      .eq("statut", "actif")
+      .eq("mode_paiement", "systempay")
+      .lte("carte_expiration", finMoisProchain)
+      .order("carte_expiration")
+      .limit(100),
+    supabase.from("admin_encaissements_mois").select("*").eq("mois", moisCourant),
   ]);
 
   const affichees = (listeRes.data ?? []) as LigneAbonnement[];
@@ -78,6 +139,32 @@ export default async function AbonnementsPage({
   const r = resumeRes.data ?? {};
   const n = (v: unknown) => Number(v ?? 0);
   const places = (a: LigneAbonnement) => a.nb_en_cours + a.nb_envoyees;
+
+  // Paiement des abonnements affichés (une requête pour la page entière).
+  const ids = affichees.map((a) => a.id);
+  const paiementsRes = ids.length
+    ? await supabase
+        .from("abonnements")
+        .select("employeur_id, mode_paiement, statut_paiement, prochaine_echeance")
+        .in("employeur_id", ids)
+        .eq("statut", "actif")
+    : { data: [] as PaiementAbonnement[], error: null };
+  const paiementPar = new Map(
+    ((paiementsRes.data ?? []) as PaiementAbonnement[]).map((p) => [p.employeur_id, p]),
+  );
+
+  // Brique 5a pas encore installée : les requêtes de paiement échouent.
+  const paiementsInstalles = !defautsRes.error;
+  const defauts = (defautsRes.data ?? []) as unknown as EcheanceEnDefaut[];
+  const aVerifier = (aVerifierRes.data ?? []) as unknown as CommandeAVerifier[];
+  const cartes = (cartesRes.data ?? []) as unknown as {
+    employeur_id: string;
+    carte_masquee: string | null;
+    carte_expiration: string;
+    profiles: { prenom: string; nom: string; reference_client: string | null } | null;
+  }[];
+  const config = configSystempay();
+  const encaisse = (encaisseRes.data ?? []).find((x) => x.mode === (config?.mode ?? "PRODUCTION"));
 
   const filtres: { cle: Filtre; libelle: string; nb: number; alerte?: boolean }[] = [
     { cle: "actifs", libelle: "Actifs", nb: n(r.nb_actifs) },
@@ -109,7 +196,10 @@ export default async function AbonnementsPage({
             ["Abonnements actifs", String(n(r.nb_actifs))],
             ["Montant mensuel théorique", formatEuros(n(r.total_mensuel))],
             ["Places utilisées", `${n(r.places_utilisees)} / ${n(r.places_totales)}`],
-            ["À vérifier", String(n(r.nb_depassement) + n(r.nb_sans_gestion))],
+            [
+              config?.mode === "TEST" ? "Encaissé ce mois (test)" : "Encaissé ce mois",
+              formatEuros(n(encaisse?.encaisse)),
+            ],
           ].map(([dt, dd]) => (
             <div key={dt} className="carte p-4">
               <dt className="text-xs text-foreground/60">{dt}</dt>
@@ -118,20 +208,101 @@ export default async function AbonnementsPage({
           ))}
         </dl>
         <p className="mt-2 text-xs text-foreground/60">
-          Montant théorique : somme des tarifs des abonnements actifs, avant les
-          paiements réellement encaissés (disponibles avec le branchement de
-          Systempay).
+          Montant théorique : somme des tarifs des abonnements actifs. Encaissé :
+          paiements acceptés par Systempay depuis le 1er du mois (abonnements
+          souscrits sur le nouveau site).
         </p>
 
-        {/* Paiements : à venir avec Systempay */}
-        <section className="mt-6 rounded-xl border-2 border-dashed border-brand-gray/40 p-4 text-sm">
-          <h2 className="font-bold text-brand-violet">Paiements refusés et relances</h2>
-          <p className="mt-1 text-foreground/70">
-            Arrive avec le branchement de Systempay (briques 5 et 6) : échéances
-            refusées par la banque, relances envoyées à l&apos;abonné, cartes
-            arrivant à expiration, comptes à suspendre, et contrôle quotidien
-            que chaque prélèvement a bien été enregistré.
-          </p>
+        {/* Paiements à suivre */}
+        <section className="mt-6 rounded-xl border-2 border-brand-violet/40 bg-white p-4 text-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="font-bold text-brand-violet">
+              Paiements à suivre
+              {config?.mode === "TEST" && (
+                <span className="ml-2 rounded-full bg-brand-violet px-2 py-0.5 text-xs text-white">mode test</span>
+              )}
+            </h2>
+            {paiementsInstalles && <BoutonTraitement />}
+          </div>
+          {!paiementsInstalles ? (
+            <p className="mt-2 text-foreground/70">
+              Exécutez le script supabase/brique5a_paiements.sql pour activer le suivi des paiements.
+            </p>
+          ) : defauts.length + aVerifier.length + cartes.length === 0 ? (
+            <p className="mt-2 text-foreground/70">
+              Rien à signaler : aucune échéance refusée, aucun paiement à vérifier, aucune carte
+              enregistrée n&apos;expire d&apos;ici la fin du mois prochain. Les échéances sont
+              encaissées automatiquement chaque matin.
+            </p>
+          ) : (
+            <div className="mt-3 flex flex-col gap-4">
+              {defauts.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-red-700">Échéances refusées ({defauts.length})</h3>
+                  <ul className="liste-alternee mt-2 divide-y divide-brand-gray/15 overflow-hidden rounded-lg border border-brand-gray/25">
+                    {defauts.map((e) => (
+                      <li key={e.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2">
+                        <Link href={`/admin/comptes/${e.employeur_id}`} className="min-w-48 font-bold text-brand-teal">
+                          {nomCourt(e.profiles)}{" "}
+                          <span className="font-mono text-xs font-normal text-foreground/60">{e.profiles?.reference_client}</span>
+                        </Link>
+                        <span className="tabular-nums">
+                          {formatDate(e.date_echeance)} · {formatEuros(Number(e.montant))}
+                        </span>
+                        <span className={e.statut === "impayee" ? "font-bold text-red-700" : "text-red-700"}>
+                          {e.statut === "impayee"
+                            ? `Impayée après ${e.tentatives} refus`
+                            : `${e.tentatives} refus, nouvel essai le ${formatDate(e.prochaine_tentative)}`}
+                        </span>
+                        {e.derniere_erreur && (
+                          <span className="font-mono text-xs text-foreground/50">{e.derniere_erreur}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aVerifier.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-red-700">Paiements à vérifier ({aVerifier.length})</h3>
+                  <ul className="liste-alternee mt-2 divide-y divide-brand-gray/15 overflow-hidden rounded-lg border border-brand-gray/25">
+                    {aVerifier.map((c) => (
+                      <li key={c.order_id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2">
+                        <Link href={`/admin/comptes/${c.employeur_id}`} className="min-w-48 font-bold text-brand-teal">
+                          {nomCourt(c.profiles)}
+                        </Link>
+                        <span className="tabular-nums">
+                          {formatDate(c.created_at)} · {formatEuros(Number(c.montant))}
+                        </span>
+                        <span>{c.message}</span>
+                        <span className="font-mono text-xs text-foreground/50">{c.order_id}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-xs text-foreground/60">
+                    Remboursement éventuel depuis le Back Office Systempay (recherche par la référence).
+                  </p>
+                </div>
+              )}
+              {cartes.length > 0 && (
+                <div>
+                  <h3 className="font-bold text-brand-black">Cartes qui expirent bientôt ({cartes.length})</h3>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {cartes.map((c) => (
+                      <li key={c.employeur_id}>
+                        <Link
+                          href={`/admin/comptes/${c.employeur_id}`}
+                          className="inline-block rounded-full border border-brand-gray/30 px-3 py-1 text-xs"
+                        >
+                          {nomCourt(c.profiles)} · fin {formatDate(c.carte_expiration).slice(3)}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Filtres */}
@@ -218,7 +389,9 @@ export default async function AbonnementsPage({
                         <span className="text-foreground/40">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-xs text-foreground/50">à venir</td>
+                    <td className="px-3 py-2.5 text-xs">
+                      <CellulePaiement p={paiementPar.get(a.id)} resilie={a.abonnement_statut === "resilie"} />
+                    </td>
                   </tr>
                 );
               })}
@@ -247,5 +420,20 @@ export default async function AbonnementsPage({
         )}
       </div>
     </div>
+  );
+}
+
+function CellulePaiement({ p, resilie }: { p: PaiementAbonnement | undefined; resilie: boolean }) {
+  if (resilie) return <span className="text-foreground/40">—</span>;
+  if (!p || p.mode_paiement !== "systempay") {
+    return <span className="text-foreground/50" title="Abonnement saisi par l'administration, non prélevé par le site">Hors site</span>;
+  }
+  if (p.statut_paiement === "impaye") return <span className="font-bold text-red-700">Impayé</span>;
+  if (p.statut_paiement === "en_retard") return <span className="font-medium text-red-700">Refusé, nouvel essai</span>;
+  return (
+    <span className="text-brand-teal">
+      À jour
+      <span className="block text-foreground/50">prochain {formatDate(p.prochaine_echeance)}</span>
+    </span>
   );
 }

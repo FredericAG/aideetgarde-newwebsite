@@ -28,6 +28,12 @@ export interface Abonnement {
   date_debut: string;
   date_fin: string | null;
   motif_fin: string | null;
+  // Brique 5a (absents tant que le script n'a pas été exécuté).
+  mode_paiement?: "manuel" | "systempay";
+  carte_masquee?: string | null;
+  carte_expiration?: string | null;
+  prochaine_echeance?: string | null;
+  statut_paiement?: "a_jour" | "en_retard" | "impaye";
 }
 
 export interface Gestion {

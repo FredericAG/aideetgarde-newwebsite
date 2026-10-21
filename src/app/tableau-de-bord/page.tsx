@@ -190,6 +190,28 @@ export default async function TableauDeBordPage({
               Vous n&apos;avez pas encore d&apos;abonnement.
             </p>
           )}
+          {abonnement?.statut === "actif" && abonnement.statut_paiement && abonnement.statut_paiement !== "a_jour" && (
+            <p className="mt-4 rounded-lg border-2 border-red-300 bg-red-50 p-3 text-sm text-red-700">
+              <strong>
+                {abonnement.statut_paiement === "impaye" ? "Échéance impayée" : "Prélèvement refusé"}
+              </strong>{" "}
+              : votre banque a refusé le dernier prélèvement.{" "}
+              <Link href="/tableau-de-bord/abonnement" className="font-medium underline">
+                Régler en ligne
+              </Link>
+            </p>
+          )}
+          <p className="mt-4">
+            {abonnement?.statut === "actif" ? (
+              <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
+                Gérer mon abonnement
+              </Link>
+            ) : (
+              <Link href="/tableau-de-bord/abonnement" className="btn btn-primaire">
+                Souscrire un abonnement
+              </Link>
+            )}
+          </p>
           {abonnement?.statut === "actif" && placesUtilisees >= abonnement.quota_gestions && (
             <p className="mt-4 rounded-lg border-2 border-brand-jaune bg-white p-3 text-sm">
               {placesUtilisees > abonnement.quota_gestions ? (
