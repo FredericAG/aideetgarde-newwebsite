@@ -284,6 +284,14 @@ export default async function FicheComptePage({
                 {formatEuros(actif.tarif_mensuel)} / mois · {enCours.length} /{" "}
                 {actif.quota_gestions} places utilisées (gestions en cours ou à valider).
               </p>
+              {actif.fin_prevue && (
+                <p className="mt-2 rounded-md border-2 border-brand-jaune bg-brand-jaune/25 p-2 text-sm">
+                  <strong>Résiliation demandée par l&apos;abonné</strong> le{" "}
+                  {formatDate(actif.resiliation_demandee_le)} : fin le {formatDate(actif.fin_prevue)}.
+                  Plus aucun prélèvement par le site. Si un abonnement de l&apos;ancien site est encore
+                  prélevé, l&apos;arrêter dans le Back Office Systempay.
+                </p>
+              )}
               {actif.mode_paiement === "systempay" ? (
                 <p className="mt-1 text-sm">
                   Payé en ligne · carte {actif.carte_masquee ? `•••• ${actif.carte_masquee.slice(-4)}` : "—"}

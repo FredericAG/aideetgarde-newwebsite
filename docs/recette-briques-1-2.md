@@ -358,6 +358,8 @@ Pour voir l'espace abonné d'un compte de test : se connecter avec son adresse `
    - `CRON_SECRET` : une longue chaîne aléatoire, **Secret**.
 3. Redéployer. **Rien à modifier dans le Back Office Systempay** : le site donne lui-même son adresse de notification à chaque paiement ; la règle de notification qui sert à l'ancien site reste intacte.
 
+Avec un compte fictif `@recette.invalid` : Systempay refuse ces adresses (domaine réservé aux essais, erreur INT_015). En mode test, le site transmet alors l'adresse d'Aide & Garde à Systempay, qui y envoie le ticket de paiement ; l'email « Votre abonnement est actif » ne peut pas arriver (adresse inexistante). Pour vérifier les emails reçus par l'abonné, utiliser un compte de test avec une vraie adresse.
+
 Faire la recette sur l'adresse principale `aideetgarde-newwebsite.vercel.app` (les adresses de prévisualisation sont protégées par Vercel : Systempay ne pourrait pas y envoyer sa notification). Cartes de test : date d'expiration future, code quelconque.
 
 | # | Scénario | Résultat attendu | Statut |
@@ -416,3 +418,16 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | F.7 | Liste des comptes, colonne Employeur | Email et code postal, sans la ville | |
 | F.8 | Connexion / inscription / nouveau mot de passe : icône œil | Le mot de passe s'affiche puis se masque | |
 | F.9 | Téléphone : tableau de bord > Mes gestions en cours | Tableau en colonnes (Salarié / Bulletin / mois), titres une seule fois, lignes compactes | |
+
+## Brique 5b — Résiliation par l'abonné, onglet Abonnement
+
+**Préparation** : exécuter `supabase/brique5b_resiliation.sql`. Commit + Push.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| R5.1 | Abonné : en-tête et barre du téléphone | Onglet « Abonnement » (5 onglets sur téléphone) | |
+| R5.2 | Mon abonnement > « Résilier mon abonnement » | Fenêtre : effet le dernier jour du mois en cours, aucun nouveau prélèvement, annulable ; « Non, annuler » ne change rien | |
+| R5.3 | « Oui, résilier » | Message vert avec la date de fin ; bloc jaune « Résiliation demandée » ; Prochain prélèvement « aucun (résiliation) » ; email de confirmation à l'abonné et alerte à Aide & Garde | |
+| R5.4 | Admin : fiche du compte et onglet Abonnements | Bandeau « Résiliation demandée par l'abonné » ; pastille « Résiliation au 31/10/2026 » | |
+| R5.5 | Abonné : « Annuler la résiliation » | Confirmation, puis abonnement normal, prochain prélèvement rétabli ; alerte à Aide & Garde | |
+| R5.6 | Simuler la fin du mois : `update abonnements set fin_prevue = current_date - 1 where fin_prevue is not null;` puis Admin > « Lancer le traitement maintenant » | « Résiliations appliquées : 1 » ; abonnement « Résilié », gestions inchangées ; l'abonné voit « Choisir ma formule » pour se réabonner | |

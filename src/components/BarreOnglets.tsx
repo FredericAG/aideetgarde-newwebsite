@@ -113,6 +113,12 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
       actif: (p) => p.startsWith("/tableau-de-bord/documents"),
       icone: icones.documents,
     },
+    {
+      href: "/tableau-de-bord/abonnement",
+      libelle: "Abonnement",
+      actif: (p) => p.startsWith("/tableau-de-bord/abonnement"),
+      icone: icones.abonnements,
+    },
     { href: "/aide", libelle: "Aide", actif: (p) => p.startsWith("/aide"), icone: icones.aide },
     {
       href: "/mon-compte",
@@ -129,7 +135,7 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
       aria-label="Navigation principale"
       className="fixed inset-x-0 bottom-0 z-40 border-t-4 border-brand-jaune bg-brand-violet pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_rgba(0,0,0,0.18)] sm:hidden"
     >
-      <ul className="grid grid-cols-4">
+      <ul className={`grid ${onglets.length === 5 ? "grid-cols-5" : "grid-cols-4"}`}>
         {onglets.map((o) => {
           const actif = o.actif(chemin);
           return (
@@ -137,7 +143,7 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
               <Link
                 href={o.href}
                 aria-current={actif ? "page" : undefined}
-                className={`relative mx-1 my-1 flex flex-col items-center gap-0.5 rounded-xl pb-1.5 pt-2 text-xs font-bold ${
+                className={`relative mx-0.5 my-1 flex flex-col items-center gap-0.5 rounded-xl pb-1.5 pt-2 text-[11px] font-bold ${
                   actif ? "bg-[#fff] text-[#685c9b]" : "text-white/85"
                 }`}
               >

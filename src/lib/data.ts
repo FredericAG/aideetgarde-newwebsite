@@ -34,6 +34,9 @@ export interface Abonnement {
   carte_expiration?: string | null;
   prochaine_echeance?: string | null;
   statut_paiement?: "a_jour" | "en_retard" | "impaye";
+  // Brique 5b : résiliation demandée par l'abonné (effet fin du mois civil).
+  resiliation_demandee_le?: string | null;
+  fin_prevue?: string | null;
 }
 
 export interface Gestion {

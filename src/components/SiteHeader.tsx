@@ -66,6 +66,9 @@ export async function SiteHeader() {
                   <Link href="/tableau-de-bord/documents" className="btn btn-secondaire btn-sm">
                     Documents
                   </Link>
+                  <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
+                    Abonnement
+                  </Link>
                   <Link href="/mon-compte" className="btn btn-secondaire btn-sm">
                     Mon compte
                   </Link>

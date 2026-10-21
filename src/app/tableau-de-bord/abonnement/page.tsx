@@ -5,6 +5,8 @@ import { formatDate, formatEuros, type Abonnement } from "@/lib/data";
 import { LIBELLES_STATUT_PAIEMENT } from "@/lib/formules";
 import { configSystempay } from "@/lib/systempay";
 import { Regularisation, Souscription } from "./Paiement";
+import { annulerMaResiliation, resilierMonAbonnement } from "./actions";
+import { BoutonConfirme } from "@/components/BoutonConfirme";
 
 export const metadata = { title: "Mon abonnement — Aide & Garde" };
 
@@ -25,6 +27,16 @@ const MESSAGES_COMMANDE: Record<string, { texte: string; ok: boolean }> = {
   },
 };
 
+/** Dernier jour du mois en cours (heure de Paris), au format 31/10/2026. */
+function finDuMois(): string {
+  const [a, m] = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit" })
+    .format(new Date())
+    .split("-")
+    .map(Number);
+  const dernier = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  return `${String(dernier).padStart(2, "0")}/${String(m).padStart(2, "0")}/${a}`;
+}
+
 /** "497010XXXXXX0055" → "•••• 0055". */
 function carteLisible(c: string | null | undefined): string {
   if (!c) return "—";
@@ -43,6 +55,8 @@ export default async function AbonnementPage({
 }) {
   const sp = await searchParams;
   const commandeRetour = Array.isArray(sp.commande) ? sp.commande[0] : sp.commande;
+  const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
+  const messageErreur = Array.isArray(sp.erreur) ? sp.erreur[0] : sp.erreur;
   const { supabase, user, profile } = await requireUser("/tableau-de-bord/abonnement");
   if (profile?.role === "admin") redirect("/admin/abonnements");
 
@@ -123,6 +137,17 @@ export default async function AbonnementPage({
           </p>
         )}
 
+        {messageOk && (
+          <p role="status" className="mt-6 rounded-lg border border-brand-teal/40 bg-brand-teal/10 p-3 text-sm text-brand-teal">
+            {messageOk}
+          </p>
+        )}
+        {messageErreur && (
+          <p role="alert" className="mt-6 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            {messageErreur}
+          </p>
+        )}
+
         {/* --- Échéance à régulariser --- */}
         {abonnement && enDefaut.length > 0 && (
           <section className="mt-8 rounded-xl border-2 border-red-300 bg-red-50 p-5">
@@ -189,7 +214,9 @@ export default async function AbonnementPage({
                   </div>
                   <div>
                     <dt className="text-foreground/60">Prochain prélèvement</dt>
-                    <dd className="font-medium">{formatDate(abonnement.prochaine_echeance)}</dd>
+                    <dd className="font-medium">
+                      {abonnement.fin_prevue ? "aucun (résiliation)" : formatDate(abonnement.prochaine_echeance)}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-foreground/60">Paiements</dt>
@@ -209,10 +236,56 @@ export default async function AbonnementPage({
               )}
             </dl>
             <p className="mt-4 text-xs text-foreground/60">
-              Pour changer de formule ou résilier, contactez-nous (ces démarches en ligne arrivent
-              prochainement).
+              Pour changer de formule, contactez-nous (cette démarche en ligne arrive prochainement).
             </p>
           </section>
+        ) : null}
+
+        {/* --- Résiliation (brique 5b) --- */}
+        {abonnement ? (
+          abonnement.fin_prevue ? (
+            <section className="mt-6 rounded-xl border-2 border-brand-jaune bg-brand-jaune/25 p-5 text-sm">
+              <h2 className="font-bold text-brand-black">Résiliation demandée</h2>
+              <p className="mt-1">
+                Demandée le {formatDate(abonnement.resiliation_demandee_le)} : votre abonnement reste
+                actif jusqu&apos;au <strong>{formatDate(abonnement.fin_prevue)}</strong> inclus, puis
+                prend fin. Aucun nouveau prélèvement ne sera effectué. Vos documents restent
+                consultables ensuite.
+              </p>
+              <form action={annulerMaResiliation} className="mt-3">
+                <BoutonConfirme
+                  className="btn btn-secondaire btn-sm"
+                  question="Annuler la résiliation ?"
+                  precision="Votre abonnement continuera normalement, avec ses prélèvements mensuels."
+                  oui="Oui, garder mon abonnement"
+                  enCours="Enregistrement…"
+                >
+                  Annuler la résiliation
+                </BoutonConfirme>
+              </form>
+            </section>
+          ) : (
+            <section className="mt-6 rounded-xl border border-brand-gray/25 bg-white p-5 text-sm">
+              <h2 className="font-bold text-brand-teal">Résilier mon abonnement</h2>
+              <p className="mt-1 text-foreground/70">
+                La résiliation prend effet à la fin du mois en cours, le {finDuMois()}. Jusque-là, vous
+                gardez l&apos;accès à tous les services ; vos documents restent ensuite consultables.
+                Résilier ne termine pas les gestions de vos salariés : pensez à nous signaler une fin
+                de contrat.
+              </p>
+              <form action={resilierMonAbonnement} className="mt-3">
+                <BoutonConfirme
+                  className="btn btn-danger btn-sm"
+                  question="Résilier votre abonnement ?"
+                  precision={`La résiliation prendra effet à la fin du mois en cours, le ${finDuMois()}. Aucun nouveau prélèvement ne sera effectué. Vous pourrez annuler votre demande d'ici là.`}
+                  oui="Oui, résilier"
+                  enCours="Enregistrement…"
+                >
+                  Résilier mon abonnement
+                </BoutonConfirme>
+              </form>
+            </section>
+          )
         ) : (
           <section className="carte mt-8 p-5">
             <h2 className="font-bold text-brand-teal">Choisir ma formule</h2>

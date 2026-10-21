@@ -38,6 +38,7 @@ interface PaiementAbonnement {
   mode_paiement: "manuel" | "systempay";
   statut_paiement: "a_jour" | "en_retard" | "impaye";
   prochaine_echeance: string | null;
+  fin_prevue?: string | null;
 }
 
 interface EcheanceEnDefaut {
@@ -147,7 +148,7 @@ export default async function AbonnementsPage({
   const paiementsRes = ids.length
     ? await supabase
         .from("abonnements")
-        .select("employeur_id, mode_paiement, statut_paiement, prochaine_echeance")
+        .select("*")
         .in("employeur_id", ids)
         .eq("statut", "actif")
     : { data: [] as PaiementAbonnement[], error: null };
@@ -354,9 +355,12 @@ export default async function AbonnementsPage({
               )}
               {affichees.map((a) => {
                 const p = places(a);
+                const fin = paiementPar.get(a.id)?.fin_prevue;
                 const alerte =
                   a.abonnement_statut === "resilie"
                     ? ""
+                    : fin
+                      ? `Résiliation au ${formatDate(fin)}`
                     : a.quota_depasse
                       ? "Quota dépassé"
                       : a.categorie === "a_surveiller"

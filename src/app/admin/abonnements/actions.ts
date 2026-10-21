@@ -40,8 +40,11 @@ export async function lancerTraitementQuotidien(): Promise<string> {
   try {
     const commandes = await verifierCommandesEnAttente(db);
     const echeances = await encaisserEcheances(db);
+    const { data: resiliations } = await db.rpc("appliquer_resiliations");
     revalidatePath("/admin/abonnements");
-    return `Paiements en attente : ${lire(commandes)}. Échéances : ${lire(echeances)}.`;
+    return `Paiements en attente : ${lire(commandes)}. Échéances : ${lire(echeances)}.${
+      resiliations ? ` Résiliations appliquées : ${resiliations}.` : ""
+    }`;
   } catch (e) {
     return `Erreur : ${(e as Error).message}`;
   }

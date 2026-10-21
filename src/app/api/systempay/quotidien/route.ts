@@ -7,7 +7,9 @@ import { encaisserEcheances, verifierCommandesEnAttente } from "@/lib/paiement";
  *  1. vérification auprès de Systempay des paiements restés en attente
  *     (notification manquée) ;
  *  2. encaissement des échéances mensuelles du jour et des nouvelles
- *     tentatives après refus.
+ *     tentatives après refus ;
+ *  3. passage en « résilié » des abonnements dont la résiliation demandée
+ *     par l'abonné arrive à terme (fin du mois civil).
  *
  * Protégé par CRON_SECRET : Vercel envoie automatiquement
  * « Authorization: Bearer <CRON_SECRET> ». Sans ce secret, la route refuse.
@@ -26,8 +28,10 @@ export async function GET(request: Request) {
   try {
     const commandes = await verifierCommandesEnAttente(db);
     const echeances = await encaisserEcheances(db);
-    console.log("Traitement quotidien Systempay", { commandes, echeances });
-    return Response.json({ commandes, echeances });
+    // Résiliations demandées arrivées à la fin du mois (brique 5b).
+    const { data: resiliations } = await db.rpc("appliquer_resiliations");
+    console.log("Traitement quotidien Systempay", { commandes, echeances, resiliations });
+    return Response.json({ commandes, echeances, resiliations: resiliations ?? 0 });
   } catch (e) {
     console.error("Traitement quotidien Systempay :", e);
     return Response.json({ erreur: (e as Error).message }, { status: 500 });

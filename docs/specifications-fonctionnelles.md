@@ -42,7 +42,8 @@ Chaque règle porte un statut : **En place** (codé et vérifiable sur le site d
 | **Filet de sécurité** : un paiement resté « en attente » (navigateur fermé, notification manquée) est vérifié auprès de Systempay le lendemain matin ; un débit dont la réponse s'est perdue est vérifié avant tout nouvel essai. Une notification reçue deux fois ne compte qu'une fois. Jamais de double débit. | En place |
 | Paiement reçu en double ou d'un montant inattendu : rien n'est activé, Aide & Garde est alerté (« Paiements à vérifier ») et rembourse depuis le Back Office Systempay. | En place |
 | Abonnements saisis par l'administration (données de test, anciens abonnés avant la reprise) : « hors site », jamais prélevés par le nouveau site. Modifier le tarif d'un abonnement payé en ligne change le montant des prochains prélèvements. | En place |
-| L'abonné demande lui-même la résiliation, avec confirmation : **effet à la fin du mois civil** (décision de Frédéric, 21/10) ; changement de formule en ligne. | À faire (brique 5b) |
+| **Résiliation par l'abonné** (brique 5b) : bloc « Résilier mon abonnement » sur la page Mon abonnement, avec fenêtre de confirmation qui précise la date d'effet : **fin du mois civil en cours** (décision du 21/10). Jusque-là, tout reste accessible ; à partir de la demande, **plus aucun nouveau prélèvement** (règle provisoire, à confirmer : une échéance qui tomberait avant la fin du mois n'est pas prélevée). Une échéance déjà refusée reste due. L'abonné peut **annuler** sa demande jusqu'à la date de fin (les prélèvements reprennent, y compris celui qui serait tombé entre-temps). Email de confirmation à l'abonné, alerte à Aide & Garde (avec le rappel d'arrêter un éventuel prélèvement de l'ancien site). Le lendemain de la date de fin, la tâche quotidienne passe l'abonnement en « résilié » ; les gestions ne sont pas terminées (décision 4), les documents restent consultables, l'abonné peut se réabonner en ligne. Côté administration : bandeau sur la fiche, « Résiliation au … » dans l'onglet Abonnements. | En place (21/10) — à recetter |
+| Changement de formule en ligne. | À faire (brique 5c) |
 | Grille tarifaire à paliers (plafond 25,80 € à partir de 4 salariés). **Grille provisoire en place, validée pour la recette (21/10)** : 1 salarié 12,90 €, 2 : 19,20 €, 3 et 4 : 25,80 € (fichier `src/lib/formules.ts`). | À trancher (brique 12) |
 
 ### 3.1 Pourquoi le site déclenche lui-même les prélèvements (décision du 21/10, validée par Frédéric)
@@ -223,6 +224,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 | **Lisibilité de l'espace abonné** (retour du 21/10) : boutons de la carte « Déclarer le mois » ramenés à la taille courante ; bandeau des nouveaux documents compact (bandeau jaune de titre, une ligne par document avec son bouton) ; carte « Mon abonnement » avec bandeau turquoise, statut en pastille, trois chiffres clés (salariés suivis avec jauge, tarif, date de début) et bouton « Gérer mon abonnement » ; tableau des gestions en cours avec titres turquoise. | En place (21/10) — à recetter |
 | **Gestions en cours sur téléphone** : tableau en colonnes (Salarié avec l'emploi en dessous, Bulletin, Mois en cours), intitulés affichés une seule fois en tête ; l'emploi, la date de début et le bouton « Détail » ne sont affichés en colonnes que sur ordinateur (le nom ouvre la gestion). | En place (21/10) — à recetter |
 | **Œil sur les mots de passe** (connexion, inscription, nouveau mot de passe) : afficher ou masquer ce qui est saisi. | En place (21/10) |
+| **Onglet « Abonnement »** pour l'abonné (en-tête sur ordinateur et barre d'onglets du téléphone, qui passe à 5 onglets : Accueil, Documents, Abonnement, Aide, Compte). | En place (21/10) |
 | **Barre d'onglets du téléphone** : fond violet bordé de jaune, bien distincte du contenu ; rubrique en cours sur pastille blanche. | En place (21/10) — à recetter |
 | Dépôt du bulletin du mois par l'admin → la déclaration passe automatiquement à « traitée » et l'abonné voit « Bulletin de … établi ». | En place |
 | Impossible de déclarer un mois dont le bulletin est déjà en ligne, ou pour une gestion terminée. | En place |
@@ -283,6 +285,7 @@ Format : `<référence>_<code type>_<AAMM>[_texte libre].pdf`, le texte libre é
 
 ## 9. Historique de ce document
 
+- 21/10/2026 — Brique 5b : résiliation par l'abonné (fin du mois civil, annulable), onglet Abonnement.
 - 21/10/2026 — Relances par email standardisées (9c), vérification de la configuration du paiement, gestions en colonnes sur téléphone, œil sur les mots de passe, code postal seul dans la liste.
 - 21/10/2026 — Retours ergonomie : recherche par colonne, titres violets, email copiable, thème sombre de l'administration, demandes soldées avec commentaire (7d), barre d'onglets du téléphone colorée, tableau de bord de l'abonné plus lisible.
 - 21/10/2026 — Décisions de Frédéric : prélèvement à la date anniversaire, résiliation en fin de mois civil, prélèvements déclenchés par le site validés, grille provisoire validée pour la recette.
