@@ -208,6 +208,19 @@ export async function resilierMonAbonnement() {
     redirect(`/tableau-de-bord/abonnement?erreur=${encodeURIComponent(message)}`);
   }
   const fin = dateFr(String(data));
+  // Le mois reste dû : un éventuel dernier prélèvement est annoncé.
+  const { data: abo } = await supabase
+    .from("abonnements")
+    .select("mode_paiement, prochaine_echeance, tarif_mensuel")
+    .eq("employeur_id", user.id)
+    .eq("statut", "actif")
+    .maybeSingle();
+  const dernier =
+    abo?.mode_paiement === "systempay" && abo.prochaine_echeance && abo.prochaine_echeance <= String(data)
+      ? `Le mois en cours reste dû : un dernier prélèvement de ${formatEuros(Number(abo.tarif_mensuel))} aura lieu le ${dateFr(abo.prochaine_echeance)}, puis plus aucun.`
+      : abo?.mode_paiement === "systempay"
+        ? "Le mois en cours est déjà réglé : aucun autre prélèvement ne sera effectué."
+        : "Le mois en cours reste dû.";
   const site = await adresseSite();
   const nom = `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim();
   if (user.email) {
@@ -216,7 +229,7 @@ export async function resilierMonAbonnement() {
       titre: "Résiliation de votre abonnement enregistrée",
       paragraphes: [
         `Nous avons bien enregistré votre demande de résiliation. Votre abonnement reste actif jusqu'au ${fin} inclus : vous pouvez continuer à déclarer et à télécharger vos documents d'ici là.`,
-        "Aucun nouveau prélèvement ne sera effectué. Vos documents restent ensuite consultables dans votre espace.",
+        `${dernier} Vos documents restent ensuite consultables dans votre espace.`,
         "Vous avez changé d'avis ? Vous pouvez annuler la résiliation depuis votre espace jusqu'à cette date.",
       ],
       bouton: { texte: "Mon abonnement", url: `${site}/tableau-de-bord/abonnement` },

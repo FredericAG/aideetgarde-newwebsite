@@ -421,13 +421,13 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 
 ## Brique 5b — Résiliation par l'abonné, onglet Abonnement
 
-**Préparation** : exécuter `supabase/brique5b_resiliation.sql`. Commit + Push.
+**Préparation** : relancer `supabase/brique5a_paiements.sql` (mise à jour : échéances limitées à la date de fin), puis exécuter `supabase/brique5b_resiliation.sql`. Commit + Push, et vérifier dans Vercel que le déploiement est « Ready ».
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
 | R5.1 | Abonné : en-tête et barre du téléphone | Onglet « Abonnement » (5 onglets sur téléphone) | |
-| R5.2 | Mon abonnement > « Résilier mon abonnement » | Fenêtre : effet le dernier jour du mois en cours, aucun nouveau prélèvement, annulable ; « Non, annuler » ne change rien | |
-| R5.3 | « Oui, résilier » | Message vert avec la date de fin ; bloc jaune « Résiliation demandée » ; Prochain prélèvement « aucun (résiliation) » ; email de confirmation à l'abonné et alerte à Aide & Garde | |
+| R5.2 | Mon abonnement > « Résilier mon abonnement » | Fenêtre : effet le dernier jour du mois en cours ; « le mois en cours reste dû » (dernier prélèvement annoncé avec sa date s'il tombe avant la fin du mois, sinon « déjà réglé ») ; annulable ; « Non, annuler » ne change rien | |
+| R5.3 | « Oui, résilier » | Message vert avec la date de fin ; bloc jaune « Résiliation demandée » ; Prochain prélèvement : sa date suivie de « (dernier) » s'il tombe avant la fin du mois, sinon « aucun (résiliation) » ; email de confirmation à l'abonné et alerte à Aide & Garde | |
 | R5.4 | Admin : fiche du compte et onglet Abonnements | Bandeau « Résiliation demandée par l'abonné » ; pastille « Résiliation au 31/10/2026 » | |
-| R5.5 | Abonné : « Annuler la résiliation » | Confirmation, puis abonnement normal, prochain prélèvement rétabli ; alerte à Aide & Garde | |
+| R5.5 | Abonné : « Annuler la résiliation » | Confirmation, puis abonnement normal, prélèvements inchangés ; alerte à Aide & Garde | |
 | R5.6 | Simuler la fin du mois : `update abonnements set fin_prevue = current_date - 1 where fin_prevue is not null;` puis Admin > « Lancer le traitement maintenant » | « Résiliations appliquées : 1 » ; abonnement « Résilié », gestions inchangées ; l'abonné voit « Choisir ma formule » pour se réabonner | |

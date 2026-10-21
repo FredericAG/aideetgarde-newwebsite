@@ -105,6 +105,18 @@ export async function appelSystempay(
   return { ok: true, answer: json.answer };
 }
 
+/**
+ * Systempay refuse les adresses des domaines réservés aux essais
+ * (.invalid, .test, .example, .localhost : erreur INT_015), comme celles
+ * des comptes de recette fictifs (@recette.invalid). Vérifié le 21/10 sur la
+ * boutique de démonstration.
+ */
+export function emailAccepteParSystempay(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const domaine = email.split("@")[1]?.toLowerCase() ?? "";
+  return /\.[a-z]{2,}$/.test(domaine) && !/\.(invalid|test|example|localhost)$/.test(domaine);
+}
+
 /** Euros → centimes, sans erreur d'arrondi (12.9 → 1290). */
 export function enCentimes(euros: number): number {
   return Math.round(euros * 100);
@@ -159,7 +171,8 @@ export async function debiterAlias(o: {
     orderId: o.orderId,
     formAction: "SILENT",
     paymentMethodToken: o.token,
-    customer: { reference: o.reference, ...(o.email ? { email: o.email } : {}) },
+    // Email facultatif pour un débit : omis s'il serait refusé.
+    customer: { reference: o.reference, ...(emailAccepteParSystempay(o.email) ? { email: o.email } : {}) },
     transactionInitiator: "MERCHANT",
     useCase: CAS_USAGE,
     metadata: { orderInfo: "Échéance mensuelle Aide & Garde" },

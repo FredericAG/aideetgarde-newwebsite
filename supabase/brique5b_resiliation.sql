@@ -1,19 +1,20 @@
 -- ============================================================================
 -- Brique 5b — Résiliation de l'abonnement par l'abonné
 --
--- À exécuter UNE FOIS dans Supabase > SQL Editor, APRÈS brique5a.
--- Peut être relancé sans danger.
+-- À exécuter dans Supabase > SQL Editor, APRÈS brique5a (relancer aussi
+-- brique5a après la mise à jour du 21/10 : la fonction des échéances tient
+-- compte de la date de fin). Peut être relancé sans danger.
 --
 -- Règles (décision de Frédéric du 21/10) :
 --  - l'abonné résilie lui-même depuis « Mon abonnement », avec confirmation ;
 --  - la résiliation prend effet à la FIN DU MOIS CIVIL en cours : jusque-là
 --    l'abonnement reste actif (gestions, documents, déclarations) ;
---  - à partir de la demande, plus aucun nouveau prélèvement n'est lancé
---    (règle provisoire, à confirmer par Frédéric) ; une échéance déjà
+--  - le mois reste dû (décision de Frédéric du 21/10) : une échéance qui
+--    tombe entre la demande et la fin du mois est prélevée normalement ;
+--    aucune échéance n'est créée après la date de fin. Une échéance déjà
 --    refusée reste due et continue d'être représentée jusqu'à la fin ;
 --  - l'abonné peut annuler sa demande tant que la fin du mois n'est pas
---    passée : les prélèvements reprennent (y compris celui qui serait tombé
---    entre-temps) ;
+--    passée : les prélèvements continuent normalement ;
 --  - le lendemain de la fin du mois, la tâche quotidienne passe
 --    l'abonnement en « résilié ». Les gestions ne sont PAS terminées
 --    (décision 4) et les documents restent consultables.
@@ -23,6 +24,15 @@ alter table public.abonnements
   add column if not exists resiliation_demandee_le     timestamptz,
   add column if not exists fin_prevue                  date,
   add column if not exists prochaine_echeance_suspendue date;
+
+-- Reprise de la première version du script (21/10), qui suspendait les
+-- prélèvements dès la demande : on les rétablit.
+update public.abonnements
+   set prochaine_echeance = prochaine_echeance_suspendue,
+       prochaine_echeance_suspendue = null
+ where fin_prevue is not null
+   and prochaine_echeance is null
+   and prochaine_echeance_suspendue is not null;
 
 create index if not exists abonnements_fin_prevue_idx
   on public.abonnements (fin_prevue) where statut = 'actif' and fin_prevue is not null;
@@ -50,9 +60,7 @@ begin
 
   update public.abonnements
      set resiliation_demandee_le = now(),
-         fin_prevue = v_fin,
-         prochaine_echeance_suspendue = prochaine_echeance,
-         prochaine_echeance = null
+         fin_prevue = v_fin
    where id = v_abo.id;
   return v_fin;
 end;
@@ -78,7 +86,7 @@ begin
   update public.abonnements
      set resiliation_demandee_le = null,
          fin_prevue = null,
-         prochaine_echeance = prochaine_echeance_suspendue,
+         prochaine_echeance = coalesce(prochaine_echeance, prochaine_echeance_suspendue),
          prochaine_echeance_suspendue = null
    where id = v_abo.id;
 end;

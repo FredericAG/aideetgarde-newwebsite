@@ -14,6 +14,10 @@
 -- ============================================================================
 
 create sequence if not exists public.gestions_reference_seq start 1;
+-- Droit explicite d'utiliser la séquence (numéro AG00001 attribué quand
+-- l'administrateur crée une gestion) : Supabase ne l'accorde plus d'office
+-- aux nouveaux objets à partir du 30/10/2026.
+grant usage, select on sequence public.gestions_reference_seq to authenticated, service_role;
 
 alter table public.gestions add column if not exists reference text;
 

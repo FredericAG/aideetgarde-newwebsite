@@ -36,7 +36,11 @@ alter table public.abonnements
   add column if not exists carte_expiration  date,
   add column if not exists jour_prelevement  smallint,
   add column if not exists prochaine_echeance date,
-  add column if not exists statut_paiement   text not null default 'a_jour';
+  add column if not exists statut_paiement   text not null default 'a_jour',
+  -- Résiliation demandée par l'abonné (voir brique5b_resiliation.sql).
+  add column if not exists resiliation_demandee_le      timestamptz,
+  add column if not exists fin_prevue                   date,
+  add column if not exists prochaine_echeance_suspendue date;
 
 do $$
 begin
@@ -154,6 +158,12 @@ alter table public.paiements enable row level security;
 revoke all on public.commandes, public.echeances, public.paiements from anon, authenticated;
 grant select on public.commandes, public.echeances, public.paiements to authenticated;
 grant all on public.commandes, public.echeances, public.paiements to service_role;
+-- Tables existantes lues par le serveur du site avec la clé secrète
+-- (notification Systempay, tâche quotidienne). Droits écrits ici en clair :
+-- depuis le 30/10/2026, Supabase ne les accorde plus d'office aux nouvelles
+-- tables, et une base reconstruite à partir de ces scripts doit fonctionner.
+grant select on public.profiles to service_role;
+grant select, delete on public.notifications_push to service_role;
 
 drop policy if exists commandes_select on public.commandes;
 create policy commandes_select on public.commandes for select to authenticated
@@ -383,7 +393,10 @@ begin
      for update skip locked
   loop
     -- Rattrape aussi plusieurs mois si le traitement a été interrompu.
-    while a.prochaine_echeance <= current_date loop
+    -- Résiliation demandée (brique 5b) : seules les échéances qui tombent
+    -- au plus tard le dernier jour de l'abonnement sont créées.
+    while a.prochaine_echeance <= current_date
+          and (a.fin_prevue is null or a.prochaine_echeance <= a.fin_prevue) loop
       insert into public.echeances (abonnement_id, employeur_id, date_echeance, montant,
                                     prochaine_tentative, order_id)
       values (a.id, a.employeur_id, a.prochaine_echeance, a.tarif_mensuel, a.prochaine_echeance,

@@ -37,6 +37,24 @@ function finDuMois(): string {
   return `${String(dernier).padStart(2, "0")}/${String(m).padStart(2, "0")}/${a}`;
 }
 
+/** Dernier jour du mois en cours (heure de Paris), au format 2026-10-31. */
+function finDuMoisIso(): string {
+  const [j, m, a] = finDuMois().split("/");
+  return `${a}-${m}-${j}`;
+}
+
+/**
+ * Le mois de résiliation reste dû (décision du 21/10) : phrase qui dit si un
+ * dernier prélèvement aura lieu avant la date de fin.
+ */
+function phraseDernierPrelevement(abo: Abonnement, finIso: string): string {
+  if (abo.mode_paiement !== "systempay") return "Le mois en cours reste dû.";
+  if (abo.prochaine_echeance && abo.prochaine_echeance <= finIso) {
+    return `Le mois en cours reste dû : un dernier prélèvement de ${formatEuros(abo.tarif_mensuel)} aura lieu le ${formatDate(abo.prochaine_echeance)}, puis plus aucun.`;
+  }
+  return "Le mois en cours est déjà réglé : aucun autre prélèvement ne sera effectué.";
+}
+
 /** "497010XXXXXX0055" → "•••• 0055". */
 function carteLisible(c: string | null | undefined): string {
   if (!c) return "—";
@@ -215,7 +233,10 @@ export default async function AbonnementPage({
                   <div>
                     <dt className="text-foreground/60">Prochain prélèvement</dt>
                     <dd className="font-medium">
-                      {abonnement.fin_prevue ? "aucun (résiliation)" : formatDate(abonnement.prochaine_echeance)}
+                      {abonnement.fin_prevue &&
+                      (!abonnement.prochaine_echeance || abonnement.prochaine_echeance > abonnement.fin_prevue)
+                        ? "aucun (résiliation)"
+                        : `${formatDate(abonnement.prochaine_echeance)}${abonnement.fin_prevue ? " (dernier)" : ""}`}
                     </dd>
                   </div>
                   <div>
@@ -249,8 +270,8 @@ export default async function AbonnementPage({
               <p className="mt-1">
                 Demandée le {formatDate(abonnement.resiliation_demandee_le)} : votre abonnement reste
                 actif jusqu&apos;au <strong>{formatDate(abonnement.fin_prevue)}</strong> inclus, puis
-                prend fin. Aucun nouveau prélèvement ne sera effectué. Vos documents restent
-                consultables ensuite.
+                prend fin. {phraseDernierPrelevement(abonnement, abonnement.fin_prevue)} Vos documents
+                restent consultables ensuite.
               </p>
               <form action={annulerMaResiliation} className="mt-3">
                 <BoutonConfirme
@@ -277,7 +298,7 @@ export default async function AbonnementPage({
                 <BoutonConfirme
                   className="btn btn-danger btn-sm"
                   question="Résilier votre abonnement ?"
-                  precision={`La résiliation prendra effet à la fin du mois en cours, le ${finDuMois()}. Aucun nouveau prélèvement ne sera effectué. Vous pourrez annuler votre demande d'ici là.`}
+                  precision={`La résiliation prendra effet à la fin du mois en cours, le ${finDuMois()}. ${phraseDernierPrelevement(abonnement, finDuMoisIso())} Vous pourrez annuler votre demande d'ici là.`}
                   oui="Oui, résilier"
                   enCours="Enregistrement…"
                 >
