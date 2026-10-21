@@ -89,16 +89,19 @@ export default async function DetailGestionPage({
       .eq("gestion_id", id),
     supabase
       .from("declarations_mensuelles")
-      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le, motif_modification, modification_demandee_le")
+      // « * » : inclut la réponse de l'administration (brique 7d) sans
+      // échouer si le script n'a pas encore été exécuté.
+      .select("*")
       .eq("gestion_id", id)
       .eq("employeur_id", user.id),
-    // Demande d'avenant en attente (brique 3b ; sans le script, aucune).
+    // Demandes d'avenant (brique 3b ; sans le script, aucune) : celle en
+    // attente, et la dernière réponse d'Aide & Garde.
     supabase
       .from("demandes_avenant")
       .select("*")
       .eq("gestion_id", id)
-      .eq("statut", "envoyee")
-      .limit(1),
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
   const declarations = (decls ?? []) as Declaration[];
   const { options, parDefaut } = periodesDeclarables();
@@ -204,10 +207,27 @@ export default async function DetailGestionPage({
           />
         )}
 
+        {(() => {
+          const r = reponseAvenantRecente((avenants ?? []) as DemandeAvenantType[]);
+          if (!r) return null;
+          return (
+            <p className="mt-6 rounded-md border-l-4 border-brand-violet bg-white p-3 text-sm">
+              <strong className="text-brand-violet">
+                {r.statut === "close" ? "Demande d'avenant close" : "Demande d'avenant traitée"}
+              </strong>{" "}
+              le {formatDate(r.traitee_le)}
+              {r.statut === "close" ? " : pas d'avenant nécessaire." : "."}
+              {r.reponse_admin && (
+                <span className="mt-1 block text-foreground/80">« {r.reponse_admin} »</span>
+              )}
+            </p>
+          );
+        })()}
+
         {gestion.statut === "en_cours" && (
           <DemandeAvenant
             gestionId={gestion.id}
-            enAttente={((avenants ?? []) as DemandeAvenantType[])[0] ?? null}
+            enAttente={((avenants ?? []) as DemandeAvenantType[]).find((a) => a.statut === "envoyee") ?? null}
           />
         )}
 
@@ -270,4 +290,17 @@ export default async function DetailGestionPage({
       </div>
     </div>
   );
+}
+
+/**
+ * Dernière réponse d'Aide & Garde à une demande d'avenant (clôture ou
+ * commentaire), affichée pendant 60 jours, sauf si une nouvelle demande est
+ * en attente.
+ */
+function reponseAvenantRecente(liste: DemandeAvenantType[]): DemandeAvenantType | null {
+  const r = liste.find((x) => x.statut !== "envoyee");
+  if (!r || liste.some((x) => x.statut === "envoyee")) return null;
+  if (!r.reponse_admin && r.statut !== "close") return null;
+  if (!r.traitee_le || Date.now() - new Date(r.traitee_le).getTime() > 60 * 86400000) return null;
+  return r;
 }

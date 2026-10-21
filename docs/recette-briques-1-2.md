@@ -346,3 +346,57 @@ Pour voir l'espace abonné d'un compte de test : se connecter avec son adresse `
 | D.5 | Se connecter à un compte de test avec `Recette2026!` | Espace abonné avec gestions, déclarations et documents « sans fichier » | |
 | D.6 | Exécuter le script de suppression | Plus aucun compte `@recette.invalid` ; les comptes réels restent intacts | |
 
+
+## Brique 5a — Paiement Systempay en mode TEST (souscription, échéances, refus)
+
+**Préparation (une seule fois)**
+
+1. Exécuter `supabase/brique5a_paiements.sql` dans le SQL Editor (après 2g). Les abonnements existants, dont ceux des données fictives, passent en « hors site » : **ils ne seront jamais prélevés**.
+2. Dans Vercel > Settings > Environment Variables (environnements Production et Preview) :
+   - `SUPABASE_SECRET_KEY` (Supabase > Project Settings > API Keys > Secret keys), type **Secret** ;
+   - `SYSTEMPAY_BOUTIQUE`, `SYSTEMPAY_MOT_DE_PASSE` (**Secret**), `NEXT_PUBLIC_SYSTEMPAY_CLE_PUBLIQUE` : les clés de **TEST** de la boutique Aide & Garde, ou en attendant celles de la boutique de démonstration indiquées dans `.env.example` ;
+   - `CRON_SECRET` : une longue chaîne aléatoire, **Secret**.
+3. Redéployer. **Rien à modifier dans le Back Office Systempay** : le site donne lui-même son adresse de notification à chaque paiement ; la règle de notification qui sert à l'ancien site reste intacte.
+
+Faire la recette sur l'adresse principale `aideetgarde-newwebsite.vercel.app` (les adresses de prévisualisation sont protégées par Vercel : Systempay ne pourrait pas y envoyer sa notification). Cartes de test : date d'expiration future, code quelconque.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| P.1 | Compte abonné **sans abonnement** : tableau de bord | Bouton « Souscrire un abonnement » | |
+| P.2 | Page Mon abonnement | Bandeau « Mode test », 4 formules (1 salarié 12,90 € … 4 salariés 25,80 €) ; formules trop petites grisées si des gestions sont déjà en cours ou envoyées | |
+| P.3 | Choisir 2 salariés, « Continuer vers le paiement » | Formulaire de carte Systempay dans la page, bouton « Payer 19,20 € » | |
+| P.4 | Carte `4970 1000 0000 0113` | Refus affiché par le formulaire ; on peut réessayer sans recharger | |
+| P.5 | Carte `4970 1000 0000 0055` | « Paiement accepté, activation en cours… » puis message vert ; formule, carte •••• 0055, prochain prélèvement dans un mois, « À jour » ; email « Votre abonnement est actif » à l'abonné et email « Nouvel abonnement » à Aide & Garde (un seul de chaque) | |
+| P.6 | Historique de la page | Deux lignes : refusé puis payé, mention « test » | |
+| P.7 | Admin > Abonnements | Colonne Paiement « À jour, prochain … » ; « Encaissé ce mois (test) » = 19,20 € ; fiche du compte : « Payé en ligne », derniers paiements | |
+| P.8 | Fermer l'onglet juste après avoir cliqué sur Payer (nouveau compte, carte 0055) | Abonnement activé quand même (notification Systempay) — vérifier au rechargement | |
+| P.9 | Échéance acceptée : dans le SQL Editor, `update abonnements set prochaine_echeance = current_date where mode_paiement = 'systempay';` puis Admin > Abonnements > « Lancer le traitement maintenant » | Bilan « 1 échéance(s) payée(s) » ; prochain prélèvement avancé d'un mois ; ligne « Échéance mensuelle » dans l'historique | |
+| P.10 | Refus d'échéance : nouveau compte souscrit avec `4970 1000 0000 0675` (acceptée au premier paiement, refusée ensuite), puis même manipulation que P.9 | Bilan « refus avec nouvel essai programmé » ; email « Prélèvement refusé » à l'abonné ; bandeau rouge au tableau de bord ; Admin > « Échéances refusées » | |
+| P.11 | Forcer les deux nouveaux essais : `update echeances set prochaine_tentative = current_date where statut = 'a_payer';` + « Lancer le traitement » (deux fois) | Après le 3e refus : « Impayée après 3 refus », emails « Échéance impayée » (abonné) et alerte (Aide & Garde), statut « Impayé » | |
+| P.12 | Abonné impayé : « Régler 12,90 € avec une carte », carte `0055` | Échéance réglée, nouvelle carte •••• 0055 enregistrée, statut « À jour », l'alerte disparaît côté admin | |
+| P.13 | Relancer « Lancer le traitement » sans rien changer | « rien à traiter » : jamais de double débit | |
+| P.14 | Sécurité : `curl -X POST https://…/api/systempay/ipn -d "kr-answer={}&kr-hash=abc&kr-hash-algorithm=sha256_hmac"` | Réponse 401 « Signature invalide » | |
+
+Testé ici avant livraison : fonctions SQL sur une base locale (souscription, refus puis réussite, doublon de notification, deuxième souscription, mauvais montant, échéances rattrapées sur deux mois, 3 refus, régularisation, résultat inconnu, droits d'un abonné) ; signature des notifications ; appels réels à la boutique de démonstration Systempay (création du formulaire avec nos paramètres, réponses d'erreur de `Order/Get` et du débit par alias).
+
+## Retours ergonomie du 21/10 — administration et espace abonné
+
+**Préparation** : exécuter `supabase/brique7d_cloture_demandes.sql`, puis **relancer** `supabase/brique2g_liste_comptes_admin.sql` (nouvelles colonnes pour les filtres). Commit + Push.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| E.1 | Ouvrir l'administration | Fond sombre, texte clair, logo sur pastille blanche ; l'espace abonné reste blanc | |
+| E.2 | Comptes : ligne de titres | Violette, texte blanc en gras ; tri actif en jaune | |
+| E.3 | Recherche générale | Placée juste au-dessus du tableau | |
+| E.4 | Filtres de colonnes : « martin » sous Employeur, puis Abonnement = Actif | Liste filtrée, « N compte(s) trouvé(s) », lien « Effacer les filtres des colonnes » | |
+| E.5 | Filtre Réf. « C0001 », Inscrit le = 2026, Salariés « akbar », Actions = Avec actions | Chaque filtre restreint la liste ; combinables | |
+| E.6 | Survoler un email (liste, onglet Abonnements, fiche) puis « Copier » | « Copié », l'adresse est dans le presse-papiers ; la fiche ne s'ouvre pas | |
+| E.7 | Fiche d'un compte | Plus de mention « rôle : employeur » | |
+| E.8 | Onglet Abonnements | Titres des chiffres clés en gras, ligne de titres violette, boutons de filtre inchangés | |
+| E.9 | Fiche : demande de modification de bulletin > « Refuser la modification… » avec un commentaire | Demande soldée (le compteur d'actions baisse) ; l'abonné reçoit notification + email ; dans sa gestion : « Réponse à votre demande de modification : le bulletin est maintenu » + commentaire | |
+| E.10 | Déclaration du mois > « Clore sans bulletin… » sans commentaire | « close sans bulletin » côté admin ; côté abonné « Déclaration close », tableau de bord « Close par Aide & Garde » | |
+| E.11 | Demande d'avenant > « Clore sans avenant… » avec commentaire | « close sans avenant » + commentaire côté admin ; message affiché à l'abonné dans la gestion | |
+| E.12 | Avenant > « Marquer comme traitée sans document… » avec commentaire | Traitée ; le commentaire figure dans l'email de l'abonné | |
+| E.13 | Téléphone : barre d'onglets | Fond violet bordé de jaune, rubrique en cours sur pastille blanche (abonné et admin) | |
+| E.14 | Abonné : carte « Déclarer le mois » d'un mois avec bulletin | Boutons de taille courante, alignés | |
+| E.15 | Abonné : tableau de bord | Bandeau des nouveaux documents compact ; carte abonnement à bandeau turquoise, pastille « Actif », chiffres clés lisibles, bouton « Gérer mon abonnement » | |

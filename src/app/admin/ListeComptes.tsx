@@ -8,6 +8,9 @@ import {
   type GestionAValider,
 } from "./DetailActions";
 import { RechercheComptes } from "./RechercheComptes";
+import { FiltresColonnes } from "./FiltresColonnes";
+import { EmailCopiable } from "@/components/EmailCopiable";
+import { CLES_FILTRES } from "@/lib/filtres-comptes";
 
 /** Une ligne de la vue `admin_comptes` (supabase/brique2g_liste_comptes_admin.sql). */
 interface LigneCompte {
@@ -94,6 +97,14 @@ export async function ListeComptes({
   // Par défaut : actions en premier (ordre décroissant), sinon ordre croissant.
   const ordre = un(sp.ordre) === "asc" || un(sp.ordre) === "desc" ? un(sp.ordre)! : tri === "actions" || tri === "inscription" ? "desc" : "asc";
   const page = Math.max(1, Number(un(sp.page)) || 1);
+  // Filtres par colonne (ligne sous les titres du tableau).
+  const filtres = Object.fromEntries(
+    CLES_FILTRES.map((k) => [k, (un(sp[k]) ?? "").trim()]),
+  ) as Record<(typeof CLES_FILTRES)[number], string>;
+  const filtreActif = CLES_FILTRES.some((k) => filtres[k]);
+  // Recherche ou filtre : on cherche dans tous les comptes (y compris
+  // archivés), comme pour la recherche générale.
+  const enRecherche = Boolean(recherche) || filtreActif;
 
   const { supabase } = await requireAdmin(cheminBase);
 
@@ -103,11 +114,25 @@ export async function ListeComptes({
       "id, reference_client, prenom, nom, email, ville, code_postal, created_at, abonnement_statut, quota, nb_en_cours, nb_envoyees, nb_brouillons, nb_terminees, salaries, nb_actions, categorie, nb_homonymes",
       { count: "exact" },
     );
-  if (recherche) {
+  const mots = (t: string) => simplifier(t).split(/\s+/).filter(Boolean).slice(0, 5);
+  if (enRecherche) {
     // Chaque mot doit apparaître (ex. « durand helene » ou « durand 75011 »).
-    for (const mot of simplifier(recherche).split(/\s+/).filter(Boolean).slice(0, 5)) {
-      requete = requete.like("recherche", `%${mot}%`);
+    for (const mot of mots(recherche)) requete = requete.like("recherche", `%${mot}%`);
+    if (filtres.fref) requete = requete.ilike("reference_client", `%${filtres.fref.replace(/[%_\\]/g, "")}%`);
+    for (const mot of mots(filtres.femp)) requete = requete.like("employeur_tri", `%${mot}%`);
+    for (const mot of mots(filtres.fsal)) requete = requete.like("salaries_tri", `%${mot}%`);
+    const an = Number(filtres.finsc);
+    if (an > 2000 && an < 2100) {
+      requete = requete.gte("created_at", `${an}-01-01`).lt("created_at", `${an + 1}-01-01`);
     }
+    if (filtres.fabo === "aucun") requete = requete.is("abonnement_statut", null);
+    else if (filtres.fabo === "actif" || filtres.fabo === "resilie") requete = requete.eq("abonnement_statut", filtres.fabo);
+    if (filtres.fges === "en_cours") requete = requete.gt("nb_en_cours", 0);
+    if (filtres.fges === "a_valider") requete = requete.gt("nb_envoyees", 0);
+    if (filtres.fges === "brouillon") requete = requete.gt("nb_brouillons", 0);
+    if (filtres.fges === "aucune") requete = requete.eq("places_utilisees", 0);
+    if (filtres.fact === "avec") requete = requete.gt("nb_actions", 0);
+    if (filtres.fact === "sans") requete = requete.eq("nb_actions", 0);
     if (archives) requete = requete.eq("categorie", "inactif");
   } else if (vue === "actions") {
     requete = requete.gt("nb_actions", 0);
@@ -176,6 +201,7 @@ export async function ListeComptes({
       tri: tri === "actions" ? undefined : tri,
       ordre: un(sp.ordre),
       page: undefined,
+      ...filtres,
       ...modif,
     };
     for (const [k, v] of Object.entries(base)) if (v) p.set(k, v);
@@ -190,7 +216,7 @@ export async function ListeComptes({
       <Link
         href={lien({ tri: cle, ordre: prochainOrdre })}
         scroll={false}
-        className={`inline-flex items-center gap-1 whitespace-nowrap hover:underline ${actif ? "text-brand-violet" : ""}`}
+        className={`inline-flex items-center gap-1 whitespace-nowrap hover:underline ${actif ? "text-brand-jaune" : ""}`}
         title={`Trier par ${libelle.toLowerCase()}`}
       >
         {libelle}
@@ -259,7 +285,7 @@ export async function ListeComptes({
         </section>
         )}
 
-        {!archives && (resume.get("a_surveiller")?.comptes ?? 0) > 0 && vue !== "surveiller" && !recherche && (
+        {!archives && (resume.get("a_surveiller")?.comptes ?? 0) > 0 && vue !== "surveiller" && !enRecherche && (
           <p className="mt-3 rounded-lg border-2 border-brand-jaune bg-brand-jaune/25 p-3 text-sm">
             <strong>{resume.get("a_surveiller")?.comptes} compte(s) paient un abonnement sans gestion en
             cours ni demande en attente</strong> : à vérifier (abonnement à suspendre ou à rembourser ?).{" "}
@@ -269,26 +295,17 @@ export async function ListeComptes({
           </p>
         )}
 
-        {/* Recherche et onglets */}
-        <div className="mt-6">
-          <RechercheComptes />
-        </div>
-
-        {recherche ? (
-          <p className="mt-3 text-sm text-foreground/70">
-            {total} compte(s) trouvé(s) pour « {recherche} »
-            {archives ? " parmi les comptes archivés." : ", dans tous les comptes (y compris archivés)."}
-          </p>
-        ) : archives ? null : (
-          <nav aria-label="Catégories de comptes" className="mt-4 flex flex-wrap items-center gap-2">
+        {/* Onglets */}
+        {!archives && (
+          <nav aria-label="Catégories de comptes" className="mt-6 flex flex-wrap items-center gap-2">
             {onglets.map((o) => (
               <Link
                 key={o.vue}
                 href={lien({ vue: o.vue === "actifs" ? undefined : o.vue })}
                 scroll={false}
-                aria-current={vue === o.vue ? "page" : undefined}
+                aria-current={vue === o.vue && !enRecherche ? "page" : undefined}
                 className={`btn btn-sm ${
-                  vue === o.vue
+                  vue === o.vue && !enRecherche
                     ? "btn-primaire"
                     : o.style === "surveiller" && o.nb > 0
                       ? "btn-secondaire bg-brand-jaune/40"
@@ -304,7 +321,30 @@ export async function ListeComptes({
           </nav>
         )}
 
-        {vue === "surveiller" && !recherche && (
+        {/* Recherche générale, juste au-dessus du tableau */}
+        <div className="mt-4">
+          <RechercheComptes />
+        </div>
+        {enRecherche && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 text-sm text-foreground/70">
+            <span>
+              {total} compte(s) trouvé(s)
+              {recherche ? ` pour « ${recherche} »` : ""}
+              {archives ? " parmi les comptes archivés." : ", dans tous les comptes (y compris archivés)."}
+            </span>
+            {filtreActif && (
+              <Link
+                href={lien(Object.fromEntries(CLES_FILTRES.map((k) => [k, undefined])))}
+                scroll={false}
+                className="font-medium text-brand-teal underline"
+              >
+                Effacer les filtres des colonnes
+              </Link>
+            )}
+          </p>
+        )}
+
+        {vue === "surveiller" && !enRecherche && (
           <p className="mt-3 text-xs text-foreground/60">
             Abonnement actif, mais aucune gestion en cours ni en attente de validation. Un
             brouillon éventuel est indiqué. Les plus anciens inscrits d&apos;abord.
@@ -314,7 +354,7 @@ export async function ListeComptes({
         {/* Liste des comptes */}
         <div className="mt-4 overflow-x-auto rounded-xl border border-brand-gray/25">
           <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
-            <thead className="bg-[var(--carte)] text-brand-teal">
+            <thead className="entete-liste">
               <tr>
                 <th className="px-3 py-2">Réf.</th>
                 <th className="px-3 py-2">{enteteTri("nom", "Employeur")}</th>
@@ -324,6 +364,7 @@ export async function ListeComptes({
                 <th className="px-3 py-2">Salariés</th>
                 <th className="px-3 py-2 text-right">{enteteTri("actions", "Actions")}</th>
               </tr>
+              <FiltresColonnes />
             </thead>
             <tbody>
               {lignes.length === 0 && (
@@ -362,7 +403,9 @@ export async function ListeComptes({
                         </span>
                       )}
                       <span className="block text-xs text-foreground/60">
-                        {[c.email, [c.code_postal, c.ville].filter(Boolean).join(" ")].filter(Boolean).join(" · ")}
+                        {c.email && <EmailCopiable email={c.email} />}
+                        {c.email && (c.code_postal || c.ville) ? " · " : ""}
+                        {[c.code_postal, c.ville].filter(Boolean).join(" ")}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 align-top tabular-nums">{formatDate(c.created_at)}</td>

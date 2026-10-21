@@ -99,9 +99,11 @@ export interface DemandeAvenant {
   objets: ObjetAvenant[];
   date_effet: string | null;
   description: string;
-  statut: "envoyee" | "traitee";
+  statut: "envoyee" | "traitee" | "close";
   created_at: string;
   traitee_le: string | null;
+  /** Brique 7d : commentaire de l'administration à la clôture. */
+  reponse_admin?: string | null;
 }
 
 /** « 20 h par semaine », « 86,67 h par mois ». */
@@ -287,11 +289,14 @@ export interface Declaration {
   periode: string; // AAMM
   heures: number | null;
   commentaire: string;
-  statut: "envoyee" | "traitee" | "modification";
+  statut: "envoyee" | "traitee" | "modification" | "close";
   envoyee_le: string;
   traitee_le: string | null;
   motif_modification?: string | null;
   modification_demandee_le?: string | null;
+  /** Brique 7d : réponse de l'administration quand elle clôt la demande. */
+  reponse_admin?: string | null;
+  cloturee_le?: string | null;
 }
 
 const MOIS = [

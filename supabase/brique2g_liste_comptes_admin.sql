@@ -3,8 +3,8 @@
 -- de comptes
 --
 -- À exécuter UNE FOIS dans Supabase > SQL Editor, APRÈS brique3c
--- (peut être relancé sans danger ; à relancer après la mise à jour du
--- 21/10 qui ajoute le tarif et les dates d'abonnement à la vue).
+-- (peut être relancé sans danger ; à relancer après chaque mise à jour :
+-- 21/10 tarif et dates d'abonnement, puis 21/10 filtres par colonne).
 --
 -- 1. Référence client (C00001, C00002…) : attribuée une fois pour toutes,
 --    visible de l'administrateur seulement. Elle départage les homonymes au
@@ -85,6 +85,10 @@ select
   p.created_at,
   -- Tri alphabétique sans tenir compte des accents ni des majuscules.
   public.texte_recherche(trim(p.nom) || ' ' || trim(p.prenom)) as nom_tri,
+  -- Filtres par colonne de la liste (mise à jour du 21/10) : texte simplifié
+  -- de la colonne Employeur (nom, prénom, email, ville) et des salariés.
+  public.texte_recherche(concat_ws(' ', p.prenom, p.nom, p.email, p.code_postal, p.ville)) as employeur_tri,
+  public.texte_recherche(g.salaries) as salaries_tri,
   abo.statut          as abonnement_statut,
   abo.quota_gestions  as quota,
   abo.tarif_mensuel   as tarif_mensuel,

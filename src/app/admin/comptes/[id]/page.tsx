@@ -3,6 +3,8 @@ import { DocumentsGestion } from "./DocumentsGestion";
 import { RecapGestion } from "@/components/RecapGestion";
 import { ContratAdmin } from "./ContratAdmin";
 import { DepotDocument } from "./DepotDocument";
+import { CloreDemande } from "./CloreDemande";
+import { EmailCopiable } from "@/components/EmailCopiable";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { IconePoubelle } from "@/components/IconePoubelle";
@@ -30,6 +32,8 @@ import {
   modifierAbonnement,
   resilierAbonnement,
   marquerAvenantTraite,
+  cloreAvenant,
+  cloreDeclaration,
   renvoyerGestion,
   rouvrirGestion,
   validerGestion,
@@ -112,7 +116,7 @@ export default async function FicheComptePage({
       .order("periode", { ascending: false, nullsFirst: false }),
     supabase
       .from("declarations_mensuelles")
-      .select("id, gestion_id, periode, heures, commentaire, statut, envoyee_le, traitee_le, motif_modification, modification_demandee_le")
+      .select("*")
       .eq("employeur_id", id)
       .order("periode", { ascending: false }),
     // Demandes d'avenant (brique 3b ; sans le script, liste vide).
@@ -173,8 +177,8 @@ export default async function FicheComptePage({
               {compte.reference_client}
             </span>
           )}
-          {compte.email} · rôle : {compte.role} · inscrit le{" "}
-          {formatDate(compte.created_at)}
+          {compte.email && <EmailCopiable email={compte.email} />}
+          {compte.email ? " · " : ""}inscrit le {formatDate(compte.created_at)}
         </p>
         <p className="mt-1 text-sm text-foreground/70">
           {[compte.telephone, compte.adresse, `${compte.code_postal} ${compte.ville}`.trim()]
@@ -584,16 +588,26 @@ Rouvrir
                                       >
                                         Déposer l&apos;avenant
                                       </Link>
-                                      <form action={marquerAvenantTraite}>
-                                        <input type="hidden" name="compte_id" value={id} />
-                                        <input type="hidden" name="demande_id" value={a.id} />
-                                        <BoutonEnvoi className="text-xs text-brand-teal underline" enCours="…">
-                                          Marquer comme traitée sans document
-                                        </BoutonEnvoi>
-                                      </form>
+                                      <CloreDemande
+                                        action={marquerAvenantTraite}
+                                        champs={{ compte_id: id, demande_id: a.id }}
+                                        libelle="Marquer comme traitée sans document…"
+                                        bouton="Marquer comme traitée"
+                                        aide="La demande est faite (ex. avenant envoyé par courrier) : l'abonné est prévenu."
+                                      />
+                                      <CloreDemande
+                                        action={cloreAvenant}
+                                        champs={{ compte_id: id, demande_id: a.id }}
+                                        libelle="Clore sans avenant…"
+                                        bouton="Clore la demande"
+                                        aide="Aucun avenant ne sera établi (demande sans objet, réglée par téléphone…). L'abonné est prévenu, avec votre commentaire."
+                                      />
                                     </>
                                   ) : (
-                                    <span className="text-foreground/50">traitée le {formatDate(a.traitee_le)}</span>
+                                    <span className="text-foreground/50">
+                                      {a.statut === "close" ? "close sans avenant" : "traitée"} le {formatDate(a.traitee_le)}
+                                      {a.reponse_admin ? ` — « ${a.reponse_admin} »` : ""}
+                                    </span>
                                   )}
                                 </span>
                               </li>
@@ -652,20 +666,36 @@ Rouvrir
                                   <span className="w-32 shrink-0">{libelleMois(d.periode)}</span>
                                   <span className="w-20 shrink-0 tabular-nums">{formatHeures(d.heures)}</span>
                                   <span className="min-w-0 flex-1 text-foreground/70">{d.commentaire || "—"}</span>
-                                  <span className={`shrink-0 text-xs ${d.statut !== "traitee" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
+                                  <span className={`shrink-0 text-xs ${d.statut === "envoyee" || d.statut === "modification" ? "font-semibold text-brand-violet" : "text-foreground/50"}`}>
                                     {d.statut === "envoyee"
                                       ? `à traiter (envoyée le ${formatDate(d.envoyee_le)})`
                                       : d.statut === "modification"
                                         ? `modification demandée le ${formatDate(d.modification_demandee_le)} : « ${d.motif_modification ?? ""} »`
-                                        : `traitée le ${formatDate(d.traitee_le)}`}
+                                        : d.statut === "close"
+                                          ? `close sans bulletin le ${formatDate(d.cloturee_le)}`
+                                          : `traitée le ${formatDate(d.traitee_le)}${d.cloturee_le ? ` · modification refusée le ${formatDate(d.cloturee_le)}` : ""}`}
+                                    {d.reponse_admin ? ` — « ${d.reponse_admin} »` : ""}
                                   </span>
-                                  {d.statut !== "traitee" && (
-                                    <Link
-                                      href={`/admin/comptes/${id}?depot=${g.id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${g.id}`}
-                                      className="btn btn-primaire btn-sm shrink-0"
-                                    >
-                                      {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
-                                    </Link>
+                                  {(d.statut === "envoyee" || d.statut === "modification") && (
+                                    <span className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+                                      <Link
+                                        href={`/admin/comptes/${id}?depot=${g.id}&periode=${d.periode}${d.statut === "modification" ? "&remplacer=1" : ""}#depot-${g.id}`}
+                                        className="btn btn-primaire btn-sm shrink-0"
+                                      >
+                                        {d.statut === "modification" ? "Déposer le bulletin corrigé" : "Déposer le bulletin"}
+                                      </Link>
+                                      <CloreDemande
+                                        action={cloreDeclaration}
+                                        champs={{ compte_id: id, declaration_id: d.id }}
+                                        libelle={d.statut === "modification" ? "Refuser la modification…" : "Clore sans bulletin…"}
+                                        bouton={d.statut === "modification" ? "Refuser la modification" : "Clore la déclaration"}
+                                        aide={
+                                          d.statut === "modification"
+                                            ? "Le bulletin en ligne est maintenu tel quel. L'abonné est prévenu, avec votre commentaire."
+                                            : "Aucun bulletin ne sera établi pour ce mois (doublon, mois sans travail…). L'abonné est prévenu, avec votre commentaire."
+                                        }
+                                      />
+                                    </span>
                                   )}
                                 </li>
                               ))}

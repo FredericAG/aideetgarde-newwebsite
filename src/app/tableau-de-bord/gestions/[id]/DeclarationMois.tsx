@@ -51,7 +51,8 @@ export function DeclarationMois({
   const bulletinId = bulletins[periode];
   const bulletinEnLigne = Boolean(bulletinId);
   const modificationEnCours = existante?.statut === "modification";
-  const formulaireOuvert = !bulletinEnLigne && !modificationEnCours;
+  const close = existante?.statut === "close";
+  const formulaireOuvert = !bulletinEnLigne && !modificationEnCours && !close;
 
   return (
     <section
@@ -93,6 +94,17 @@ export function DeclarationMois({
         </p>
       )}
 
+      {/* Déclaration close par Aide & Garde, sans bulletin */}
+      {close && !bulletinEnLigne && (
+        <p className="mt-4 rounded-md border-l-4 border-brand-violet bg-white p-3 text-sm">
+          <strong className="text-brand-violet">Déclaration close</strong> par Aide &amp; Garde le{" "}
+          {formatDate(existante?.cloturee_le)} : pas de bulletin pour {libelleMois(periode)}.
+          {existante?.reponse_admin && (
+            <span className="mt-1 block text-foreground/80">« {existante.reponse_admin} »</span>
+          )}
+        </p>
+      )}
+
       {/* Bulletin en ligne : possibilité de demander une modification */}
       {bulletinEnLigne && !modificationEnCours && (
         <div className="mt-4 flex flex-col gap-3">
@@ -100,9 +112,18 @@ export function DeclarationMois({
             Le bulletin de {libelleMois(periode)} est en ligne
             {existante?.traitee_le ? ` (établi le ${formatDate(existante.traitee_le)})` : ""}.
           </p>
+          {existante?.cloturee_le && (
+            <p className="rounded-md border-l-4 border-brand-violet bg-white p-3 text-sm">
+              <strong className="text-brand-violet">Réponse à votre demande de modification</strong>{" "}
+              ({formatDate(existante.cloturee_le)}) : le bulletin est maintenu sans changement.
+              {existante.reponse_admin && (
+                <span className="mt-1 block text-foreground/80">« {existante.reponse_admin} »</span>
+              )}
+            </p>
+          )}
           <LienTelechargement
             documentId={bulletinId}
-            className="btn btn-primaire btn-lg w-full sm:w-auto sm:self-start"
+            className="btn btn-primaire w-full sm:w-auto sm:self-start"
           >
             ⬇ Télécharger le bulletin de {libelleMois(periode)}
           </LienTelechargement>
@@ -110,7 +131,7 @@ export function DeclarationMois({
             <button
               type="button"
               onClick={() => setDemandeOuverte(true)}
-              className="btn btn-secondaire btn-lg w-full sm:w-auto sm:self-start"
+              className="btn btn-secondaire btn-sm w-full sm:w-auto sm:self-start"
             >
               Demander une modification du bulletin
             </button>
@@ -134,14 +155,14 @@ export function DeclarationMois({
                 <button
                   type="submit"
                   disabled={enCoursModif}
-                  className="btn btn-primaire btn-lg w-full sm:w-auto"
+                  className="btn btn-primaire btn-sm w-full sm:w-auto"
                 >
                   {enCoursModif ? "Envoi en cours…" : "Envoyer la demande"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setDemandeOuverte(false)}
-                  className="btn btn-secondaire btn-lg w-full sm:w-auto"
+                  className="btn btn-secondaire btn-sm w-full sm:w-auto"
                 >
                   Annuler
                 </button>
@@ -202,7 +223,7 @@ export function DeclarationMois({
           <button
             type="submit"
             disabled={enCours}
-            className="btn btn-primaire btn-lg w-full sm:w-auto sm:self-start"
+            className="btn btn-primaire w-full sm:w-auto sm:self-start"
           >
             {enCours
               ? "Envoi en cours…"

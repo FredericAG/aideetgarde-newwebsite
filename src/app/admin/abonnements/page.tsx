@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatDate, formatEuros } from "@/lib/data";
 import { configSystempay } from "@/lib/systempay";
 import { BoutonTraitement } from "./BoutonTraitement";
+import { EmailCopiable } from "@/components/EmailCopiable";
 
 export const metadata = { title: "Abonnements — Administration Aide & Garde" };
 
@@ -201,9 +202,9 @@ export default async function AbonnementsPage({
               formatEuros(n(encaisse?.encaisse)),
             ],
           ].map(([dt, dd]) => (
-            <div key={dt} className="carte p-4">
-              <dt className="text-xs text-foreground/60">{dt}</dt>
-              <dd className="mt-1 text-xl font-bold text-brand-teal">{dd}</dd>
+            <div key={dt} className="carte border-l-4 border-brand-violet p-4">
+              <dt className="text-sm font-bold text-foreground/85">{dt}</dt>
+              <dd className="mt-1 text-2xl font-bold text-brand-teal">{dd}</dd>
             </div>
           ))}
         </dl>
@@ -328,7 +329,7 @@ export default async function AbonnementsPage({
 
         <div className="mt-4 overflow-x-auto rounded-xl border border-brand-gray/25">
           <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
-            <thead className="bg-[var(--carte)] text-brand-teal">
+            <thead className="entete-liste">
               <tr>
                 <th className="px-3 py-2">Réf.</th>
                 <th className="px-3 py-2">Abonné</th>
@@ -367,7 +368,11 @@ export default async function AbonnementsPage({
                       >
                         {`${a.prenom} ${a.nom.toUpperCase()}`.trim() || "(sans nom)"}
                       </Link>
-                      <span className="block text-xs text-foreground/60">{a.email}</span>
+                      {a.email && (
+                        <span className="block text-xs text-foreground/60">
+                          <EmailCopiable email={a.email} />
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 tabular-nums">
                       {a.abonnement_statut === "resilie"

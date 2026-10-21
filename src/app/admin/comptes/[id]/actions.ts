@@ -559,9 +559,14 @@ export async function renvoyerGestion(fd: FormData) {
 export async function marquerAvenantTraite(fd: FormData) {
   const { supabase, compteId } = await contexte(fd);
   const demandeId = texte(fd, "demande_id");
+  const commentaire = texte(fd, "commentaire").slice(0, 2000);
   const { data, error } = await supabase
     .from("demandes_avenant")
-    .update({ statut: "traitee", traitee_le: new Date().toISOString() })
+    .update({
+      statut: "traitee",
+      traitee_le: new Date().toISOString(),
+      ...(commentaire ? { reponse_admin: commentaire } : {}),
+    })
     .eq("id", demandeId)
     .eq("employeur_id", compteId)
     .eq("statut", "envoyee")
@@ -584,12 +589,131 @@ export async function marquerAvenantTraite(fd: FormData) {
       titre: "Demande d'avenant traitée",
       paragraphes: [
         "Aide & Garde a traité votre demande de modification du contrat de travail.",
+        ...(commentaire ? [`Notre réponse : « ${commentaire} »`] : []),
         "Retrouvez les informations à jour dans votre espace.",
       ],
       bouton: "Ouvrir la gestion",
     },
   );
   retour(compteId, "ok", `Demande d'avenant marquée comme traitée — ${bilan}.`);
+}
+
+/**
+ * Clore une demande d'avenant SANS avenant (demande sans objet, réglée par
+ * téléphone…), avec un commentaire facultatif pour l'abonné.
+ */
+export async function cloreAvenant(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const demandeId = texte(fd, "demande_id");
+  const commentaire = texte(fd, "commentaire").slice(0, 2000);
+  const { data, error } = await supabase
+    .from("demandes_avenant")
+    .update({
+      statut: "close",
+      traitee_le: new Date().toISOString(),
+      reponse_admin: commentaire || null,
+    })
+    .eq("id", demandeId)
+    .eq("employeur_id", compteId)
+    .eq("statut", "envoyee")
+    .select("gestion_id");
+  if (error) {
+    retour(
+      compteId,
+      "erreur",
+      error.message.includes("statut_check") || error.message.includes("reponse_admin")
+        ? "Exécutez d'abord le script supabase/brique7d_cloture_demandes.sql."
+        : messageErreur(error),
+    );
+  }
+  if (!data?.length) retour(compteId, "erreur", "Cette demande est déjà traitée.");
+
+  const gestionId = data[0].gestion_id as string;
+  const bilan = await prevenirAbonne(
+    supabase,
+    compteId,
+    {
+      title: "Réponse à votre demande d'avenant",
+      body: commentaire ? commentaire.slice(0, 120) : "Aide & Garde a répondu à votre demande.",
+      url: `/tableau-de-bord/gestions/${gestionId}`,
+      tag: `avenant-${demandeId}`,
+    },
+    {
+      sujet: "Réponse à votre demande d'avenant",
+      titre: "Votre demande d'avenant est close",
+      paragraphes: [
+        "Aide & Garde a examiné votre demande de modification du contrat de travail : elle ne donne pas lieu à un avenant.",
+        ...(commentaire ? [`Notre réponse : « ${commentaire} »`] : []),
+        "Pour toute question, répondez simplement à cet email ou appelez-nous.",
+      ],
+      bouton: "Ouvrir la gestion",
+    },
+  );
+  retour(compteId, "ok", `Demande d'avenant close — ${bilan}.`);
+}
+
+/**
+ * Clore une déclaration du mois sans bulletin, ou refuser une demande de
+ * modification de bulletin (le bulletin en ligne reste le bon), avec un
+ * commentaire facultatif pour l'abonné.
+ */
+export async function cloreDeclaration(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const declarationId = texte(fd, "declaration_id");
+  const commentaire = texte(fd, "commentaire").slice(0, 2000);
+  if (!isUuid(declarationId)) retour(compteId, "erreur", "Demande introuvable.");
+
+  const { data: decl } = await supabase
+    .from("declarations_mensuelles")
+    .select("gestion_id, periode, employeur_id")
+    .eq("id", declarationId)
+    .maybeSingle();
+  if (!decl || decl.employeur_id !== compteId) retour(compteId, "erreur", "Demande introuvable.");
+
+  const { data: avant, error } = await supabase.rpc("clore_declaration", {
+    p_id: declarationId,
+    p_commentaire: commentaire,
+  });
+  if (error) {
+    retour(
+      compteId,
+      "erreur",
+      error.message.includes("clore_declaration")
+        ? "Exécutez d'abord le script supabase/brique7d_cloture_demandes.sql."
+        : error.message,
+    );
+  }
+  const refusModif = avant === "modification";
+  const mois = libelleMois(decl.periode as string);
+  const bilan = await prevenirAbonne(
+    supabase,
+    compteId,
+    {
+      title: refusModif ? `Bulletin de ${mois} : réponse` : `Déclaration de ${mois} close`,
+      body: commentaire ? commentaire.slice(0, 120) : "Aide & Garde a répondu à votre demande.",
+      url: `/tableau-de-bord/gestions/${decl.gestion_id}#declaration`,
+      tag: `declaration-${declarationId}`,
+    },
+    {
+      sujet: refusModif
+        ? `Votre demande de modification du bulletin de ${mois}`
+        : `Votre déclaration de ${mois}`,
+      titre: refusModif ? "Réponse à votre demande de modification" : "Déclaration close",
+      paragraphes: [
+        refusModif
+          ? `Aide & Garde a examiné votre demande de modification du bulletin de ${mois} : le bulletin en ligne est maintenu sans changement.`
+          : `Aide & Garde a clos votre déclaration de ${mois} sans établir de bulletin.`,
+        ...(commentaire ? [`Notre réponse : « ${commentaire} »`] : []),
+        "Pour toute question, répondez simplement à cet email ou appelez-nous.",
+      ],
+      bouton: "Ouvrir la gestion",
+    },
+  );
+  retour(
+    compteId,
+    "ok",
+    `${refusModif ? "Demande de modification refusée" : "Déclaration close"} — ${bilan}.`,
+  );
 }
 
 /** Mise à jour des informations du contrat par l'administrateur (avenant…). */

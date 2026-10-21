@@ -150,48 +150,70 @@ export default async function TableauDeBordPage({
         <NotificationsPush compact />
 
         {/* --- Abonnement --- */}
-        <section className="carte mt-8 p-5">
-          <h2 className="font-bold text-brand-teal">Mon abonnement</h2>
+        <section className="mt-8 overflow-hidden rounded-xl border border-brand-teal/25 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-brand-teal px-4 py-2.5 text-white">
+            <h2 className="flex items-center gap-2 font-bold">
+              Mon abonnement
+              {abonnement && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                    abonnement.statut === "actif" ? "bg-white text-brand-teal" : "bg-red-100 text-red-700"
+                  }`}
+                >
+                  {abonnement.statut === "actif" ? "Actif" : `Résilié le ${formatDate(abonnement.date_fin)}`}
+                </span>
+              )}
+            </h2>
+            {abonnement?.statut === "actif" ? (
+              <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
+                Gérer mon abonnement
+              </Link>
+            ) : (
+              <Link href="/tableau-de-bord/abonnement" className="btn btn-primaire btn-sm">
+                Souscrire un abonnement
+              </Link>
+            )}
+          </div>
+
           {abonnement ? (
-            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-foreground/60">Statut</dt>
-                <dd className="font-medium">
-                  {abonnement.statut === "actif" ? (
-                    <span className="text-brand-teal">Actif</span>
-                  ) : (
-                    <span className="text-red-600">
-                      Résilié le {formatDate(abonnement.date_fin)}
-                    </span>
-                  )}
+            <dl className="grid grid-cols-3 divide-x divide-brand-gray/15 text-center">
+              <div className="px-2 py-3">
+                <dt className="text-xs font-bold text-foreground/70">Salariés suivis</dt>
+                <dd className="mt-0.5 text-base font-bold text-brand-teal tabular-nums sm:text-xl">
+                  {placesUtilisees} <span className="text-sm text-foreground/60">/ {abonnement.quota_gestions}</span>
                 </dd>
+                <div
+                  className="mx-auto mt-1.5 h-1.5 w-16 overflow-hidden rounded-full bg-brand-gray/20"
+                  aria-hidden="true"
+                >
+                  <div
+                    className={`h-full rounded-full ${placesUtilisees > abonnement.quota_gestions ? "bg-red-600" : "bg-brand-violet"}`}
+                    style={{ width: `${Math.min(100, (placesUtilisees / Math.max(1, abonnement.quota_gestions)) * 100)}%` }}
+                  />
+                </div>
               </div>
-              <div>
-                <dt className="text-foreground/60">Places utilisées</dt>
-                <dd className="font-medium">
-                  {placesUtilisees} / {abonnement.quota_gestions}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-foreground/60">Tarif mensuel</dt>
-                <dd className="font-medium">
+              <div className="px-2 py-3">
+                <dt className="text-xs font-bold text-foreground/70">Tarif mensuel</dt>
+                <dd className="mt-0.5 text-base font-bold text-brand-teal tabular-nums sm:text-xl">
                   {formatEuros(abonnement.tarif_mensuel)}
                 </dd>
               </div>
-              <div>
-                <dt className="text-foreground/60">Depuis le</dt>
-                <dd className="font-medium">
+              <div className="px-2 py-3">
+                <dt className="text-xs font-bold text-foreground/70">Depuis le</dt>
+                <dd className="mt-0.5 text-base font-bold text-brand-teal tabular-nums sm:text-xl">
                   {formatDate(abonnement.date_debut)}
                 </dd>
               </div>
             </dl>
           ) : (
-            <p className="mt-3 text-sm text-foreground/70">
-              Vous n&apos;avez pas encore d&apos;abonnement.
+            <p className="px-4 py-3 text-sm text-foreground/70">
+              Vous n&apos;avez pas encore d&apos;abonnement : choisissez votre formule pour confier
+              la paie de vos salariés à Aide &amp; Garde.
             </p>
           )}
+
           {abonnement?.statut === "actif" && abonnement.statut_paiement && abonnement.statut_paiement !== "a_jour" && (
-            <p className="mt-4 rounded-lg border-2 border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            <p className="border-t border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700">
               <strong>
                 {abonnement.statut_paiement === "impaye" ? "Échéance impayée" : "Prélèvement refusé"}
               </strong>{" "}
@@ -201,19 +223,8 @@ export default async function TableauDeBordPage({
               </Link>
             </p>
           )}
-          <p className="mt-4">
-            {abonnement?.statut === "actif" ? (
-              <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
-                Gérer mon abonnement
-              </Link>
-            ) : (
-              <Link href="/tableau-de-bord/abonnement" className="btn btn-primaire">
-                Souscrire un abonnement
-              </Link>
-            )}
-          </p>
           {abonnement?.statut === "actif" && placesUtilisees >= abonnement.quota_gestions && (
-            <p className="mt-4 rounded-lg border-2 border-brand-jaune bg-white p-3 text-sm">
+            <p className="border-t border-brand-jaune bg-brand-jaune/25 px-4 py-2.5 text-sm">
               {placesUtilisees > abonnement.quota_gestions ? (
                 <>
                   <strong>Vous dépassez votre abonnement</strong> : {placesUtilisees} gestions en
@@ -223,8 +234,8 @@ export default async function TableauDeBordPage({
                 </>
               ) : (
                 <>
-                  <strong>Votre abonnement est complet</strong> ({placesUtilisees} /{" "}
-                  {abonnement.quota_gestions}). Pour ajouter un salarié, terminez une gestion ou{" "}
+                  <strong>Abonnement complet</strong> : pour ajouter un salarié, terminez une
+                  gestion ou{" "}
                   <Link href="/aide" className="text-brand-teal underline">
                     contactez-nous
                   </Link>{" "}
@@ -288,7 +299,7 @@ export default async function TableauDeBordPage({
           ) : (
             <div className="mt-3 overflow-hidden rounded-xl border border-brand-gray/25">
               <table className="tableau-adaptatif">
-                <thead className="bg-[var(--carte)]">
+                <thead className="entete-teal">
                   <tr>
                     <th scope="col">Salarié</th>
                     <th scope="col">Emploi</th>
@@ -351,6 +362,10 @@ export default async function TableauDeBordPage({
                             <span className="font-bold text-brand-violet">Correction en cours</span>
                           ) : statut === "envoyee" ? (
                             <span className="text-foreground/80">Déclaration envoyée</span>
+                          ) : statut === "close" ? (
+                            <Link href={`/tableau-de-bord/gestions/${g.id}#declaration`} className="text-foreground/70 underline">
+                              Close par Aide &amp; Garde
+                            </Link>
                           ) : (
                             <Link
                               href={`/tableau-de-bord/gestions/${g.id}#declaration`}

@@ -6,7 +6,7 @@ import { TYPES_DOCUMENT, libelleMois, type DocumentRow } from "@/lib/data";
 
 /**
  * Bandeau des documents que l'abonné n'a pas encore téléchargés, en tête de
- * page, avec un gros bouton par document (facile à toucher sur téléphone).
+ * page : une ligne compacte par document, avec son bouton de téléchargement.
  * Un bouton disparaît dès le clic ; le bandeau entier disparaît avec le
  * dernier (sans attendre d'actualiser la page).
  */
@@ -28,32 +28,37 @@ export function NouveauxDocuments({
     <section
       aria-label="Nouveaux documents"
       aria-live="polite"
-      className="mt-6 rounded-xl border-2 border-brand-jaune bg-brand-jaune/25 p-4 sm:p-5"
+      className="mt-6 overflow-hidden rounded-xl border border-brand-jaune bg-white"
     >
-      <h2 className="font-bold text-brand-violet">
-        {nouveaux.length === 1
-          ? "Un nouveau document est disponible"
-          : `${nouveaux.length} nouveaux documents sont disponibles`}
+      <h2 className="flex items-center gap-2 bg-brand-jaune px-4 py-2 text-sm font-bold text-brand-black">
+        <span
+          aria-hidden="true"
+          className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-violet px-1.5 text-xs text-white"
+        >
+          {nouveaux.length}
+        </span>
+        {nouveaux.length === 1 ? "Nouveau document disponible" : "Nouveaux documents disponibles"}
       </h2>
-      <ul className="mt-3 flex flex-col gap-3">
+      <ul className="liste-alternee divide-y divide-brand-gray/15">
         {nouveaux.map((d) => {
           const libelle = TYPES_DOCUMENT[d.type_document] ?? "Document";
           const salarie = salaries?.[d.id];
           return (
-            <li key={d.id} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+            <li key={d.id} className="flex items-center gap-3 px-4 py-2 text-sm">
+              <span className="min-w-0 flex-1">
+                <span className="font-bold text-brand-teal">
+                  {libelle}
+                  {d.periode ? ` de ${libelleMois(d.periode)}` : ""}
+                </span>
+                {salarie && <span className="block text-xs text-foreground/60 sm:ml-2 sm:inline">{salarie}</span>}
+              </span>
               <LienTelechargement
                 documentId={d.id}
                 onTelecharge={() => setTelecharges((t) => [...t, d.id])}
-                className="btn btn-primaire btn-lg w-full sm:w-auto"
+                className="btn btn-primaire btn-sm shrink-0"
               >
-                ⬇ Télécharger : {libelle}
-                {d.periode ? ` de ${libelleMois(d.periode)}` : ""}
+                ⬇ Télécharger
               </LienTelechargement>
-              {salarie && (
-                <span className="text-center text-sm text-foreground/70 sm:text-left">
-                  {salarie}
-                </span>
-              )}
             </li>
           );
         })}

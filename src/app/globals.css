@@ -184,6 +184,25 @@ button:disabled {
     background: var(--cat-autre);
   }
 
+  /*
+   * Ligne de titres des tableaux de l'administration : violet de la charte,
+   * texte blanc en gras (comme les tableaux de documents de l'abonné), et
+   * ligne de filtres par colonne juste dessous, en violet très clair.
+   */
+  .entete-liste {
+    background: var(--brand-violet);
+  }
+  .entete-liste th {
+    color: #fff;
+    font-weight: 700;
+  }
+  .entete-liste th a {
+    color: inherit;
+  }
+  .entete-liste tr.filtres-colonnes {
+    background: color-mix(in srgb, var(--brand-violet) 14%, #fff);
+  }
+
   /* Pastille « Nouveau » : jaune de la marque, bien visible. */
   .pastille-nouveau {
     display: inline-block;
@@ -293,6 +312,13 @@ button:disabled {
   .tableau-adaptatif tbody tr:nth-child(even) {
     background: #f7f7f7;
   }
+  /* Variante : ligne de titres turquoise de la charte, texte blanc. */
+  .tableau-adaptatif thead.entete-teal {
+    background: var(--brand-teal);
+  }
+  .tableau-adaptatif thead.entete-teal th {
+    color: #fff;
+  }
   @media (max-width: 639px) {
     /* Les intitulés sont répétés dans chaque fiche (data-label). */
     .tableau-adaptatif thead {
@@ -331,4 +357,111 @@ button:disabled {
       text-align: left;
     }
   }
+}
+
+/*
+ * ===========================================================================
+ * Thème sombre de l'administration (demande de Frédéric du 21/10 : « comme
+ * initialement »). Activé seulement quand l'en-tête de l'administrateur est
+ * affiché (repère .theme-admin dans SiteHeader) : l'espace abonné reste sur
+ * fond blanc. Fond #14232b et texte #f4f1fb : les couleurs du tout premier
+ * thème sombre du site.
+ *
+ * Ces règles sont volontairement hors des « couches » Tailwind : elles
+ * l'emportent ainsi sur les classes utilitaires (bg-white, text-red-700…),
+ * sans avoir à modifier chaque page.
+ * ===========================================================================
+ */
+:root:has(.theme-admin) {
+  color-scheme: dark;
+  --background: #14232b;
+  --foreground: #f4f1fb;
+  --carte: #1d3440;
+  --surface: #1a2e39;
+  --ligne-alternee: #182a34;
+}
+:root:has(.theme-admin) header {
+  background: #0f1c23 !important;
+  border-color: rgb(255 255 255 / 0.08) !important;
+}
+/* Le logo garde ses couleurs sur un petit fond blanc. */
+:root:has(.theme-admin) header img[alt="Aide & Garde"] {
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 3px 8px;
+  box-sizing: content-box;
+}
+:root:has(.theme-admin) .bg-white {
+  background-color: var(--surface);
+}
+:root:has(.theme-admin) [class~="has-[>details[open]]:bg-white"]:has(> details[open]) {
+  background-color: var(--surface);
+}
+:root:has(.theme-admin) .bg-brand-jaune\/25 {
+  background-color: rgb(246 237 120 / 0.1);
+}
+:root:has(.theme-admin) .liste-alternee > li:nth-child(even),
+:root:has(.theme-admin) .tableau-documents tbody tr:nth-child(even),
+:root:has(.theme-admin) .tableau-adaptatif tbody tr:nth-child(even),
+:root:has(.theme-admin) .even\:bg-\[\#f7f7f7\]:nth-child(even) {
+  background: var(--ligne-alternee);
+}
+:root:has(.theme-admin) .entete-liste tr.filtres-colonnes {
+  background: #2a2747;
+}
+/* Textes de couleur : versions claires des couleurs de la charte. */
+:root:has(.theme-admin) .text-brand-teal {
+  color: #8cc7cf;
+}
+:root:has(.theme-admin) .text-brand-violet {
+  color: #c4bbf2;
+}
+:root:has(.theme-admin) .text-brand-black {
+  color: var(--foreground);
+}
+:root:has(.theme-admin) .bg-brand-jaune.text-brand-black,
+:root:has(.theme-admin) .bg-brand-jaune .text-brand-black,
+:root:has(.theme-admin) .pastille-nouveau {
+  color: #1c2e3e;
+}
+:root:has(.theme-admin) .bg-brand-sky-tint\/40 {
+  background-color: #c1e0f8;
+  color: #1c2e3e;
+}
+:root:has(.theme-admin) .text-red-700,
+:root:has(.theme-admin) .text-red-600 {
+  color: #fca5a5;
+}
+:root:has(.theme-admin) .bg-red-50,
+:root:has(.theme-admin) .hover\:bg-red-50:hover {
+  background-color: rgb(220 38 38 / 0.16);
+}
+:root:has(.theme-admin) .border-red-300 {
+  border-color: rgb(248 113 113 / 0.6);
+}
+/* Boutons */
+:root:has(.theme-admin) .btn-secondaire {
+  background: #1f3846;
+  color: #cfe6ea;
+}
+:root:has(.theme-admin) .btn-secondaire:hover:not(:disabled) {
+  background: #2a4757;
+}
+:root:has(.theme-admin) .btn-danger {
+  background: transparent;
+  color: #fca5a5;
+  border-color: rgb(248 113 113 / 0.6);
+}
+:root:has(.theme-admin) .btn-danger:hover:not(:disabled) {
+  background: rgb(220 38 38 / 0.16);
+}
+/* Champs de saisie */
+:root:has(.theme-admin) input:not([type="checkbox"]):not([type="radio"]),
+:root:has(.theme-admin) select,
+:root:has(.theme-admin) textarea {
+  background-color: var(--surface);
+  color: var(--foreground);
+}
+:root:has(.theme-admin) ::placeholder {
+  color: rgb(244 241 251 / 0.45);
 }

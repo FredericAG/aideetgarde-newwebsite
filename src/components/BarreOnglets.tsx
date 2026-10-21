@@ -67,8 +67,9 @@ const icones = {
 
 /**
  * Barre d'onglets fixée en bas de l'écran, sur téléphone uniquement (comme
- * dans les applications installées) : toujours sous le pouce, rubrique en
- * cours en violet. Remplace le menu « ☰ » sur téléphone.
+ * dans les applications installées) : toujours sous le pouce. Fond violet
+ * de la charte bordé de jaune, bien distinct du contenu ; rubrique en cours
+ * sur pastille blanche. Remplace le menu « ☰ » sur téléphone.
  */
 export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; actionsAdmin?: number }) {
   const chemin = usePathname();
@@ -126,7 +127,7 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-gray/20 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t-4 border-brand-jaune bg-brand-violet pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_12px_rgba(0,0,0,0.18)] sm:hidden"
     >
       <ul className="grid grid-cols-4">
         {onglets.map((o) => {
@@ -136,10 +137,8 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
               <Link
                 href={o.href}
                 aria-current={actif ? "page" : undefined}
-                className={`relative flex flex-col items-center gap-0.5 pb-2 pt-2.5 text-xs font-bold ${
-                  actif
-                    ? "text-brand-violet shadow-[inset_0_3px_0_var(--brand-violet)]"
-                    : "text-brand-teal/80"
+                className={`relative mx-1 my-1 flex flex-col items-center gap-0.5 rounded-xl pb-1.5 pt-2 text-xs font-bold ${
+                  actif ? "bg-[#fff] text-[#685c9b]" : "text-white/85"
                 }`}
               >
                 {o.icone}
