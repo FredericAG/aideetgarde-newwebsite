@@ -4,6 +4,8 @@ Objectif : vérifier, scénario par scénario, que le nouveau site fait au moins
 ce que fait l'ancien (Rubedo) pour les fonctions de ces deux briques, et noter
 précisément ce qui est volontairement différent ou reporté.
 
+**Fiche interactive (depuis le 22/10)** : cochez les scénarios directement sur la page « Recette Aide & Garde » (https://claude.ai/artifact/AoiGVx7CEdjRSCv7feVHLQ), ou signalez un problème en une phrase ; Claude lit ces coches à chaque échange. La colonne « Statut » ci-dessous n'est plus tenue à jour : la page fait foi. Elle est régénérée à partir de ce fichier (`outils/recette-interactive/generer.py`).
+
 **Comment l'utiliser** : suivre les scénarios dans l'ordre sur l'adresse de
 prévisualisation Vercel de la branche. Pour chaque ligne, cocher
 OK / KO / Écart accepté et noter une remarque. Utiliser **deux navigateurs** (ou
@@ -475,4 +477,23 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | H.3 | Ouvrir un thème | Fil d'Ariane, bandeau « en cours de relecture », questions dépliables, tableaux lisibles sur téléphone | |
 | H.4 | Documents d'un salarié | Liens « Comprendre mon bulletin » et « Les documents de fin de contrat » au-dessus des catégories | |
 | H.5 | Relecture du contenu | Cocher `docs/centre-aide-relecture.md`, puis demander la publication (fin du bandeau, indexation) | |
+
+## Brique 4 — Dépôt en masse des PDF (22/10)
+
+**Préparation** : exécuter `supabase/brique4_depot_en_masse.sql` (après brique2h) **avant** le Commit + Push. Préparer quelques PDF fictifs nommés à la norme pour 2 ou 3 gestions de test (référence AG visible sur la fiche du compte), par exemple `AG00012_DUPONT_MARTIN_BP_2610.pdf`.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| M.1 | Admin : onglet « Dépôt » (ordinateur et téléphone) | Page « Dépôt de documents », zone de dépôt, boutons « Choisir des fichiers » et « Choisir un dossier » | |
+| M.2 | Glisser 3 PDF bien nommés pour 2 gestions | Récapitulatif : 3 prêts, destination (employeur, référence, salarié), document et période lus | |
+| M.3 | Ajouter un fichier mal nommé, une référence inexistante et un fichier non PDF | « Nom non reconnu » avec la raison, « Référence inconnue », « 1 fichier non PDF ignoré » ; aucun n'est déposable | |
+| M.4 | Fichier dont le nom du salarié est faux (référence juste) | « Noms à vérifier » avec l'écart ; « Confirmer quand même » le rend prêt | |
+| M.5 | Deux fichiers pour le même bulletin dans le lot | Le second : « En double dans le lot » | |
+| M.6 | « Déposer N fichiers » | Barre de progression, « ✓ Déposé » sur chaque ligne ; documents visibles sur la fiche des comptes | |
+| M.7 | Option « Prévenir les abonnés » cochée, 2 documents pour un même abonné | Une seule notification et un seul email récapitulant les 2 documents | |
+| M.8 | Redéposer le même fichier, identique | « Déjà en ligne à l'identique », ignoré par défaut | |
+| M.9 | Déposer une version différente d'un bulletin déjà en ligne | « Existe déjà » (date de dépôt, téléchargé ou non) ; « Remplacer » puis déposer : « ✓ Remplacé » ; sur la fiche, « Remplacé le … » sous le document ; l'abonné le voit « Nouveau » | |
+| M.10 | Dépôt unitaire (fiche d'un compte) d'un fichier normé d'une autre gestion | Type, période, précision repris du nom ; avertissement « Ce fichier semble destiné à une autre gestion » | |
+| M.11 | Dépôt unitaire d'un bulletin déjà en ligne | Fenêtre « existe déjà » (déposé le…, téléchargé ou non) : « Oui, remplacer » / « Non, garder l'existant » | |
+| M.12 | Abonné : télécharger un document déposé en masse | Fichier `NOMEMPLOYEUR_NOMSALARIE_BP_AAMM.pdf` | |
 

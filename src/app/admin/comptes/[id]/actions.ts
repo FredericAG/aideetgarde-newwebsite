@@ -8,6 +8,7 @@ import {
   TYPES_DOCUMENT,
   TYPES_GESTION,
   isUuid,
+  libelleDocument,
   libelleMois,
   type TypeDocument,
 } from "@/lib/data";
@@ -223,8 +224,10 @@ export interface MetaDocument {
   titre?: string;
   /** Précision facultative (« Démission », « n° 2 »), 60 caractères au plus. */
   complement?: string;
-  /** Bulletin corrigé : remplace le bulletin déjà en ligne pour ce mois. */
+  /** Remplacer le document existant (même type, période et précision) après confirmation. */
   remplacer?: boolean;
+  /** Empreinte SHA-256 du fichier (hexadécimal), calculée par le navigateur. */
+  empreinte?: string;
 }
 
 export interface ResultatAction {
@@ -232,9 +235,20 @@ export interface ResultatAction {
   message: string;
 }
 
+/** Document déjà en ligne pour la même cible (même type, période et précision). */
+export interface ConflitDocument {
+  documentId: string;
+  deposeLe: string;
+  consulteLe: string | null;
+  /** Même contenu exactement (empreintes identiques). */
+  identique: boolean;
+}
+
 export interface ResultatPreparation extends ResultatAction {
   documentId?: string;
   chemin?: string;
+  /** Présent quand le dépôt remplacerait un document : demander confirmation. */
+  conflit?: ConflitDocument;
 }
 
 type ClientAdmin = Awaited<ReturnType<typeof requireAdmin>>["supabase"];
@@ -251,6 +265,7 @@ function controlerMeta(m: MetaDocument): string | null {
   if (!isUuid(m.compteId) || !isUuid(m.gestionId)) return "Identifiants invalides.";
   if (!(m.typeDocument in TYPES_DOCUMENT)) return "Type de document invalide.";
   if ((m.complement ?? "").trim().length > 60) return "La précision ne doit pas dépasser 60 caractères.";
+  if (m.empreinte && !/^[0-9a-f]{64}$/.test(m.empreinte)) return "Empreinte du fichier invalide.";
   const periode = m.periode.trim();
   if (periode && !/^\d{2}(0[1-9]|1[0-2])$/.test(periode)) {
     return "La période doit être au format AAMM avec un mois de 01 à 12 (ex. 2609 pour septembre 2026).";
@@ -295,11 +310,46 @@ async function calculerChemin(
   });
 }
 
+interface DocumentExistant {
+  id: string;
+  storage_path: string | null;
+  created_at: string;
+  consulte_le: string | null;
+  empreinte?: string | null;
+  nom_fichier_origine?: string | null;
+}
+
+/**
+ * Document déjà en ligne pour la même cible : un bulletin par mois ; pour
+ * les autres types, même type, même période et même précision (sans tenir
+ * compte des majuscules ni des espaces en trop).
+ */
+async function documentExistant(
+  supabase: ClientAdmin,
+  m: MetaDocument & { titre: string },
+): Promise<DocumentExistant | null> {
+  const periode = m.periode.trim();
+  let q = supabase
+    .from("documents")
+    .select("*")
+    .eq("gestion_id", m.gestionId)
+    .eq("employeur_id", m.compteId)
+    .eq("type_document", m.typeDocument);
+  q = periode ? q.eq("periode", periode) : q.is("periode", null);
+  const { data } = await q;
+  const liste = (data ?? []) as (DocumentExistant & { titre: string })[];
+  if (m.typeDocument === "bulletin") return liste[0] ?? null;
+  const cle = m.titre.trim().toLowerCase();
+  return liste.find((d) => String(d.titre).trim().toLowerCase() === cle) ?? null;
+}
+
 /**
  * Premier temps du dépôt d'un PDF : vérifie les informations saisies et
  * les doublons AVANT l'envoi du fichier (on évite d'envoyer 10 Mo pour
  * rien), puis fournit au navigateur l'identifiant et le chemin lisible
- * sous lequel il doit ranger le fichier.
+ * sous lequel il doit ranger le fichier. Si un document existe déjà pour
+ * la même cible et que le remplacement n'a pas été confirmé, renvoie le
+ * conflit (décision du 21/10 : demander plutôt que refuser).
  */
 export async function preparerDepot(meta: MetaDocument): Promise<ResultatPreparation> {
   const m = normaliser(meta);
@@ -307,32 +357,18 @@ export async function preparerDepot(meta: MetaDocument): Promise<ResultatPrepara
   if (erreur) return { ok: false, message: erreur };
   const { supabase } = await requireAdmin(`/admin/comptes/${m.compteId}`);
 
-  const periode = m.periode.trim();
-  const { data: existants } = await supabase
-    .from("documents")
-    .select("type_document, periode, titre")
-    .eq("gestion_id", m.gestionId)
-    .eq("employeur_id", m.compteId);
-  for (const d of existants ?? []) {
-    const memePeriode = (d.periode ?? "") === periode;
-    if (m.typeDocument === "bulletin" && d.type_document === "bulletin" && memePeriode && !m.remplacer) {
-      return {
-        ok: false,
-        message:
-          "Un bulletin de salaire existe déjà pour ce mois dans cette gestion. Pour le remplacer, supprimez d'abord l'ancien, puis déposez le nouveau.",
-      };
-    }
-    if (
-      !(m.remplacer && m.typeDocument === "bulletin") &&
-      d.type_document === m.typeDocument &&
-      memePeriode &&
-      String(d.titre).trim().toLowerCase() === m.titre.trim().toLowerCase()
-    ) {
-      return {
-        ok: false,
-        message: "Ce document existe déjà pour cette gestion (même type, même période et même précision).",
-      };
-    }
+  const existant = await documentExistant(supabase, m);
+  if (existant && !m.remplacer) {
+    return {
+      ok: false,
+      message: "Ce document existe déjà dans la gestion.",
+      conflit: {
+        documentId: existant.id,
+        deposeLe: existant.created_at,
+        consulteLe: existant.consulte_le,
+        identique: Boolean(m.empreinte && existant.empreinte === m.empreinte),
+      },
+    };
   }
 
   const documentId = crypto.randomUUID();
@@ -341,18 +377,28 @@ export async function preparerDepot(meta: MetaDocument): Promise<ResultatPrepara
   return { ok: true, message: "", documentId, chemin };
 }
 
+export interface ResultatEnregistrement extends ResultatAction {
+  remplacement?: boolean;
+}
+
 /**
  * Deuxième temps : le navigateur a envoyé le fichier directement à
  * Supabase Storage (sans passer par Vercel, dont les requêtes sont
  * limitées à environ 4,5 Mo) ; on enregistre la fiche du document. En cas
  * d'échec, on supprime le fichier envoyé pour ne laisser aucun orphelin.
+ *
+ * Remplacement confirmé : la fiche existante est mise à jour (elle
+ * redevient « nouvelle » pour l'abonné), l'ancien fichier est supprimé et
+ * une trace est gardée (documents_remplacements, script brique4).
+ * `notifier: false` (dépôt en masse) : l'abonné est prévenu une seule fois
+ * à la fin, pour tous ses documents (voir admin/depot/actions.ts).
  */
 export async function enregistrerDocument(
-  meta: MetaDocument & { documentId: string; storagePath: string; nomFichier: string },
-): Promise<ResultatAction> {
+  meta: MetaDocument & { documentId: string; storagePath: string; nomFichier: string; notifier?: boolean },
+): Promise<ResultatEnregistrement> {
   const m = normaliser(meta);
   if (!isUuid(m.documentId)) return { ok: false, message: "Identifiants invalides." };
-  const { supabase } = await requireAdmin(`/admin/comptes/${m.compteId}`);
+  const { supabase, profile } = await requireAdmin(`/admin/comptes/${m.compteId}`);
 
   const echec = async (message: string): Promise<ResultatAction> => {
     // Ne supprimer que le fichier de CE dépôt (son nom finit par son identifiant).
@@ -372,64 +418,69 @@ export async function enregistrerDocument(
   }
 
   const periode = m.periode.trim();
-
-  // Bulletin corrigé : on remplace le fichier et la fiche du bulletin déjà
-  // en ligne (même mois, même gestion) au lieu d'en créer un second, ce que
-  // la règle « un seul bulletin par mois » interdirait.
-  let ancienFichier: string | null = null;
-  let remplacement = false;
-  if (m.remplacer && m.typeDocument === "bulletin") {
-    const { data: existant } = await supabase
-      .from("documents")
-      .select("id, storage_path")
-      .eq("gestion_id", m.gestionId)
-      .eq("employeur_id", m.compteId)
-      .eq("type_document", "bulletin")
-      .eq("periode", periode)
-      .maybeSingle();
-    if (existant) {
-      remplacement = true;
-      ancienFichier = (existant.storage_path as string | null) ?? null;
-      const { error: errMaj } = await supabase
-        .from("documents")
-        .update({
-          titre: m.titre.trim(),
-          complement: m.complement || null,
-          storage_path: cheminAttendu,
-          nom_fichier_origine: m.nomFichier.slice(0, 255),
-          created_at: new Date().toISOString(),
-          // Bulletin corrigé : il redevient « nouveau » pour l'abonné.
-          consulte_le: null,
-        })
-        .eq("id", existant.id);
-      if (errMaj) return echec(messageErreur(errMaj));
-      if (ancienFichier && ancienFichier !== cheminAttendu) {
-        await supprimerFichiers(supabase, [ancienFichier]);
-      }
-    }
+  const existant = await documentExistant(supabase, m);
+  if (existant && !m.remplacer) {
+    return echec("Ce document existe déjà dans la gestion : confirmez le remplacement.");
   }
+  const remplacement = Boolean(existant);
 
-  const { error } = remplacement
-    ? { error: null }
-    : await supabase.from("documents").insert({
-        id: m.documentId,
-        gestion_id: m.gestionId,
-        type_document: m.typeDocument,
+  if (existant) {
+    // Trace de l'ancienne version (sans le script brique4, on continue sans trace).
+    await supabase.from("documents_remplacements").insert({
+      document_id: existant.id,
+      gestion_id: m.gestionId,
+      employeur_id: m.compteId,
+      ancien_nom_fichier: existant.nom_fichier_origine ?? null,
+      ancienne_empreinte: existant.empreinte ?? null,
+      ancien_depose_le: existant.created_at,
+      ancien_consulte_le: existant.consulte_le,
+      remplace_par: profile.id,
+    });
+    const { error: errMaj } = await supabase
+      .from("documents")
+      .update({
         titre: m.titre.trim(),
         complement: m.complement || null,
-        periode: periode || null,
         storage_path: cheminAttendu,
         nom_fichier_origine: m.nomFichier.slice(0, 255),
-      });
-  if (error) return echec(messageErreur(error));
+        created_at: new Date().toISOString(),
+        // Document remplacé : il redevient « nouveau » pour l'abonné.
+        consulte_le: null,
+        ...(m.empreinte ? { empreinte: m.empreinte } : {}),
+      })
+      .eq("id", existant.id);
+    if (errMaj) return echec(messageErreur(errMaj));
+    if (existant.storage_path && existant.storage_path !== cheminAttendu) {
+      await supprimerFichiers(supabase, [existant.storage_path]);
+    }
+  } else {
+    const { error } = await supabase.from("documents").insert({
+      id: m.documentId,
+      gestion_id: m.gestionId,
+      type_document: m.typeDocument,
+      titre: m.titre.trim(),
+      complement: m.complement || null,
+      periode: periode || null,
+      storage_path: cheminAttendu,
+      nom_fichier_origine: m.nomFichier.slice(0, 255),
+      ...(m.empreinte ? { empreinte: m.empreinte } : {}),
+    });
+    if (error) return echec(messageErreur(error));
+  }
+
+  revalidatePath(`/admin/comptes/${m.compteId}`);
+  if (meta.notifier === false) {
+    return { ok: true, message: remplacement ? "Remplacé" : "Déposé", remplacement };
+  }
 
   // Prévenir l'abonné sur ses appareils. Le message reste volontairement
   // général (pas de nom, pas de montant) : il peut s'afficher sur un écran
   // verrouillé.
   // Copie par email (sauf si l'abonné l'a désactivée) : on peut y nommer
   // le salarié, utile quand l'abonné en emploie plusieurs.
-  const libelle = TYPES_DOCUMENT[m.typeDocument as TypeDocument] ?? "Document";
+  const libelle = libelleDocument({ type_document: m.typeDocument as TypeDocument, complement: m.complement || null });
   const quoi = periode ? `${libelle} de ${libelleMois(periode)}` : libelle;
+  const corrige = remplacement ? (m.typeDocument === "bulletin" ? "Bulletin corrigé disponible" : "Document mis à jour") : "Nouveau document disponible";
   const { data: g } = await supabase
     .from("gestions")
     .select("prenom_salarie, nom_salarie")
@@ -440,26 +491,26 @@ export async function enregistrerDocument(
     supabase,
     m.compteId,
     {
-      title: remplacement ? "Bulletin corrigé disponible" : "Nouveau document disponible",
+      title: corrige,
       body: quoi,
       url: `/tableau-de-bord/gestions/${m.gestionId}`,
       tag: `document-${m.documentId}`,
     },
     {
-      sujet: `${remplacement ? "Bulletin corrigé disponible" : "Nouveau document disponible"} : ${quoi}`,
-      titre: remplacement ? "Votre bulletin corrigé est disponible" : "Un nouveau document est disponible",
+      sujet: `${corrige} : ${quoi}`,
+      titre: remplacement ? "Un document a été mis à jour" : "Un nouveau document est disponible",
       paragraphes: [
-        `${remplacement ? "Le bulletin corrigé" : "Un nouveau document"} est disponible dans votre espace Aide & Garde : ${quoi}${salarie ? ` (${salarie})` : ""}.`,
+        `${remplacement ? "Une version corrigée" : "Un nouveau document"} est disponible dans votre espace Aide & Garde : ${quoi}${salarie ? ` (${salarie})` : ""}.`,
         "Pour protéger vos données, il n'est pas joint à cet email : téléchargez-le depuis votre espace sécurisé.",
       ],
       bouton: "Télécharger depuis mon espace",
     },
   );
 
-  revalidatePath(`/admin/comptes/${m.compteId}`);
   return {
     ok: true,
-    message: `${remplacement ? "Bulletin remplacé" : "Document déposé"} — ${bilan}.`,
+    message: `${remplacement ? "Document remplacé" : "Document déposé"} — ${bilan}.`,
+    remplacement,
   };
 }
 

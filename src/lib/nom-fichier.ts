@@ -138,3 +138,73 @@ export function nomTelechargement(p: {
   ].filter(Boolean);
   return `${elements.join("_").slice(0, 150)}.pdf`;
 }
+
+/** Résultat de la lecture d'un nom de fichier à la norme du 21/10. */
+export type LectureNorme =
+  | {
+      ok: true;
+      reference: string;
+      employeur: string;
+      salarie: string;
+      code: string;
+      type: TypeDocument;
+      periode: string;
+      complement: string;
+    }
+  | { ok: false; erreur: string };
+
+/**
+ * Lit un nom de fichier à la norme `AG00123_DUPONT_MARTIN_BP_2605[_PRÉCISION].pdf`
+ * (spécifications § 5.6). Lecture stricte : un nom qui ne suit pas exactement
+ * le schéma est refusé avec la raison, jamais deviné.
+ */
+export function lireNomNorme(nomFichier: string): LectureNorme {
+  if (!/\.pdf$/i.test(nomFichier)) return { ok: false, erreur: "Ce n'est pas un PDF." };
+  const parties = nomFichier.replace(/\.pdf$/i, "").split("_").map((p) => p.trim());
+  if (parties.length < 5 || parties.length > 6) {
+    return {
+      ok: false,
+      erreur: "Nom attendu : référence_employeur_salarié_code_AAMM (précision facultative à la fin).",
+    };
+  }
+  const reference = parties[0].toUpperCase();
+  if (!/^AG\d{5}$/.test(reference)) {
+    return { ok: false, erreur: `« ${parties[0]} » n'est pas une référence de gestion (AG suivi de 5 chiffres).` };
+  }
+  const [, employeur, salarie, code, periode, complement = ""] = parties;
+  if (!employeur || !salarie) return { ok: false, erreur: "Nom de l'employeur ou du salarié manquant." };
+  const type = CODES_TYPES[code.toUpperCase()];
+  if (!type) return { ok: false, erreur: `Code de document « ${code} » inconnu.` };
+  if (!/^\d{2}(0[1-9]|1[0-2])$/.test(periode)) {
+    return { ok: false, erreur: `Période « ${periode} » invalide (AAMM, mois de 01 à 12).` };
+  }
+  if (complement.length > 60) return { ok: false, erreur: "Précision trop longue (60 caractères au plus)." };
+  return { ok: true, reference, employeur, salarie, code: code.toUpperCase(), type, periode, complement };
+}
+
+/** Comparaison de noms sans accents, majuscules, espaces, tirets ni apostrophes. */
+export function nomComparable(t: string | null | undefined): string {
+  return (t ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Le nom lu dans le fichier correspond-il au nom enregistré ? Égalité après
+ * simplification ; un prénom ajouté après le nom (« MARTIN Marie ») est
+ * toléré.
+ */
+export function memeNom(lu: string, enregistre: string | null | undefined): boolean {
+  const a = nomComparable(lu);
+  const b = nomComparable(enregistre);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // Prénom ajouté après le nom, séparé par une espace : « MARTIN Marie ».
+  const mots = lu.trim().split(/\s+/);
+  for (let i = mots.length - 1; i > 0; i--) {
+    if (nomComparable(mots.slice(0, i).join(" ")) === b) return true;
+  }
+  return false;
+}

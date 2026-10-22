@@ -43,3 +43,6 @@ next-env.d.ts
 
 # fichiers temporaires contenant des secrets, à supprimer après usage
 /A-SUPPRIMER-*
+outils/recette-interactive/scenarios.json
+outils/recette-interactive/initiaux.json
+outils/recette-interactive/recette-aide-et-garde.html

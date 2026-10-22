@@ -1,0 +1,269 @@
+<title>Recette Aide &amp; Garde</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Mise en page : une colonne de travail, sections repliables, une ligne = un scénario à cocher. */
+:root {
+  --fond: #f4f6f7; --carte: #ffffff; --texte: #1c2e3e; --doux: #5b6b78; --trait: #dde3e7;
+  --teal: #376873; --violet: #685c9b; --jaune: #f6ed78; --ok: #1f7a4d; --ok-fond: #e5f3ec;
+  --ko: #b3261e; --ko-fond: #fbe9e7; --code-fond: #eef1f3; --sur-violet: #ffffff;
+  --f-titre: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-texte: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --fond: #111b22; --carte: #182630; --texte: #e6edf1; --doux: #9fb0bb; --trait: #2a3a45;
+  --teal: #7fc0cc; --violet: #b3a8e6; --jaune: #e8dd5c; --ok: #62c793; --ok-fond: #17362a;
+  --ko: #ff8a80; --ko-fond: #3a1f1f; --code-fond: #22323d; --sur-violet: #111b22; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --fond: #111b22; --carte: #182630; --texte: #e6edf1; --doux: #9fb0bb; --trait: #2a3a45;
+  --teal: #7fc0cc; --violet: #b3a8e6; --jaune: #e8dd5c; --ok: #62c793; --ok-fond: #17362a;
+  --ko: #ff8a80; --ko-fond: #3a1f1f; --code-fond: #22323d; --sur-violet: #111b22; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--fond); color: var(--texte); font: 16px/1.45 var(--f-texte);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 64px }
+.page { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px }
+h1 { font: 800 1.7rem/1.15 var(--f-titre); color: var(--teal); margin: 0; text-wrap: balance }
+.sous { color: var(--doux); margin: 4px 0 0; max-width: 65ch }
+.bilan { background: var(--carte); border: 1px solid var(--trait); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px }
+.chiffres { display: flex; flex-wrap: wrap; gap: 8px 20px; font-variant-numeric: tabular-nums }
+.chiffres b { font: 800 1.35rem var(--f-titre) }
+.c-ok b { color: var(--ok) } .c-ko b { color: var(--ko) } .c-reste b { color: var(--violet) }
+.barre { height: 8px; border-radius: 99px; background: var(--trait); overflow: hidden; display: flex }
+.barre i { display: block; height: 100% } .barre .b-ok { background: var(--ok) } .barre .b-ko { background: var(--ko) }
+.outils { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.filtre { font: 600 0.9rem var(--f-texte); border: 2px solid var(--jaune); background: var(--carte); color: var(--texte); border-radius: 99px; padding: 5px 14px; cursor: pointer }
+.filtre[aria-pressed="true"] { background: var(--violet); border-color: var(--violet); color: var(--sur-violet) }
+#recherche { flex: 1 1 220px; min-width: 0; font: inherit; padding: 7px 14px; border-radius: 99px; border: 2px solid var(--trait); background: var(--carte); color: var(--texte) }
+#recherche:focus, .filtre:focus-visible, summary:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px }
+.alerte { border-radius: 10px; padding: 10px 14px; background: var(--ko-fond); color: var(--ko); font-weight: 600 }
+details.section { background: var(--carte); border: 1px solid var(--trait); border-radius: 12px; overflow: hidden }
+details.section > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 14px; align-items: center; padding: 12px 16px }
+details.section > summary::-webkit-details-marker { display: none }
+.s-titre { font: 600 1.05rem/1.25 var(--f-titre); color: var(--teal) }
+.s-titre::before { content: "›"; display: inline-block; margin-right: 8px; color: var(--violet); transition: transform .15s }
+details[open] > summary .s-titre::before { transform: rotate(90deg) }
+.s-compte { font-variant-numeric: tabular-nums; color: var(--doux); font-weight: 600; white-space: nowrap }
+.s-compte.fini { color: var(--ok) }
+.s-barre { grid-column: 1 / -1; height: 4px; border-radius: 99px; background: var(--trait); overflow: hidden; display: flex }
+.s-barre i { display: block; height: 100% }
+.prep { margin: 0 16px 10px; padding: 8px 12px; border-radius: 8px; background: var(--code-fond); font-size: .92rem }
+ol.lignes { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--trait) }
+li.ligne { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 4px 10px; padding: 12px 16px 12px 12px; border-bottom: 1px solid var(--trait); border-left: 4px solid transparent }
+li.ligne:last-child { border-bottom: 0 }
+li.ligne.ok { background: var(--ok-fond); border-left-color: var(--ok) }
+li.ligne.ko { background: var(--ko-fond); border-left-color: var(--ko) }
+.coche { width: 28px; height: 28px; margin: 2px 0 0 4px; accent-color: var(--ok); cursor: pointer }
+.num { font: 500 .8rem var(--f-mono); color: var(--violet); margin-right: 6px }
+.texte { min-width: 0 }
+.scen { font-weight: 700 }
+.att { color: var(--doux); margin-top: 2px }
+.att::before { content: "Attendu : "; font-weight: 600; color: var(--texte) }
+.anc { color: var(--doux); font-size: .88rem; margin-top: 2px }
+code { font: 500 .82em var(--f-mono); background: var(--code-fond); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere }
+.actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; font-size: .9rem }
+.lien { background: none; border: 0; padding: 0; font: inherit; color: var(--violet); text-decoration: underline; cursor: pointer }
+.etat { color: var(--doux) }
+.remarque { grid-column: 2; display: flex; flex-direction: column; gap: 6px; margin-top: 6px }
+.remarque textarea { font: inherit; min-height: 64px; border-radius: 8px; border: 1px solid var(--trait); background: var(--carte); color: var(--texte); padding: 8px 10px; width: 100% }
+.remarque .bt { align-self: flex-start; font: 600 .9rem var(--f-texte); border-radius: 99px; padding: 5px 14px; border: 2px solid var(--ko); background: var(--carte); color: var(--ko); cursor: pointer }
+.texte-ko { grid-column: 2; margin-top: 6px; color: var(--ko); font-weight: 600; white-space: pre-wrap }
+.pied { color: var(--doux); font-size: .88rem; max-width: 65ch }
+.vide { color: var(--doux); padding: 8px 16px 14px }
+@media (max-width: 520px) { li.ligne { grid-template-columns: 36px minmax(0,1fr) } h1 { font-size: 1.45rem } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<main class="page">
+  <header>
+    <h1>Recette Aide &amp; Garde</h1>
+    <p class="sous">Cochez un scénario quand il fonctionne. S'il ne fonctionne pas, signalez le problème en une phrase : Claude lit directement cette page pour la suite.</p>
+  </header>
+
+  <section class="bilan" aria-label="Avancement">
+    <div class="chiffres">
+      <span class="c-ok"><b id="n-ok">0</b> validés</span>
+      <span class="c-ko"><b id="n-ko">0</b> à revoir</span>
+      <span class="c-reste"><b id="n-reste">0</b> à tester</span>
+      <span class="etat" id="n-total"></span>
+    </div>
+    <div class="barre" aria-hidden="true"><i class="b-ok" id="b-ok"></i><i class="b-ko" id="b-ko"></i></div>
+  </section>
+
+  <p class="alerte" id="hors-ligne" hidden>Les coches ne peuvent pas être enregistrées ici : ouvrez la page depuis claude.ai, connecté à votre compte.</p>
+
+  <div class="outils" role="group" aria-label="Afficher">
+    <button class="filtre" type="button" data-filtre="reste" aria-pressed="true">À tester</button>
+    <button class="filtre" type="button" data-filtre="ko" aria-pressed="false">À revoir</button>
+    <button class="filtre" type="button" data-filtre="ok" aria-pressed="false">Validés</button>
+    <button class="filtre" type="button" data-filtre="tout" aria-pressed="false">Tout</button>
+    <input id="recherche" type="search" placeholder="Chercher : R5.3, résiliation, Systempay…" autocomplete="off" aria-label="Chercher un scénario">
+  </div>
+
+  <div id="sections"></div>
+
+  <p class="pied">Les scénarios viennent de la fiche de recette du projet ; Claude ajoute ici ceux de chaque nouvelle livraison. Une coche est enregistrée dès le clic, visible sur tous vos appareils.</p>
+</main>
+
+<script>
+const DONNEES = __DONNEES__;
+const etats = {};          // clé -> {statut, commentaire}
+let db = null, filtre = "reste", recherche = "";
+const ouvertes = new Set();
+
+function echapper(t) { return t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function enLigne(t) {
+  return echapper(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+function simplifier(t) { return t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+function statut(cle) { return (etats[cle] && etats[cle].statut) || ""; }
+function categorie(cle) { const s = statut(cle); return s === "ok" ? "ok" : s === "ko" ? "ko" : "reste"; }
+
+function bilan() {
+  let ok = 0, ko = 0, total = 0;
+  for (const s of DONNEES.sections) for (const x of s.scenarios) { total++; const c = categorie(x.cle); if (c === "ok") ok++; else if (c === "ko") ko++; }
+  document.getElementById("n-ok").textContent = ok;
+  document.getElementById("n-ko").textContent = ko;
+  document.getElementById("n-reste").textContent = total - ok - ko;
+  document.getElementById("n-total").textContent = "sur " + total + " scénarios";
+  document.getElementById("b-ok").style.width = (100 * ok / total) + "%";
+  document.getElementById("b-ko").style.width = (100 * ko / total) + "%";
+}
+
+function ligneVisible(x) {
+  if (filtre !== "tout" && categorie(x.cle) !== filtre) return false;
+  if (!recherche) return true;
+  return simplifier([x.num, x.scenario, x.attendu, x.ancien].join(" ")).includes(recherche);
+}
+
+function rendre() {
+  bilan();
+  const zone = document.getElementById("sections");
+  zone.textContent = "";
+  let visibles = 0;
+  DONNEES.sections.forEach((s, i) => {
+    const lignes = s.scenarios.filter(ligneVisible);
+    if (!lignes.length && (filtre !== "tout" || recherche)) return;
+    visibles += lignes.length;
+    const ok = s.scenarios.filter(x => categorie(x.cle) === "ok").length;
+    const ko = s.scenarios.filter(x => categorie(x.cle) === "ko").length;
+    const d = document.createElement("details");
+    d.className = "section";
+    d.open = ouvertes.has(i) || !!recherche || filtre !== "reste" || (filtre === "reste" && ok + ko < s.scenarios.length && ouvertes.size === 0 && i === premiereAFaire());
+    d.addEventListener("toggle", () => { d.open ? ouvertes.add(i) : ouvertes.delete(i); });
+    const fini = ok === s.scenarios.length;
+    d.innerHTML =
+      '<summary><span class="s-titre">' + enLigne(s.titre) + '</span>' +
+      '<span class="s-compte' + (fini ? " fini" : "") + '">' + (fini ? "✓ " : "") + ok + " / " + s.scenarios.length + (ko ? " · " + ko + " à revoir" : "") + '</span>' +
+      '<span class="s-barre" aria-hidden="true"><i style="width:' + (100 * ok / s.scenarios.length) + '%;background:var(--ok)"></i><i style="width:' + (100 * ko / s.scenarios.length) + '%;background:var(--ko)"></i></span></summary>' +
+      (s.prep ? '<p class="prep"><strong>Préparation : </strong>' + enLigne(s.prep) + '</p>' : "");
+    const ol = document.createElement("ol");
+    ol.className = "lignes";
+    for (const x of lignes) ol.appendChild(rendreLigne(x));
+    if (!lignes.length) { const p = document.createElement("p"); p.className = "vide"; p.textContent = "Aucun scénario dans ce filtre."; d.appendChild(p); }
+    else d.appendChild(ol);
+    zone.appendChild(d);
+  });
+  if (!visibles) {
+    const p = document.createElement("p"); p.className = "vide";
+    p.textContent = filtre === "reste" && !recherche ? "Tout est testé. Bravo !" : "Aucun scénario ne correspond.";
+    zone.appendChild(p);
+  }
+}
+function premiereAFaire() {
+  return DONNEES.sections.findIndex(s => s.scenarios.some(x => categorie(x.cle) === "reste"));
+}
+
+function rendreLigne(x) {
+  const li = document.createElement("li");
+  const st = statut(x.cle);
+  li.className = "ligne " + st;
+  const id = "c-" + x.cle.replace(/[^a-zA-Z0-9]/g, "_");
+  li.innerHTML =
+    '<input class="coche" type="checkbox" id="' + id + '"' + (st === "ok" ? " checked" : "") + (db ? "" : " disabled") + ' aria-labelledby="' + id + '-t">' +
+    '<div class="texte" id="' + id + '-t"><span class="num">' + echapper(x.num) + '</span><span class="scen">' + enLigne(x.scenario) + '</span>' +
+    '<div class="att">' + enLigne(x.attendu) + '</div>' +
+    (x.ancien ? '<div class="anc">Ancien site : ' + enLigne(x.ancien) + '</div>' : "") + '</div>';
+  const com = (etats[x.cle] && etats[x.cle].commentaire) || "";
+  if (st === "ko" && com) {
+    const p = document.createElement("p"); p.className = "texte-ko"; p.textContent = "Problème signalé : " + com; li.appendChild(p);
+  }
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  if (db) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "lien";
+    b.textContent = st === "ko" ? "Modifier la remarque" : "Signaler un problème";
+    b.addEventListener("click", () => ouvrirRemarque(li, x, com));
+    actions.appendChild(b);
+    if (st === "ko") {
+      const r = document.createElement("button");
+      r.type = "button"; r.className = "lien"; r.textContent = "Retirer le signalement";
+      r.addEventListener("click", () => enregistrer(x.cle, { statut: "", commentaire: "" }));
+      actions.appendChild(r);
+    }
+  }
+  if (actions.childNodes.length) li.appendChild(actions);
+  li.querySelector(".coche").addEventListener("change", e => {
+    enregistrer(x.cle, { statut: e.target.checked ? "ok" : "", commentaire: e.target.checked ? "" : com });
+  });
+  return li;
+}
+
+function ouvrirRemarque(li, x, com) {
+  if (li.querySelector(".remarque")) return;
+  const div = document.createElement("div");
+  div.className = "remarque";
+  const tid = "r-" + x.cle.replace(/[^a-zA-Z0-9]/g, "_");
+  div.innerHTML = '<label for="' + tid + '" class="etat">Ce qui ne fonctionne pas :</label><textarea id="' + tid + '"></textarea><button type="button" class="bt">Enregistrer le problème</button>';
+  div.querySelector("textarea").value = com;
+  div.querySelector("button").addEventListener("click", () => {
+    const t = div.querySelector("textarea").value.trim();
+    enregistrer(x.cle, { statut: "ko", commentaire: t || "(sans précision)" });
+  });
+  li.appendChild(div);
+  div.querySelector("textarea").focus();
+}
+
+async function enregistrer(cle, valeur) {
+  const avant = etats[cle];
+  etats[cle] = valeur;
+  rendre();
+  if (!db) return;
+  try {
+    await db.collection("recette").doc(cle).set({ ...valeur, maj: new Date().toISOString() });
+  } catch (e) {
+    etats[cle] = avant;
+    rendre();
+    const a = document.getElementById("hors-ligne");
+    a.textContent = e && e.code === "invalid_argument"
+      ? "Vous n'avez pas le droit d'enregistrer ici (lecture seule)."
+      : "Enregistrement impossible pour l'instant. Réessayez dans un moment.";
+    a.hidden = false;
+  }
+}
+
+document.querySelectorAll(".filtre").forEach(b => b.addEventListener("click", () => {
+  filtre = b.dataset.filtre;
+  document.querySelectorAll(".filtre").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  rendre();
+}));
+let minuteur;
+document.getElementById("recherche").addEventListener("input", e => {
+  clearTimeout(minuteur);
+  minuteur = setTimeout(() => { recherche = simplifier(e.target.value.trim()); rendre(); }, 150);
+});
+
+rendre();
+(async () => {
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch (e) { db = null; }
+  if (!db) { document.getElementById("hors-ligne").hidden = false; return; }
+  db.collection("recette").onSnapshot(snap => {
+    for (const d of snap.docs) { const v = d.data(); if (v) etats[d.id] = { statut: v.statut || "", commentaire: v.commentaire || "" }; }
+    for (const c of snap.docChanges()) if (c.type === "removed") delete etats[c.doc.id];
+    rendre();
+  }, () => { document.getElementById("hors-ligne").hidden = false; });
+  rendre();
+})();
+</script>

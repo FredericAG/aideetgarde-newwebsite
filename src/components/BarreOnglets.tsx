@@ -57,6 +57,12 @@ const icones = {
       <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M10 13h4" />
     </svg>
   ),
+  depot: (
+    <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
+      <path d="M12 15V4M8 8l4-4 4 4" />
+      <path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5" />
+    </svg>
+  ),
   compte: (
     <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
       <circle cx="12" cy="8" r="4" />
@@ -86,6 +92,12 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
       libelle: "Abonnements",
       actif: (p) => p.startsWith("/admin/abonnements"),
       icone: icones.abonnements,
+    },
+    {
+      href: "/admin/depot",
+      libelle: "Dépôt",
+      actif: (p) => p.startsWith("/admin/depot"),
+      icone: icones.depot,
     },
     {
       href: "/admin/archives",

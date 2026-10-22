@@ -33,12 +33,15 @@ export function DocumentsParCategorie({
   documents,
   vue,
   action,
+  notes,
 }: {
   /** Documents de la gestion, déjà triés. */
   documents: DocumentRow[];
   vue: "admin" | "abonne";
   /** Contenu de la dernière colonne (supprimer, télécharger…). */
   action: (d: DocumentRow) => React.ReactNode;
+  /** Mention sous un document (administration : trace de remplacement). */
+  notes?: Record<string, string>;
 }) {
   const admin = vue === "admin";
   // Côté abonné, les lignes alternées et l'affichage compact sur téléphone
@@ -105,6 +108,7 @@ export function DocumentsParCategorie({
                   {!admin && d.storage_path && !d.consulte_le && (
                     <span className="pastille-nouveau ml-2">Nouveau</span>
                   )}
+                  {notes?.[d.id] && <span className="block text-xs text-foreground/60">{notes[d.id]}</span>}
                 </td>
                 <td className={`${td} c-periode tabular-nums`}>
                   {d.periode ? formatPeriode(d.periode) : "—"}

@@ -3,9 +3,10 @@
 import { useRef, useState, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BUCKET, TAILLE_MAX_PDF, TYPES_DOCUMENT } from "@/lib/data";
-import { analyserNomFichier } from "@/lib/nom-fichier";
-import { enregistrerDocument, preparerDepot } from "./actions";
+import { BUCKET, TAILLE_MAX_PDF, TYPES_DOCUMENT, formatDate } from "@/lib/data";
+import { analyserNomFichier, lireNomNorme, memeNom } from "@/lib/nom-fichier";
+import { empreinteFichier } from "@/lib/empreinte";
+import { enregistrerDocument, preparerDepot, type ConflitDocument } from "./actions";
 
 const inputClass =
   "rounded-md border border-brand-gray/40 bg-background px-2 py-1.5 text-sm outline-none focus:border-brand-teal";
@@ -23,6 +24,11 @@ const inputClass =
  *    vérifie que l'utilisateur connecté est administrateur) ;
  * 3. le serveur enregistre la fiche du document ; s'il échoue, il supprime
  *    le fichier envoyé.
+ *
+ * Fichier nommé selon la norme (AG00123_DUPONT_MARTIN_BP_2605.pdf) : type,
+ * période et précision sont repris du nom, et un avertissement s'affiche si
+ * la référence ou les noms ne correspondent pas à cette gestion. Un document
+ * déjà en ligne pour la même cible n'est remplacé qu'après confirmation.
  */
 export function DepotDocument({
   compteId,
@@ -30,6 +36,9 @@ export function DepotDocument({
   typeInitial = "bulletin",
   periodeInitiale = "",
   remplacerInitial = false,
+  reference = "",
+  nomEmployeur = "",
+  nomSalarie = "",
 }: {
   compteId: string;
   gestionId: string;
@@ -37,8 +46,12 @@ export function DepotDocument({
   typeInitial?: string;
   /** Mois proposé d'office (AAMM), ex. celui de la déclaration à traiter. */
   periodeInitiale?: string;
-  /** Bulletin corrigé attendu : le dépôt remplace le bulletin déjà en ligne. */
+  /** Bulletin corrigé attendu : le dépôt remplace le bulletin déjà en ligne sans redemander. */
   remplacerInitial?: boolean;
+  /** Référence de la gestion (AG00123) et noms enregistrés, pour contrôler un fichier normé. */
+  reference?: string;
+  nomEmployeur?: string;
+  nomSalarie?: string;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +61,9 @@ export function DepotDocument({
   // Précision facultative (« Démission », « n° 2 ») : le titre est calculé
   // par le serveur (type, période, précision), sans répéter les noms.
   const [complement, setComplement] = useState("");
-  const [remplacer, setRemplacer] = useState(remplacerInitial);
+  const [empreinte, setEmpreinte] = useState<string | undefined>(undefined);
+  const [avertissement, setAvertissement] = useState<string | null>(null);
+  const [conflit, setConflit] = useState<ConflitDocument | null>(null);
   const [survol, setSurvol] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
@@ -67,9 +82,27 @@ export function DepotDocument({
       return;
     }
     setFichier(f);
-    // Les valeurs déjà proposées (mois de la déclaration à traiter) sont
-    // prioritaires ; le nom du fichier ne sert qu'à compléter ce qui est
-    // encore vide. Tout reste modifiable.
+    setConflit(null);
+    setAvertissement(null);
+    setEmpreinte(undefined);
+    void empreinteFichier(f).then(setEmpreinte);
+    const norme = lireNomNorme(f.name);
+    if (norme.ok) {
+      // Fichier à la norme : le nom fait foi pour le type, la période et la précision.
+      setType(norme.type);
+      setPeriode(norme.periode);
+      setComplement(norme.complement);
+      const ecarts: string[] = [];
+      if (reference && norme.reference !== reference) ecarts.push(`référence ${norme.reference} (cette gestion : ${reference})`);
+      if (nomEmployeur && !memeNom(norme.employeur, nomEmployeur)) ecarts.push(`employeur « ${norme.employeur} »`);
+      if (nomSalarie && !memeNom(norme.salarie, nomSalarie)) ecarts.push(`salarié « ${norme.salarie} »`);
+      if (ecarts.length) {
+        setAvertissement(`Ce fichier semble destiné à une autre gestion : ${ecarts.join(", ")}. Vérifiez avant de déposer.`);
+      }
+      return;
+    }
+    // Ancien nom : les valeurs déjà proposées (mois de la déclaration à
+    // traiter) sont prioritaires ; le nom ne complète que ce qui est vide.
     const analyse = analyserNomFichier(f.name);
     if (!periode && analyse.periode) setPeriode(analyse.periode);
     if (!periodeInitiale && analyse.type) setType(analyse.type);
@@ -81,7 +114,7 @@ export function DepotDocument({
     choisir(e.dataTransfer.files?.[0]);
   }
 
-  async function deposer() {
+  async function deposer(remplacer = remplacerInitial) {
     if (!fichier) {
       setMessage({ ok: false, texte: "Choisissez d'abord un fichier PDF." });
       return;
@@ -92,6 +125,7 @@ export function DepotDocument({
     }
     setEnvoi(true);
     setMessage(null);
+    setConflit(null);
     try {
       const meta = {
         compteId,
@@ -99,9 +133,15 @@ export function DepotDocument({
         typeDocument: type,
         periode,
         complement,
-        remplacer: type === "bulletin" && remplacer,
+        remplacer,
+        empreinte: empreinte ?? (await empreinteFichier(fichier)),
       };
       const preparation = await preparerDepot(meta);
+      if (preparation.conflit) {
+        // Demander avant de remplacer (décision du 21/10).
+        setConflit(preparation.conflit);
+        return;
+      }
       if (!preparation.ok || !preparation.documentId || !preparation.chemin) {
         setMessage({ ok: false, texte: preparation.message });
         return;
@@ -133,7 +173,7 @@ export function DepotDocument({
         setComplement("");
         setPeriode("");
         setType(typeInitial);
-        setRemplacer(false);
+        setAvertissement(null);
         if (inputRef.current) inputRef.current.value = "";
         router.refresh();
       }
@@ -223,7 +263,7 @@ export function DepotDocument({
         </label>
         <button
           type="button"
-          onClick={deposer}
+          onClick={() => deposer()}
           disabled={envoi}
           className="btn btn-primaire btn-sm"
         >
@@ -231,21 +271,33 @@ export function DepotDocument({
         </button>
       </div>
 
-      {type === "bulletin" && (
-        <label className="flex items-start gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={remplacer}
-            onChange={(e) => setRemplacer(e.target.checked)}
-            className="mt-1"
-          />
-          <span>
-            Remplacer le bulletin déjà en ligne pour ce mois (bulletin corrigé).
-            <span className="block text-xs text-foreground/60">
-              L&apos;ancien fichier est supprimé ; l&apos;abonné est prévenu qu&apos;un bulletin corrigé est disponible.
-            </span>
-          </span>
-        </label>
+      {avertissement && (
+        <p role="alert" className="rounded-md border border-brand-jaune bg-brand-jaune/25 px-3 py-2 text-sm">
+          {avertissement}
+        </p>
+      )}
+
+      {conflit && (
+        <div role="alertdialog" aria-label="Remplacer le document ?" className="rounded-lg border-2 border-brand-violet bg-brand-violet/5 p-3 text-sm">
+          <p className="font-bold">
+            {conflit.identique
+              ? "Ce fichier est déjà en ligne, à l'identique."
+              : `${TYPES_DOCUMENT[type as keyof typeof TYPES_DOCUMENT] ?? "Ce document"}${periode ? ` ${periode.slice(2)}/20${periode.slice(0, 2)}` : ""} existe déjà dans cette gestion.`}
+          </p>
+          <p className="mt-1 text-foreground/80">
+            Déposé le {formatDate(conflit.deposeLe)} ·{" "}
+            {conflit.consulteLe ? `téléchargé par l'abonné le ${formatDate(conflit.consulteLe)}` : "pas encore téléchargé par l'abonné"}.
+            {" "}Le remplacer supprime l&apos;ancien fichier (une trace est gardée) et le document redevient « nouveau » pour l&apos;abonné.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn btn-primaire btn-sm" disabled={envoi} onClick={() => deposer(true)}>
+              Oui, remplacer
+            </button>
+            <button type="button" className="btn btn-secondaire btn-sm" onClick={() => setConflit(null)}>
+              Non, garder l&apos;existant
+            </button>
+          </div>
+        </div>
       )}
 
       {message && (

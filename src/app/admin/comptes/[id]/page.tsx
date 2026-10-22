@@ -91,7 +91,7 @@ export default async function FicheComptePage({
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
-  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes, relancesRes] = await Promise.all([
+  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes, relancesRes, remplacementsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -141,7 +141,26 @@ export default async function FicheComptePage({
       .eq("employeur_id", id)
       .order("envoye_le", { ascending: false })
       .limit(10),
-  ]);
+    // Traces des documents remplacés (brique 4 ; sans le script, aucune).
+    supabase
+      .from("documents_remplacements")
+      .select("document_id, ancien_depose_le, ancien_consulte_le, remplace_le")
+      .eq("employeur_id", id)
+      .order("remplace_le", { ascending: false }),
+  ]);  // « Remplace la version du … » sous chaque document remplacé (décision du 21/10).
+  const notesRemplacement: Record<string, string> = {};
+  for (const r of (remplacementsRes.data ?? []) as {
+    document_id: string;
+    ancien_depose_le: string | null;
+    ancien_consulte_le: string | null;
+    remplace_le: string;
+  }[]) {
+    if (notesRemplacement[r.document_id]) continue;
+    notesRemplacement[r.document_id] =
+      `Remplacé le ${formatDate(r.remplace_le)} (ancienne version du ${formatDate(r.ancien_depose_le)}, ` +
+      `${r.ancien_consulte_le ? `téléchargée le ${formatDate(r.ancien_consulte_le)}` : "jamais téléchargée"})`;
+  }
+
   const relances = (relancesRes.data ?? []) as {
     id: string;
     modele: string;
@@ -789,7 +808,7 @@ Rouvrir
                         </section>
                       )}
 
-                      <DocumentsGestion compteId={id} documents={docsGestion} />
+                      <DocumentsGestion compteId={id} documents={docsGestion} notes={notesRemplacement} />
                       <div id={`depot-${g.id}`} className="scroll-mt-4">
                         <DepotDocument
                           key={`${g.id}-${periodeDepot}-${cible ? typeCible : "bulletin"}`}
@@ -798,6 +817,9 @@ Rouvrir
                           typeInitial={cible ? typeCible : "bulletin"}
                           periodeInitiale={periodeDepot}
                           remplacerInitial={remplacerDepot}
+                          reference={g.reference ?? ""}
+                          nomEmployeur={compte.nom ?? ""}
+                          nomSalarie={g.nom_salarie ?? ""}
                         />
                       </div>
                     </details>

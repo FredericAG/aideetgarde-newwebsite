@@ -12,8 +12,11 @@ import { supprimerDocument } from "./actions";
 export function DocumentsGestion({
   compteId,
   documents,
+  notes,
 }: {
   compteId: string;
+  /** Trace de remplacement par document (« Remplacé le … »). */
+  notes?: Record<string, string>;
   /** Documents de la gestion, déjà triés du plus récent au plus ancien. */
   documents: DocumentRow[];
 }) {
@@ -21,6 +24,7 @@ export function DocumentsGestion({
     <DocumentsParCategorie
       documents={documents}
       vue="admin"
+      notes={notes}
       action={(d) => (
         <form action={supprimerDocument}>
           <input type="hidden" name="compte_id" value={compteId} />
