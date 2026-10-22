@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { TYPES_GESTION, type Gestion, type TypeGestion } from "@/lib/data";
+import { MOTIFS_REMPLACEMENT, TYPES_GESTION, type Gestion, type MotifRemplacement, type TypeGestion } from "@/lib/data";
 import { enregistrerGestion, type EtatFormulaireGestion } from "./actions";
 
 const champ =
@@ -50,12 +51,15 @@ export function FormulaireGestion({
   gestion,
   dateParDefaut = "",
   quota,
+  salariesEnCours = [],
 }: {
   gestion?: Gestion;
   /** Date de début proposée pour une nouvelle gestion (AAAA-MM-JJ). */
   dateParDefaut?: string;
   /** Places de l'abonnement : prévient l'abonné avant l'envoi si c'est complet. */
   quota?: { utilisees: number; total: number };
+  /** Gestions en cours (hors remplacements) : salariés qu'un CDD peut remplacer. */
+  salariesEnCours?: { id: string; nom: string }[];
 }) {
   const [etat, action] = useActionState<EtatFormulaireGestion, FormData>(enregistrerGestion, {});
   const [v, setV] = useState({
@@ -70,7 +74,11 @@ export function FormulaireGestion({
     salaire_horaire_net:
       gestion?.salaire_horaire_net != null ? String(gestion.salaire_horaire_net).replace(".", ",") : "",
     precisions: gestion?.precisions ?? "",
+    remplace_gestion_id: gestion?.remplace_gestion_id ?? "",
+    motif_remplacement: (gestion?.motif_remplacement ?? "") as MotifRemplacement | "",
   });
+  const [remplacement, setRemplacement] = useState(Boolean(gestion?.remplace_gestion_id));
+  const complet = quota && quota.utilisees >= quota.total;
   const maj =
     (cle: keyof typeof v) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -80,12 +88,19 @@ export function FormulaireGestion({
     <form action={action} className="mt-6 flex flex-col gap-6">
       {gestion && <input type="hidden" name="gestion_id" value={gestion.id} />}
 
-      {quota && quota.utilisees >= quota.total && (
+      {complet && !remplacement && (
         <p className="rounded-lg border-2 border-brand-jaune bg-brand-jaune/25 p-3 text-sm">
           <strong>Votre abonnement est complet</strong> ({quota.utilisees} / {quota.total} gestions
           en cours ou en attente de validation). Vous pouvez préparer et enregistrer ce brouillon ;
           pour l&apos;envoyer, terminez d&apos;abord une gestion ou contactez Aide &amp; Garde pour
           faire évoluer votre abonnement.
+          {salariesEnCours.length > 0 && (
+            <>
+              {" "}
+              Exception : le <strong>CDD de remplacement</strong> d&apos;un salarié en congé maternité ou en arrêt
+              maladie ne prend pas de place (case ci-dessous).
+            </>
+          )}
         </p>
       )}
 
@@ -120,6 +135,83 @@ export function FormulaireGestion({
         </div>
       </fieldset>
 
+      {salariesEnCours.length > 0 && (
+        <fieldset className="carte flex flex-col gap-3 p-4 sm:p-5">
+          <legend className="sr-only">Remplacement</legend>
+          <label className="flex items-start gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={remplacement}
+              onChange={(e) => {
+                setRemplacement(e.target.checked);
+                if (e.target.checked) setV((x) => ({ ...x, type_contrat: "CDD" }));
+              }}
+              className="mt-1"
+            />
+            <span>
+              Ce salarié remplace un salarié absent (congé maternité ou arrêt maladie)
+              <span className={`block ${aide}`}>
+                CDD de remplacement : il ne prend pas de place dans votre abonnement, sans surcoût.
+              </span>
+            </span>
+          </label>
+          {remplacement && (
+            <>
+              <input type="hidden" name="remplacement" value="oui" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={etiquette}>
+                  Salarié remplacé
+                  <select
+                    name="remplace_gestion_id"
+                    required
+                    value={v.remplace_gestion_id}
+                    onChange={maj("remplace_gestion_id")}
+                    className={champ}
+                  >
+                    <option value="">Choisir…</option>
+                    {salariesEnCours.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nom}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={etiquette}>
+                  Motif de son absence
+                  <select
+                    name="motif_remplacement"
+                    required
+                    value={v.motif_remplacement}
+                    onChange={maj("motif_remplacement")}
+                    className={champ}
+                  >
+                    <option value="">Choisir…</option>
+                    {Object.entries(MOTIFS_REMPLACEMENT).map(([cle, libelle]) => (
+                      <option key={cle} value={cle}>
+                        {libelle.charAt(0).toUpperCase() + libelle.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </>
+          )}
+        </fieldset>
+      )}
+
+      {(!gestion || gestion.statut === "brouillon") && (
+        <aside className="rounded-lg border-l-4 border-brand-teal bg-brand-sky-tint/30 p-3 text-sm">
+          <strong className="text-brand-teal">Nouveau salarié : pensez à son suivi médical.</strong> Depuis 2025, il
+          est assuré par le SPSTN, le service de santé au travail des salariés des particuliers employeurs. À
+          l&apos;embauche, contactez-le (0 986 865 865 ou spstn.org) pour transmettre les coordonnées de votre
+          salarié : il organise sa visite d&apos;information et de prévention, sauf s&apos;il l&apos;a déjà passée
+          pour ce même emploi.{" "}
+          <Link href="/aide/sante-du-salarie#visite-information-prevention" className="font-medium text-brand-teal underline">
+            En savoir plus
+          </Link>
+        </aside>
+      )}
+
       <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
         <legend className="sr-only">Le contrat</legend>
         <h2 className="font-bold text-brand-teal">Le contrat</h2>
@@ -142,6 +234,7 @@ export function FormulaireGestion({
                     value={t}
                     checked={v.type_contrat === t}
                     onChange={maj("type_contrat")}
+                    disabled={remplacement && t === "CDI"}
                     className="sr-only"
                   />
                   {t}
@@ -152,8 +245,11 @@ export function FormulaireGestion({
         </div>
         {v.type_contrat === "CDD" && (
           <label className={etiquette}>
-            Date de fin prévue du CDD
+            {remplacement ? "Date de fin prévue (facultative)" : "Date de fin prévue du CDD"}
             <input type="date" name="date_fin_prevue" value={v.date_fin_prevue} onChange={maj("date_fin_prevue")} className={champ} />
+            {remplacement && (
+              <span className={aide}>Laissez vide si le contrat prend fin au retour du salarié absent.</span>
+            )}
           </label>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -208,7 +304,7 @@ export function FormulaireGestion({
           <strong>Brouillon</strong> : rien n&apos;est transmis, vous pouvez y revenir quand vous
           voulez. <strong>Envoyer</strong> : Aide &amp; Garde vérifie les informations et démarre
           la gestion ; vous êtes prévenu dès qu&apos;elle est validée. Une gestion envoyée occupe
-          une place de votre abonnement.
+          une place de votre abonnement, sauf un CDD de remplacement.
         </p>
       </div>
     </form>

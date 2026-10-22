@@ -63,7 +63,17 @@ export interface Gestion {
   validee_le?: string | null;
   /** Ce que l'administrateur demande de compléter (gestion renvoyée). */
   motif_retour?: string | null;
+  /** CDD de remplacement (brique 3d) : gestion du salarié absent, hors quota. */
+  remplace_gestion_id?: string | null;
+  motif_remplacement?: MotifRemplacement | null;
 }
+
+export type MotifRemplacement = "conge_maternite" | "arret_maladie";
+
+export const MOTIFS_REMPLACEMENT: Record<MotifRemplacement, string> = {
+  conge_maternite: "congé maternité",
+  arret_maladie: "arrêt maladie",
+};
 
 /**
  * Cycle de vie d'une gestion (brique 3) :

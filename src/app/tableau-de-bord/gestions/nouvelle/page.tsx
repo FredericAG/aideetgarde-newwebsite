@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { FormulaireGestion } from "../FormulaireGestion";
-import { placesAbonnement } from "@/lib/places";
+import { placesAbonnement, salariesRemplacables } from "@/lib/places";
 
 export const metadata = { title: "Créer une gestion — Aide & Garde" };
 
 /** Création d'une gestion par l'abonné (brique 3). */
 export default async function NouvelleGestionPage() {
   const { supabase, user } = await requireUser("/tableau-de-bord/gestions/nouvelle");
-  const places = await placesAbonnement(supabase, user.id);
+  const [places, salaries] = await Promise.all([
+    placesAbonnement(supabase, user.id),
+    salariesRemplacables(supabase, user.id),
+  ]);
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
@@ -23,7 +26,11 @@ export default async function NouvelleGestionPage() {
           compléter plus tard.
         </p>
         {places ? (
-          <FormulaireGestion dateParDefaut={new Date().toISOString().slice(0, 10)} quota={places} />
+          <FormulaireGestion
+            dateParDefaut={new Date().toISOString().slice(0, 10)}
+            quota={places}
+            salariesEnCours={salaries}
+          />
         ) : (
           <div className="carte mt-6 p-5 text-sm">
             <p>

@@ -13,6 +13,7 @@ import { IconePoubelle } from "@/components/IconePoubelle";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
+  MOTIFS_REMPLACEMENT,
   TYPES_GESTION,
   formatDate,
   formatEuros,
@@ -183,7 +184,10 @@ export default async function FicheComptePage({
   const actif = abonnements.find((a) => a.statut === "actif") ?? null;
   const anciens = abonnements.filter((a) => a.statut !== "actif");
   // Places occupées : gestions en cours + envoyées (brique 3).
-  const enCours = gestions.filter((g) => g.statut === "en_cours" || g.statut === "envoyee");
+  // Les CDD de remplacement (brique 3d) n'occupent pas de place.
+  const enCours = gestions.filter(
+    (g) => (g.statut === "en_cours" || g.statut === "envoyee") && !g.remplace_gestion_id,
+  );
   const today = new Date().toISOString().slice(0, 10);
   // Une seule gestion dépliée à la fois (les autres gardent un cadre gris
   // clair) : celle visée par le lien « Déposer le bulletin », sinon la
@@ -567,6 +571,16 @@ Ajouter la gestion
                           {g.reference}
                         </span>
                         <span className="font-medium">{nomSalarie(g) || "(salarié sans nom)"}</span>
+                        {g.remplace_gestion_id && (
+                          <span className="ml-2 inline-block rounded-full bg-brand-jaune px-2 py-0.5 text-xs font-bold text-brand-black">
+                            CDD de remplacement
+                            {(() => {
+                              const r = gestions.find((x) => x.id === g.remplace_gestion_id);
+                              return r ? ` de ${nomSalarie(r)}` : "";
+                            })()}
+                            {g.motif_remplacement ? ` (${MOTIFS_REMPLACEMENT[g.motif_remplacement]})` : ""} · hors quota
+                          </span>
+                        )}
                         <span className="ml-2 text-foreground/60">
                           {TYPES_GESTION[g.type_gestion]} ·{" "}
                           {g.statut === "en_cours"

@@ -83,8 +83,10 @@ export const CHARTE_QUALITE = {
  * page du contrat.
  */
 export const MENTION_MANDATAIRE =
-  "Attention, dans le cadre d'un contrat de placement de travailleurs, le consommateur est l'employeur de la personne qui effectue la prestation à son domicile. En cette qualité d'employeur, le consommateur est soumis à diverses obligations résultant notamment du code du travail et du code de la sécurité sociale.";
+  "Dans le cadre d'un contrat de placement de travailleurs, le consommateur est l'employeur de la personne qui effectue la prestation à son domicile. En cette qualité d'employeur, le consommateur est soumis à diverses obligations résultant notamment du code du travail et du code de la sécurité sociale.";
 
+// Mention du devis gratuit (arrêté du 17/03/2015) : retirée de l'affichage
+// le 23/10/2026 à la demande de Frédéric ; texte gardé ici pour la remettre.
 export const MENTION_DEVIS =
   "Le vendeur remet gratuitement un devis personnalisé au consommateur à qui il propose une prestation ou un ensemble de prestations dont le prix total est supérieur ou égal à 100 € TTC ou au consommateur qui lui en fait la demande.";
 

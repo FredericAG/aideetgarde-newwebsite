@@ -537,14 +537,26 @@ export const THEMES: Theme[] = [
         question: "Mon salarié est en arrêt maladie : que faire ?",
         resume:
           "Dès réception de l'avis d'arrêt de travail, demandez-nous l'attestation de salaire « arrêt maladie ».",
-        motsCles: ["maladie", "avis d'arrêt", "attestation de salaire"],
+        motsCles: ["maladie", "avis d'arrêt", "attestation de salaire", "remplacement", "CDD de remplacement"],
+        corps: [
+          {
+            note: "Vous embauchez quelqu'un pour la remplacer pendant son absence ? Ce CDD de remplacement ne prend pas de place dans votre abonnement : en ajoutant le salarié, cochez « Ce salarié remplace un salarié absent ».",
+          },
+        ],
+        lien: { href: "/tableau-de-bord/gestions/nouvelle", libelle: "Ajouter un salarié" },
       },
       {
         slug: "conge-maternite",
         question: "Ma salariée part en congé maternité : quels documents ?",
         resume:
           "Deux attestations de salaire : la version « arrêt maladie » (en brut) et la version « maternité » (en net). Nous les établissons pour vous.",
-        motsCles: ["maternité", "grossesse", "attestation"],
+        motsCles: ["maternité", "grossesse", "attestation", "remplacement", "CDD de remplacement"],
+        corps: [
+          {
+            note: "Vous embauchez quelqu'un pour la remplacer pendant son absence ? Ce CDD de remplacement ne prend pas de place dans votre abonnement : en ajoutant le salarié, cochez « Ce salarié remplace un salarié absent ».",
+          },
+        ],
+        lien: { href: "/tableau-de-bord/gestions/nouvelle", libelle: "Ajouter un salarié" },
       },
       {
         slug: "conges-pendant-arret",
@@ -665,9 +677,39 @@ export const THEMES: Theme[] = [
         slug: "visite-information-prevention",
         question: "Faut-il une visite médicale ?",
         resume:
-          "Oui : la visite d'information et de prévention, faite par un professionnel de santé au travail (pas le médecin traitant), dans les 3 mois qui suivent la prise de poste. Elle vaut 5 ans pour le même emploi.",
-        motsCles: ["visite médicale", "médecine du travail", "VIP", "santé au travail"],
-        corps: [{ p: "Le suivi est attaché au salarié, pas au poste : une visite faite chez un autre particulier employeur pour le même emploi reste valable." }],
+          "Oui : votre salarié doit passer une visite d'information et de prévention auprès d'un professionnel de santé au travail (pas le médecin traitant). Depuis le 2 janvier 2025, c'est le SPSTN, le service de santé au travail national des salariés des particuliers employeurs, qui s'en charge.",
+        motsCles: ["visite médicale", "médecine du travail", "VIP", "santé au travail", "SPSTN", "APNI"],
+        source: "spstn.org, consulté le 23/10/2026",
+        corps: [
+          {
+            etapes: [
+              {
+                titre: "Vous êtes déjà adhérent",
+                texte:
+                  "L'adhésion au SPSTN se fait pour vous, par l'APNI, lors de vos déclarations Cesu ou Pajemploi. La contribution santé travail figure sur le bulletin de paie (2,7 % du salaire brut, 5 € au plus par bulletin).",
+              },
+              {
+                titre: "À l'embauche, contactez le SPSTN",
+                texte:
+                  "La prise de contact n'est pas automatique : vous ou votre salarié appelez le SPSTN (0 986 865 865, prix d'un appel local, du lundi au vendredi de 8 h 30 à 18 h) ou passez par spstn.org pour communiquer ses coordonnées.",
+              },
+              {
+                titre: "Le SPSTN convoque votre salarié",
+                texte:
+                  "Il reçoit une convocation par email ; la visite peut se faire en téléconsultation (un smartphone suffit) ou près de chez lui. Une attestation est établie en deux exemplaires, dont un pour vous.",
+              },
+            ],
+          },
+          {
+            liste: [
+              "Une seule visite par type d'emploi (dans la limite de trois), même si le salarié travaille pour plusieurs particuliers employeurs.",
+              "Le temps passé en visite est indemnisé au salarié par l'APNI, de façon forfaitaire, avec ses frais de déplacement le cas échéant.",
+              "L'obligation vaut aussi pour un CDD, quel que soit le nombre d'heures.",
+              "Si vous aviez inscrit votre salarié dans un autre service de santé au travail en 2024, contactez le SPSTN pour le transfert de son dossier.",
+            ],
+          },
+        ],
+        lien: { href: "https://spstn.org/je-suis-particulier-employeur", libelle: "Le SPSTN pour les particuliers employeurs" },
       },
       {
         slug: "complementaire-sante",

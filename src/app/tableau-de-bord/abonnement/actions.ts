@@ -121,7 +121,8 @@ export async function preparerPaiement(
         .from("gestions")
         .select("id", { count: "exact", head: true })
         .eq("employeur_id", user.id)
-        .in("statut", ["envoyee", "en_cours"]),
+        .in("statut", ["envoyee", "en_cours"])
+        .is("remplace_gestion_id", null),
     ]);
     if (abo.data) return { etape: "choix", erreur: "Vous avez déjà un abonnement actif." };
     if ((places.count ?? 0) > formule.quota) {

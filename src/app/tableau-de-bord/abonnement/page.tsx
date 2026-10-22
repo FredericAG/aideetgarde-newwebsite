@@ -104,7 +104,8 @@ export default async function AbonnementPage({
       .from("gestions")
       .select("id", { count: "exact", head: true })
       .eq("employeur_id", user.id)
-      .in("statut", ["envoyee", "en_cours"]),
+      .in("statut", ["envoyee", "en_cours"])
+      .is("remplace_gestion_id", null),
     supabase
       .from("echeances")
       .select("id, date_echeance, montant, statut, tentatives, prochaine_tentative")

@@ -541,3 +541,20 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | P.9 | Lien vers une rubrique (ex. CGV > sommaire > « Prix et paiement ») | Le titre de la rubrique s'affiche sous l'en-tête, pas caché derrière | |
 | P.10 | CGV, Mon abonnement, mentions légales | Prix affichés une seule fois avec « TVA non applicable, article 293 B du code général des impôts » ; plus de ligne « n° de TVA » | |
 | P.11 | Confidentialité, rubrique 5 | Durées de conservation renseignées (plus de repère jaune) | |
+
+## CDD de remplacement, suivi médical, prix (23/10)
+
+**Préparation** : exécuter `supabase/brique3d_cdd_remplacement.sql`, **puis relancer** `supabase/brique2g_liste_comptes_admin.sql`, **avant** le Commit + Push. Compte de test avec un abonnement complet (toutes les places utilisées) et au moins une gestion en cours.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| R.1 | Tableau de bord d'un abonnement complet | Le bouton « + Ajouter un salarié » reste proposé (pour un remplacement) | |
+| R.2 | « Créer une gestion » | Bandeau « abonnement complet » avec l'exception du CDD de remplacement ; case « Ce salarié remplace un salarié absent » ; encadré « Nouveau salarié : pensez à son suivi médical » et lien « En savoir plus » vers la réponse du centre d'aide | |
+| R.3 | Cocher la case | Choix du salarié remplacé (gestions en cours) et du motif (congé maternité, arrêt maladie) ; contrat forcé en CDD ; date de fin « facultative » | |
+| R.4 | Envoyer sans date de fin | Envoi accepté malgré l'abonnement complet ; l'email « gestion à valider » précise « CDD de remplacement (…), hors quota » | |
+| R.5 | Admin : fiche du compte | Pastille jaune « CDD de remplacement de … (motif) · hors quota » ; les places affichées ne bougent pas ; valider la gestion fonctionne | |
+| R.6 | Abonné : tableau de bord | Sous l'emploi du remplaçant : « remplace Prénom Nom (motif) » ; jauge des places inchangée | |
+| R.7 | Deuxième remplacement pour le même salarié absent | Refusé : « Un remplacement est déjà prévu pour ce salarié absent. » | |
+| R.8 | Gestion normale sur un abonnement complet | Toujours refusée à l'envoi (message de quota) | |
+| R.9 | Centre d'aide › La santé du salarié › Visite | Réponse SPSTN en 3 étapes, liste des règles, lien externe « Le SPSTN pour les particuliers employeurs ↗ » ; astuce remplacement dans « arrêt maladie » et « congé maternité » | |
+| R.10 | Bloc des prix (Découvrir, souscription) | Plus de mention du devis ; encadré « Mode mandataire. Dans le cadre d'un contrat… » (sans « Attention ») | |

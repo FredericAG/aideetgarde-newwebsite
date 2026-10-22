@@ -40,7 +40,7 @@ Légifrance ne se lit pas depuis l'outil de Claude : vérification faite sur des
 | ☐ | La fin du contrat › Justifier | Formulation « motif lié à votre situation » plutôt que « motif économique » : d'accord ? |
 | ☐ | L'arrêt de travail › Indemnités | Point de départ du complément IRCEM (8e jour en maladie, 1er jour en accident du travail) et 80 % à partir du 29e jour : non retrouvés dans les extraits consultés (annexe 3 de la convention). |
 | ☐ | L'arrêt de travail › Accident | Délai de 48 heures pour déclarer l'accident à la CPAM (ajouté). |
-| ☐ | La santé du salarié › Visite | Organisme chargé du suivi (service de santé au travail du particulier employeur) à nommer ? |
+| ☑ | La santé du salarié › Visite | Réglé le 23/10 : réponse réécrite d'après spstn.org (SPSTN depuis le 2 janvier 2025, adhésion par l'APNI via Cesu/Pajemploi, contact à l'embauche, une visite par type d'emploi, indemnisation APNI). |
 | ☐ | Les aides › Crédit d'impôt | Plafonds en vigueur à citer ou non. |
 | ☐ | Utiliser mon espace | Textes conformes au fonctionnement du site (déclaration, téléchargement, notifications, résiliation). |
 

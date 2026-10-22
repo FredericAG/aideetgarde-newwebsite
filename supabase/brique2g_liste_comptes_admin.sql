@@ -107,6 +107,11 @@ as $$
     'aaaaaaceeeeiiiinooooouuuuyyoa');
 $$;
 
+-- Colonne des CDD de remplacement (brique 3d), créée ici aussi pour que ce
+-- script fonctionne même s'il est lancé avant brique3d.
+alter table public.gestions add column if not exists remplace_gestion_id uuid
+  references public.gestions(id) on delete set null;
+
 drop view if exists public.admin_abonnements_resume;
 drop view if exists public.admin_comptes_resume;
 drop view if exists public.admin_comptes;
@@ -140,16 +145,16 @@ select
   abo.statut_paiement,
   abo.prochaine_echeance,
   abo.fin_prevue,
-  abo.quota_gestions - (coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0)) as places_restantes,
+  abo.quota_gestions - coalesce(g.places, 0) as places_restantes,
   p.email_confirme_le,
   coalesce(g.en_cours, 0)   as nb_en_cours,
   coalesce(g.envoyees, 0)   as nb_envoyees,
   coalesce(g.brouillons, 0) as nb_brouillons,
   coalesce(g.terminees, 0)  as nb_terminees,
   coalesce(g.salaries, '')  as salaries,
-  coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0) as places_utilisees,
+  coalesce(g.places, 0) as places_utilisees,
   (abo.statut = 'actif'
-   and coalesce(g.en_cours, 0) + coalesce(g.envoyees, 0) > abo.quota_gestions) as quota_depasse,
+   and coalesce(g.places, 0) > abo.quota_gestions) as quota_depasse,
   coalesce(g.envoyees, 0) + coalesce(d.nb, 0) + coalesce(av.nb, 0) as nb_actions,
   -- Catégorie de suivi :
   --  actif       : au moins une gestion en cours ou en attente de validation
@@ -186,6 +191,8 @@ left join lateral (
     count(*) filter (where statut = 'envoyee')   as envoyees,
     count(*) filter (where statut = 'brouillon') as brouillons,
     count(*) filter (where statut = 'terminee')  as terminees,
+    -- Places occupées : les CDD de remplacement n'en prennent pas (brique 3d).
+    count(*) filter (where statut in ('en_cours', 'envoyee') and remplace_gestion_id is null) as places,
     string_agg(nullif(trim(prenom_salarie || ' ' || nom_salarie), ''), ', '
                order by (statut in ('en_cours', 'envoyee')) desc, nom_salarie)
       filter (where statut <> 'brouillon' or nom_salarie <> '') as salaries,

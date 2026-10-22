@@ -8,7 +8,7 @@ import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { IconePoubelle } from "@/components/IconePoubelle";
 import { RecapGestion } from "@/components/RecapGestion";
 import { FormulaireGestion } from "../FormulaireGestion";
-import { placesAbonnement } from "@/lib/places";
+import { placesAbonnement, salariesRemplacables } from "@/lib/places";
 import { annulerEnvoi, supprimerBrouillon } from "../actions";
 import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { requireUser } from "@/lib/auth";
@@ -148,7 +148,11 @@ export default async function DetailGestionPage({
                 <p className="mt-1 whitespace-pre-line">{gestion.motif_retour}</p>
               </div>
             )}
-            <FormulaireGestion gestion={gestion} quota={(await placesAbonnement(supabase, user.id)) ?? undefined} />
+            <FormulaireGestion
+              gestion={gestion}
+              quota={(await placesAbonnement(supabase, user.id)) ?? undefined}
+              salariesEnCours={await salariesRemplacables(supabase, user.id)}
+            />
             <form action={supprimerBrouillon} className="mt-8 border-t border-brand-gray/20 pt-6">
               <input type="hidden" name="gestion_id" value={gestion.id} />
               <BoutonConfirme

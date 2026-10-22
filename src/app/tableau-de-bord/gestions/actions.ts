@@ -35,6 +35,7 @@ function dateOuNull(fd: FormData, nom: string): string | null {
 
 function traduire(error: { code?: string; message: string }): string {
   if (error.code === "P0001") return error.message;
+  if (error.code === "23505") return "Un remplacement est déjà prévu pour ce salarié absent.";
   if (error.code === "23514") return "Une valeur saisie n'est pas valide : vérifiez les heures et le salaire.";
   if (error.code === "PGRST202" || error.code === "42883") {
     return "La création de gestion n'est pas encore activée (script brique3 à exécuter dans Supabase).";
@@ -60,6 +61,12 @@ export async function enregistrerGestion(
   if (Number.isNaN(heures)) return { message: "Le nombre d'heures doit être un nombre (ex. 20 ou 86,67)." };
   if (Number.isNaN(salaire)) return { message: "Le salaire horaire doit être un montant (ex. 12,50)." };
   const unite = texte(fd, "unite_heures");
+  const remplacement = texte(fd, "remplacement") === "oui";
+  const remplace = texte(fd, "remplace_gestion_id");
+  const motif = texte(fd, "motif_remplacement");
+  if (remplacement && (!isUuid(remplace) || !motif)) {
+    return { message: "Pour un remplacement, choisissez le salarié remplacé et le motif de son absence." };
+  }
 
   const { data: nouvelId, error } = await supabase.rpc("gestion_enregistrer_brouillon", {
     p_id: id,
@@ -73,6 +80,9 @@ export async function enregistrerGestion(
     p_unite_heures: unite === "semaine" || unite === "mois" ? unite : null,
     p_salaire_horaire_net: salaire,
     p_precisions: texte(fd, "precisions").slice(0, 2000),
+    // CDD de remplacement (brique 3d) : hors quota.
+    p_remplace_gestion_id: remplacement && isUuid(remplace) ? remplace : null,
+    p_motif_remplacement: remplacement && (motif === "conge_maternite" || motif === "arret_maladie") ? motif : null,
   });
   if (error) return { message: traduire(error) };
   const gestionId = (nouvelId as string) ?? id;
@@ -95,6 +105,9 @@ export async function enregistrerGestion(
       titre: "Nouvelle gestion à valider",
       paragraphes: [
         `${employeur} vient d'envoyer une gestion : ${salarie} (${TYPES_GESTION[typeGestion] ?? "emploi"}).`,
+        ...(remplacement
+          ? [`C'est un CDD de remplacement (${motif === "conge_maternite" ? "congé maternité" : "arrêt maladie"}), hors quota : vérifiez le salarié remplacé et le motif.`]
+          : []),
         "Vérifiez les informations du contrat, puis validez la gestion ou renvoyez-la à l'abonné pour qu'il la complète.",
       ],
       bouton: { texte: "Ouvrir la fiche du compte", url: `${site}/admin/comptes/${user.id}#gestion-${gestionId}` },

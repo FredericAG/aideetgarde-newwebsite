@@ -6,6 +6,7 @@ import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import { LienTelechargement } from "@/components/LienTelechargement";
 import { requireUser } from "@/lib/auth";
 import {
+  MOTIFS_REMPLACEMENT,
   TYPES_GESTION,
   formatDate,
   formatPeriode,
@@ -92,7 +93,10 @@ export default async function TableauDeBordPage({
   // Brique 3 : gestions créées par l'abonné, pas encore démarrées.
   const enPreparation = gestions.filter((g) => g.statut === "brouillon" || g.statut === "envoyee");
   // Places occupées dans l'abonnement : gestions en cours + envoyées.
-  const placesUtilisees = gestions.filter((g) => g.statut === "en_cours" || g.statut === "envoyee").length;
+  // Les CDD de remplacement n'occupent pas de place (brique 3d).
+  const placesUtilisees = gestions.filter(
+    (g) => (g.statut === "en_cours" || g.statut === "envoyee") && !g.remplace_gestion_id,
+  ).length;
   const gestionParId = new Map(gestions.map((g) => [g.id, g]));
   const dernierBulletin = new Map<
     string,
@@ -259,7 +263,9 @@ export default async function TableauDeBordPage({
         <section className="mt-8" aria-labelledby="titre-salaries">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="titre-salaries" className="font-bold text-brand-teal">Mes salariés</h2>
-            {abonnement?.statut === "actif" && !quotaAtteint && (
+            {/* Abonnement complet : l'ajout reste possible pour un CDD de
+                remplacement (hors quota), le formulaire l'explique. */}
+            {abonnement?.statut === "actif" && (!quotaAtteint || enCours.length > 0) && (
               <Link href="/tableau-de-bord/gestions/nouvelle" className="btn btn-secondaire btn-sm">
                 + Ajouter un salarié
               </Link>
@@ -315,6 +321,12 @@ export default async function TableauDeBordPage({
                           </Link>
                           <span className="block text-xs text-foreground/60">
                             {TYPES_GESTION[g.type_gestion]}
+                            {g.remplace_gestion_id && gestionParId.get(g.remplace_gestion_id) && (
+                              <>
+                                {" "}· remplace {nomSalarie(gestionParId.get(g.remplace_gestion_id)!)}
+                                {g.motif_remplacement ? ` (${MOTIFS_REMPLACEMENT[g.motif_remplacement]})` : ""}
+                              </>
+                            )}
                           </span>
                         </td>
                         <td className="px-3 py-2.5 align-middle">
