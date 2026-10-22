@@ -5,10 +5,23 @@ import { formatDate, formatEuros, type Abonnement } from "@/lib/data";
 import { LIBELLES_STATUT_PAIEMENT } from "@/lib/formules";
 import { configSystempay } from "@/lib/systempay";
 import { Regularisation, Souscription } from "./Paiement";
-import { annulerMaResiliation, resilierMonAbonnement } from "./actions";
+import { annulerMaResiliation, exercerMaRetractation, resilierMonAbonnement } from "./actions";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
 
 export const metadata = { title: "Mon abonnement — Aide & Garde" };
+
+/**
+ * Dernier jour du délai de rétractation (14 jours après la souscription en
+ * ligne), au format AAAA-MM-JJ, ou null s'il est dépassé (heure de Paris).
+ */
+function limiteRetractation(dateDebut: string | null | undefined): string | null {
+  if (!dateDebut) return null;
+  const limite = new Date(`${dateDebut.slice(0, 10)}T00:00:00Z`);
+  limite.setUTCDate(limite.getUTCDate() + 14);
+  const iso = limite.toISOString().slice(0, 10);
+  const aujourdhui = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(new Date());
+  return aujourdhui <= iso ? iso : null;
+}
 
 const MESSAGES_COMMANDE: Record<string, { texte: string; ok: boolean }> = {
   payee: { texte: "Paiement accepté : votre abonnement est à jour. Merci !", ok: true },
@@ -257,6 +270,45 @@ export default async function AbonnementPage({
           </section>
         ) : null}
 
+        {/* --- Rétractation en ligne (14 jours après une souscription en ligne,
+            obligatoire depuis le 19/06/2026 : « Renoncer au contrat ici »). --- */}
+        {abonnement && abonnement.statut === "actif" && abonnement.mode_paiement === "systempay" && limiteRetractation(abonnement.date_debut) && (
+          <section id="renoncer" className="mt-6 scroll-mt-4 rounded-xl border border-brand-gray/25 bg-white p-5 text-sm">
+            <h2 className="font-bold text-brand-teal">Droit de rétractation</h2>
+            <p className="mt-1 text-foreground/70">
+              Vous avez souscrit en ligne le {formatDate(abonnement.date_debut)} : vous pouvez renoncer à
+              votre contrat jusqu&apos;au {formatDate(limiteRetractation(abonnement.date_debut))} inclus, sans
+              avoir à vous justifier. L&apos;abonnement prend fin le jour même et vous êtes remboursé sous 14
+              jours, moins le service déjà fourni.
+            </p>
+            <details className="mt-3">
+              <summary className="btn btn-secondaire btn-sm cursor-pointer list-none">Renoncer au contrat ici</summary>
+              <form action={exercerMaRetractation} className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1 text-xs font-medium">
+                  Nom
+                  <input name="nom" required defaultValue={profile?.nom ?? ""} autoComplete="family-name" className="rounded-md border border-brand-gray/40 px-2 py-1.5 text-sm" />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium">
+                  Prénom
+                  <input name="prenom" required defaultValue={profile?.prenom ?? ""} autoComplete="given-name" className="rounded-md border border-brand-gray/40 px-2 py-1.5 text-sm" />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium sm:col-span-2">
+                  Email pour recevoir l&apos;accusé de réception
+                  <input name="email" type="email" required defaultValue={user.email ?? ""} autoComplete="email" className="rounded-md border border-brand-gray/40 px-2 py-1.5 text-sm" />
+                </label>
+                <p className="text-xs text-foreground/60 sm:col-span-2">
+                  Contrat concerné : abonnement Aide &amp; Garde souscrit le {formatDate(abonnement.date_debut)} ({formatEuros(abonnement.tarif_mensuel)} par mois).
+                </p>
+                <div className="sm:col-span-2">
+                  <button type="submit" className="btn btn-danger btn-sm">
+                    Confirmer la rétractation
+                  </button>
+                </div>
+              </form>
+            </details>
+          </section>
+        )}
+
         {/* --- Résiliation (brique 5b) --- */}
         {abonnement ? (
           abonnement.fin_prevue ? (
@@ -282,7 +334,7 @@ export default async function AbonnementPage({
             </section>
           ) : (
             <section className="mt-6 rounded-xl border border-brand-gray/25 bg-white p-5 text-sm">
-              <h2 className="font-bold text-brand-teal">Résilier mon abonnement</h2>
+              <h2 id="resilier" className="scroll-mt-4 font-bold text-brand-teal">Résilier mon abonnement</h2>
               <p className="mt-1 text-foreground/70">
                 La résiliation prend effet à la fin du mois en cours, le {finDuMois()}. Jusque-là, vous
                 gardez l&apos;accès à tous les services ; vos documents restent ensuite consultables.

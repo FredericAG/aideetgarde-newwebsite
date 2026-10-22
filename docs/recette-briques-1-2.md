@@ -497,3 +497,22 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | M.11 | Dépôt unitaire d'un bulletin déjà en ligne | Fenêtre « existe déjà » (déposé le…, téléchargé ou non) : « Oui, remplacer » / « Non, garder l'existant » | |
 | M.12 | Abonné : télécharger un document déposé en masse | Fichier `NOMEMPLOYEUR_NOMSALARIE_BP_AAMM.pdf` | |
 
+
+## Obligations légales du site (22/10)
+
+**Préparation** : exécuter `supabase/brique5d_obligations_legales.sql` (après brique5a et 5b) **avant** le Commit + Push. Les repères jaunes « [… à compléter] » sont normaux tant que les informations de la société ne sont pas fournies.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| L.1 | Bas de n'importe quelle page (connecté ou non, ordinateur et téléphone) | Pied de page : Mentions légales, Confidentialité et cookies, Conditions générales de vente, Résilier votre contrat, Contact ; au-dessus de la barre d'onglets sur téléphone | |
+| L.2 | Ouvrir « Mentions légales » | Éditeur, directeur de la publication, activité réglementée, hébergeur (Vercel, Paris), propriété intellectuelle ; informations manquantes en jaune | |
+| L.3 | Ouvrir « Confidentialité et cookies » | 8 rubriques avec sommaire ; tableau des données lisible sur téléphone (défilement horizontal) ; cookies : uniquement nécessaires, pas de bandeau | |
+| L.4 | Ouvrir « Conditions générales de vente » | 10 articles et l'annexe « formulaire de rétractation » ; tableau des prix identique à la grille de souscription ; version 2026-10-22 | |
+| L.5 | « Résilier votre contrat » (pied de page), connecté | Page Mon abonnement, positionnée sur le bloc de résiliation ; non connecté : page de connexion puis retour | |
+| L.6 | Inscription | Case « J'accepte les conditions générales de vente et j'ai lu la politique de confidentialité » ; les deux liens s'ouvrent dans un nouvel onglet ; sans la case : message d'erreur | |
+| L.7 | Souscription en ligne (mode TEST), sans cocher les cases | Le navigateur bloque ; les deux cases (CGV, exécution immédiate) sont obligatoires | |
+| L.8 | Souscription en ligne avec les deux cases | Paiement normal ; dans Supabase, la commande porte `cgv_version` = 2026-10-22, `cgv_acceptees_le` et `execution_immediate` = true | |
+| L.9 | Abonné souscrit en ligne depuis moins de 14 jours : page Mon abonnement | Bloc « Droit de rétractation » avec la date limite ; « Renoncer au contrat ici » ouvre le formulaire (nom, prénom, email préremplis, contrat concerné) | |
+| L.10 | « Confirmer la rétractation » | Message de confirmation ; abonnement résilié le jour même, plus de prochaine échéance ; email « accusé de réception » (contenu, date et heure, référence) ; alerte Aide & Garde avec le montant à rembourser | |
+| L.11 | Abonné souscrit il y a plus de 14 jours, ou abonnement hors site | Pas de bloc « Droit de rétractation » ; seule la résiliation est proposée | |
+| L.12 | Remboursement | Fait depuis le Back Office Systempay (mode TEST) ; date notée dans la table `retractations` (colonne `rembourse_le`) | |

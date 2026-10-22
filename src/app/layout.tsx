@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { corporative, stevieSans } from "@/fonts";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NavigationTelephone } from "@/components/NavigationTelephone";
+import { PiedDePage } from "@/components/PiedDePage";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
+        <PiedDePage />
         <NavigationTelephone />
       </body>
     </html>

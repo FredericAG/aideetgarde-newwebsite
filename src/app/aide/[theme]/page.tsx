@@ -151,6 +151,7 @@ export default async function ThemeAidePage({ params }: { params: Promise<{ them
                 {q.corps?.map((b, i) => (
                   <Contenu key={i} bloc={b} />
                 ))}
+                {q.source && <p className="text-xs text-foreground/60">Référence : {q.source}.</p>}
                 {q.lien && (
                   <p>
                     <Link href={q.lien.href} className="font-medium text-brand-teal underline">
@@ -165,7 +166,16 @@ export default async function ThemeAidePage({ params }: { params: Promise<{ them
 
         <p className="mt-6 text-xs text-foreground/50">
           Mis à jour le {MIS_A_JOUR}. Ces informations sont générales : elles ne remplacent pas un
-          conseil adapté à votre situation.
+          conseil adapté à votre situation. Texte de référence : la{" "}
+          <a
+            href="https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000044594539"
+            className="underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            convention collective des particuliers employeurs et de l&apos;emploi à domicile (IDCC 3239)
+          </a>
+          .
         </p>
 
         <BlocContact />

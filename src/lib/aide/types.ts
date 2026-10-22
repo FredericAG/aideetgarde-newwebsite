@@ -21,6 +21,8 @@ export interface Question {
   corps?: Bloc[];
   /** Mots servant à la recherche (synonymes, sigles). */
   motsCles?: string[];
+  /** Texte de référence (article de la convention collective, du Code du travail…). */
+  source?: string;
   /** Lien vers une autre page du site (aide contextuelle inverse). */
   lien?: { href: string; libelle: string };
 }
@@ -54,7 +56,7 @@ export const PORTES: { cle: PorteEntree; titre: string; texte: string }[] = [
 ];
 
 /** Date de la dernière relecture du contenu, affichée sur chaque page. */
-export const MIS_A_JOUR = "21/10/2026";
+export const MIS_A_JOUR = "22/10/2026";
 
 /**
  * Contenu en relecture par Aide & Garde : bandeau d'avertissement sur les

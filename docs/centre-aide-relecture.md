@@ -15,21 +15,31 @@ Pour publier : relire chaque point, cocher, corriger le texte si besoin (ou me l
 - Préavis de licenciement (1 semaine / 1 mois / 2 mois), indemnité de licenciement (dès 8 mois, 1/4 puis 1/3 de mois par année) : conformes à la brochure DREETS « particulier employeur » (janvier 2022).
 - Délais de prévenance de la période d'essai : repris du Code du travail (24 h, 48 h, 2 semaines, 1 mois).
 
-## À vérifier par Frédéric (convention collective du particulier employeur, IDCC 3239)
+## Vérifié le 22/10 dans la convention collective (IDCC 3239, texte de référence transmis par Frédéric)
+
+Légifrance ne se lit pas depuis l'outil de Claude : vérification faite sur des reprises du texte (Code du travail numérique du ministère, fiches DREETS, sites qui citent les articles). La référence est maintenant affichée sous chaque réponse concernée.
+
+| Page | Point | Résultat |
+|---|---|---|
+| Le contrat › Période d'essai | CDI : 1 mois, renouvelable une fois par écrit | ✅ Conforme (art. 131.1) ; CDD : droit commun (art. 44.2) |
+| Le contrat › Rupture de l'essai | Délais de prévenance | ✅ Code du travail L1221-25 et 26 (l'article 131.1 est étendu sous leur réserve) |
+| La fin du contrat › Licenciement | Entretien à partir du 4e jour ouvrable ; notification du 4e au 30e jour ouvrable | ✅ La présentation avait raison (art. 161.1.1.1). Exemple de calcul corrigé : un délai qui expire un samedi, un dimanche ou un jour férié est reporté au jour ouvrable suivant |
+| La fin du contrat › Préavis | Licenciement 1 semaine / 1 mois / 2 mois ; démission 1 semaine / 2 semaines / 1 mois | ✅ Conforme (art. 162.4.1 et 162.6) |
+| La fin du contrat › Indemnités | Dès 8 mois, 1/4 puis 1/3 de mois par année ; rupture conventionnelle au moins égale | ✅ Conforme (art. 163.1 et 161.3) |
+| Les jours fériés | 1er mai : chômé sans perte de salaire, travaillé majoré de 100 % ; autres : maintien du salaire si le jour habituel précédent et suivant sont travaillés, travaillé prévu au contrat et majoré de 10 % | ✅ Conforme (art. 47.1 et 47.2) |
+| Les congés › Repos hebdomadaire | Majoration de 25 % | ⚠️ Corrigé : à la demande de l'employeur, avec accord écrit du salarié, contrepartie convenue à l'avance : salaire majoré de 25 % **ou** repos rémunéré majoré d'autant (art. 46) ; repos de 35 heures consécutives au moins |
+| L'arrêt de travail › Indemnités | 81,80 % du salaire brut de référence | ✅ Taux confirmé (annexe prévoyance, 81,8 %) |
+
+## Reste à vérifier par Frédéric
 
 | ☐ | Page | Point |
 |---|---|---|
-| ☐ | Le contrat › CDD | La prime de précarité de 10 % s'applique-t-elle bien aux CDD du particulier employeur ? |
-| ☐ | Le contrat › Période d'essai | CDI : 1 mois renouvelable une fois, pour tous les salariés ? (la convention distingue-t-elle selon le nombre de jours travaillés par semaine ?) |
+| ☐ | Le contrat › CDD | La prime de précarité de 10 % (droit commun, art. 44.2 de la convention) : confirmer qu'elle s'applique dans vos dossiers. |
 | ☐ | Le contrat › Repas | Montant forfaitaire de l'avantage en nature repas en vigueur (à citer avec sa date, ou laisser sans montant). |
-| ☐ | La fin du contrat › Licenciement | Délais : la présentation indique un entretien à partir du 4e jour ouvrable après la convocation et une notification du 4e au 30e jour ouvrable après l'entretien. Le Code du travail prévoit au moins 5 jours ouvrables avant l'entretien et au moins 2 jours ouvrables avant la notification : quelle règle appliquer pour le particulier employeur ? |
-| ☐ | La fin du contrat › Préavis | Démission : 1 semaine / 2 semaines / 1 mois selon l'ancienneté (à confirmer). |
-| ☐ | La fin du contrat › Préavis | Assistants de vie : préavis plus long avec accord écrit (mention de la présentation). |
-| ☐ | La fin du contrat › Justifier | Formulation « motif lié à votre situation » plutôt que « motif économique » (le licenciement économique au sens du Code ne s'applique pas au particulier employeur) : d'accord ? |
-| ☐ | L'arrêt de travail › Indemnités | Pourcentages IRCEM (81,80 %, 80 % à partir du 29e jour) et point de départ du complément (8e jour en maladie, 1er jour en accident du travail). |
+| ☐ | La fin du contrat › Préavis | Assistants de vie : préavis plus long avec accord écrit (mention de la présentation, non retrouvée dans les extraits consultés). |
+| ☐ | La fin du contrat › Justifier | Formulation « motif lié à votre situation » plutôt que « motif économique » : d'accord ? |
+| ☐ | L'arrêt de travail › Indemnités | Point de départ du complément IRCEM (8e jour en maladie, 1er jour en accident du travail) et 80 % à partir du 29e jour : non retrouvés dans les extraits consultés (annexe 3 de la convention). |
 | ☐ | L'arrêt de travail › Accident | Délai de 48 heures pour déclarer l'accident à la CPAM (ajouté). |
-| ☐ | Les congés › Repos hebdomadaire | Majoration de 25 % du jour de repos travaillé. |
-| ☐ | Les jours fériés › Autres jours fériés | Condition « avoir travaillé le jour habituel précédent et suivant » et majoration de 10 % si travaillé. |
 | ☐ | La santé du salarié › Visite | Organisme chargé du suivi (service de santé au travail du particulier employeur) à nommer ? |
 | ☐ | Les aides › Crédit d'impôt | Plafonds en vigueur à citer ou non. |
 | ☐ | Utiliser mon espace | Textes conformes au fonctionnement du site (déclaration, téléchargement, notifications, résiliation). |

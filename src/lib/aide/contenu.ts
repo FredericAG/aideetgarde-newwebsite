@@ -198,6 +198,7 @@ export const THEMES: Theme[] = [
       {
         slug: "periode-essai",
         question: "Comment se calcule la période d'essai ?",
+        source: "Convention collective IDCC 3239, art. 131.1 (CDI) et 44.2 (CDD)",
         resume:
           "En CDI, elle dure 1 mois, renouvelable une fois si le contrat le prévoit et si le salarié en est averti par écrit avant la fin. Elle se compte en jours calendaires.",
         motsCles: ["essai", "renouvellement", "jours calendaires"],
@@ -219,6 +220,7 @@ export const THEMES: Theme[] = [
       {
         slug: "rupture-periode-essai",
         question: "Comment mettre fin à la période d'essai ?",
+        source: "Code du travail, art. L1221-25 et L1221-26 ; convention collective, art. 44.1.3",
         resume:
           "Par écrit, en respectant un délai de prévenance qui dépend du temps de présence du salarié. La période d'essai se termine à la date prévue même si le délai n'est pas respecté : l'employeur verse alors une indemnité.",
         motsCles: ["délai de prévenance", "rupture", "essai"],
@@ -284,6 +286,7 @@ export const THEMES: Theme[] = [
       {
         slug: "montant-cmg",
         question: "Combien vais-je recevoir de CMG ?",
+        source: "Réforme du complément de libre choix du mode de garde, 1er septembre 2025 (caf.fr, monenfant.fr)",
         resume:
           "Depuis le 1er septembre 2025, le CMG est calculé à l'heure : il dépend de vos ressources, du nombre d'enfants, du coût horaire de la garde et du nombre d'heures. Chaque heure de garde est en partie prise en charge.",
         motsCles: ["réforme 2025", "calcul", "taux d'effort", "monoparentale", "12 ans", "cotisations"],
@@ -338,6 +341,7 @@ export const THEMES: Theme[] = [
       {
         slug: "licenciement",
         question: "Comment se déroule un licenciement ?",
+        source: "Convention collective IDCC 3239, art. 161.1.1.1",
         resume:
           "L'employeur est à l'initiative. La décision doit reposer sur une cause réelle et sérieuse (ou une faute grave ou lourde) et suivre trois étapes : convocation, entretien préalable, notification.",
         motsCles: ["licencier", "entretien préalable", "convocation", "lettre recommandée"],
@@ -363,7 +367,7 @@ export const THEMES: Theme[] = [
           },
           {
             exemple:
-              "Convocation remise le 12 : les jours ouvrables se comptent à partir du 13. Le 17 est le 4e jour ouvrable : l'entretien peut avoir lieu le 18. Les jours ouvrables comprennent le samedi ; si l'entretien tombe un samedi ou un jour férié, il a lieu le jour ouvré suivant. Par recommandé, ajoutez le délai d'acheminement (environ 3 jours).",
+              "Convocation remise en main propre le mardi 12 : on compte à partir du mercredi 13. Le 4e jour ouvrable est le samedi 16 ; un délai ne pouvant pas expirer un samedi, un dimanche ou un jour férié, il est reporté au lundi 18 : l'entretien peut avoir lieu à partir du lundi 18. Par recommandé, le décompte part du lendemain de la première présentation de la lettre.",
           },
           { p: "Un préavis, rémunéré, est ensuite respecté selon l'ancienneté (voir « Quel préavis respecter ? »)." },
         ],
@@ -371,6 +375,7 @@ export const THEMES: Theme[] = [
       {
         slug: "demission",
         question: "Mon salarié démissionne : que faire ?",
+        source: "Convention collective IDCC 3239, art. 162.6",
         resume:
           "Le salarié vous informe par lettre recommandée avec accusé de réception ou remise en main propre contre décharge. Il n'a pas à se justifier, mais sa volonté doit être claire et non équivoque. Un préavis s'applique selon son ancienneté.",
         motsCles: ["démissionner", "lettre de démission"],
@@ -387,6 +392,7 @@ export const THEMES: Theme[] = [
       {
         slug: "rupture-conventionnelle",
         question: "Comment se passe une rupture conventionnelle ?",
+        source: "Convention collective IDCC 3239, art. 161.3 ; Code du travail, art. L1237-11 et suivants",
         resume:
           "Employeur et salarié décident ensemble de mettre fin au contrat. La procédure compte cinq étapes, sur le site TéléRC, et doit être homologuée par la DREETS.",
         motsCles: ["TéléRC", "DREETS", "homologation", "rétractation", "accord"],
@@ -438,6 +444,7 @@ export const THEMES: Theme[] = [
       {
         slug: "indemnites",
         question: "Quelles indemnités verser ?",
+        source: "Convention collective IDCC 3239, art. 163.1 (licenciement) et 161.3 (rupture conventionnelle)",
         resume:
           "Selon le cas : l'indemnité de congés payés non pris, l'indemnité de licenciement (dès 8 mois d'ancienneté, sauf faute grave ou lourde) et l'indemnité de rupture conventionnelle (au moins égale à celle de licenciement, quelle que soit l'ancienneté).",
         motsCles: ["indemnité de licenciement", "indemnité compensatrice", "congés non pris", "ancienneté"],
@@ -457,6 +464,7 @@ export const THEMES: Theme[] = [
       {
         slug: "preavis",
         question: "Quel préavis respecter ?",
+        source: "Convention collective IDCC 3239, art. 162.4.1 (licenciement) et 162.6 (démission)",
         resume:
           "Sa durée dépend de l'ancienneté et de qui met fin au contrat. Il n'y en a pas en rupture conventionnelle, ni en cas de faute grave ou lourde.",
         motsCles: ["préavis", "durée", "dispense", "suspension"],
@@ -541,6 +549,7 @@ export const THEMES: Theme[] = [
       {
         slug: "conges-pendant-arret",
         question: "Le salarié acquiert-il des congés pendant un arrêt ?",
+        source: "Code du travail, art. L3141-5 et L3141-19-1 (loi du 22 avril 2024)",
         resume:
           "Oui. Depuis la loi du 22 avril 2024, un salarié en arrêt maladie non professionnelle acquiert 2 jours ouvrables de congés par mois, dans la limite de 24 jours (4 semaines) par an ; en accident du travail ou maladie professionnelle, 2,5 jours par mois comme d'habitude.",
         motsCles: ["congés payés", "arrêt maladie", "loi 2024", "report", "15 mois"],
@@ -575,8 +584,10 @@ export const THEMES: Theme[] = [
         slug: "repos-hebdomadaire",
         question: "Mon salarié peut-il travailler son jour de repos ?",
         resume:
-          "À titre exceptionnel, et seulement avec son accord écrit. La journée travaillée est alors payée avec une majoration de 25 %.",
+          "À titre exceptionnel, à votre demande et avec son accord écrit. La contrepartie est convenue à l'avance : soit un salaire majoré de 25 %, soit un repos rémunéré majoré dans la même proportion.",
         motsCles: ["repos hebdomadaire", "dimanche", "majoration 25"],
+        corps: [{ p: "Le repos hebdomadaire dure au moins 35 heures consécutives, de préférence le dimanche." }],
+        source: "Convention collective IDCC 3239, art. 46",
       },
       {
         slug: "jours-au-dela",
@@ -622,6 +633,7 @@ export const THEMES: Theme[] = [
       {
         slug: "premier-mai",
         question: "Comment est payé le 1er mai ?",
+        source: "Convention collective IDCC 3239, art. 47.1",
         resume:
           "S'il tombe un jour habituellement travaillé, il est chômé et payé normalement. S'il est travaillé, le salaire de la journée est majoré de 100 %.",
         motsCles: ["1er mai", "fête du travail"],
@@ -630,6 +642,7 @@ export const THEMES: Theme[] = [
       {
         slug: "autres-feries",
         question: "Et les autres jours fériés ?",
+        source: "Convention collective IDCC 3239, art. 47.2",
         resume:
           "Chômés, la rémunération habituelle est maintenue si le salarié a travaillé le jour habituellement travaillé qui précède et celui qui suit. Travaillés, ils doivent être prévus au contrat et sont majorés de 10 %.",
         motsCles: ["jour férié", "chômé", "travaillé", "majoration"],

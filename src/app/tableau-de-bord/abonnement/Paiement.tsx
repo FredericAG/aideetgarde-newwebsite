@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
@@ -175,8 +176,30 @@ export function Souscription({
       )}
       <p className="text-sm text-foreground/70">
         Vous payez aujourd&apos;hui le premier mois. Les mois suivants, le même montant est
-        prélevé automatiquement à la même date sur la carte enregistrée.
+        prélevé automatiquement à la même date sur la carte enregistrée. Sans engagement :
+        résiliable en ligne à tout moment, effet à la fin du mois en cours.
       </p>
+      {/* Obligations de la vente en ligne : CGV et délai de rétractation. */}
+      <div className="flex flex-col gap-2 rounded-lg border border-brand-gray/25 bg-white p-3 text-sm">
+        <label className="flex items-start gap-2">
+          <input type="checkbox" name="cgv" value="oui" required className="mt-1" />
+          <span>
+            J&apos;ai lu et j&apos;accepte les{" "}
+            <Link href="/cgv" target="_blank" className="font-medium text-brand-teal underline">
+              conditions générales de vente
+            </Link>
+            .
+          </span>
+        </label>
+        <label className="flex items-start gap-2">
+          <input type="checkbox" name="execution" value="oui" required className="mt-1" />
+          <span>
+            Je demande que le service commence dès le paiement, sans attendre la fin du délai de
+            rétractation de 14 jours. Si je me rétracte pendant ce délai (bouton « Renoncer au contrat
+            ici » de cette page), je serai remboursé du montant payé, moins le service déjà fourni.
+          </span>
+        </label>
+      </div>
       <div>
         <BoutonContinuer texte="Continuer vers le paiement" />
       </div>

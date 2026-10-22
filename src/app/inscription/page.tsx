@@ -31,7 +31,7 @@ export default function InscriptionPage() {
     }
     if (!accepteCgu) {
       setError(
-        "Merci d'accepter les conditions d'utilisation et la politique de confidentialité.",
+        "Merci d'accepter les conditions générales de vente.",
       );
       return;
     }
@@ -161,8 +161,12 @@ export default function InscriptionPage() {
               className="mt-1"
             />
             <span>
-              J&apos;accepte les conditions d&apos;utilisation et la{" "}
-              <Link href="/confidentialite" className="underline">
+              J&apos;accepte les{" "}
+              <Link href="/cgv" className="underline" target="_blank">
+                conditions générales de vente
+              </Link>{" "}
+              et j&apos;ai lu la{" "}
+              <Link href="/confidentialite" className="underline" target="_blank">
                 politique de confidentialité
               </Link>
               .

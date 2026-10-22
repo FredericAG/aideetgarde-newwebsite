@@ -360,6 +360,8 @@ Lecture du nom par le site : premier élément = référence ; puis, depuis la f
 
 **En place (21/10)** : `/aide` (recherche instantanée, trois portes d'entrée, outils, contact) et une page par thème (`/aide/<thème>`, questions dépliables avec réponse courte puis détail, adresse propre à chaque question, ouverte automatiquement depuis la recherche). Contenu dans `src/lib/aide/contenu.ts` (10 thèmes, 40 questions). Aide contextuelle : liens « Comprendre mon bulletin » et « Les documents de fin de contrat » au-dessus des catégories de documents de l'abonné. Tant que le contenu est en relecture (`EN_RELECTURE`), bandeau d'avertissement et pages non indexées. Liste de contrôle : `docs/centre-aide-relecture.md`. Simulateur affiché « Bientôt ».
 
+**Texte de référence** (transmis par Frédéric le 22/10) : convention collective de la branche du secteur des particuliers employeurs et de l'emploi à domicile (IDCC 3239), https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000043941784/?idConteneur=KALICONT000044594539. Chaque réponse du centre d'aide qui en découle cite l'article (« Référence : … ») ; le pied de chaque page renvoie au texte sur Légifrance.
+
 **Contenu à vérifier avant publication** (la présentation contient des règles qui ont changé) :
 
 - **CMG** : réformé au 1er septembre 2025 (nouveau mode de calcul, extension de l'âge pour les familles monoparentales) ; les montants et âges de la présentation sont à reprendre.
@@ -392,8 +394,29 @@ Lecture du nom par le site : premier élément = référence ; puis, depuis la f
 | **Site de test non indexé** : tant que le site est sur son adresse provisoire, aucune page ne doit apparaître dans les moteurs (concurrence avec le vrai site, pages inachevées). L'indexation s'ouvre uniquement sur le domaine définitif (`NEXT_PUBLIC_INDEXATION=oui` dans Vercel). | En place (19/10) |
 | Google Search Console et fiche Google Business Profile dès la bascule du domaine. | À faire |
 
-## 9. Historique de ce document
+## 9. Obligations légales du site (fiche service-public F37351, vérifiée le 22/10/2026)
 
+Le site vend un abonnement en ligne à des particuliers : il doit respecter les règles de la vente à distance. Les informations d'Aide & Garde sont regroupées dans `src/lib/entreprise.ts` ; tant qu'une valeur n'est pas renseignée, elle s'affiche en jaune « [… à compléter] » sur les pages, pour ne jamais publier une information inventée. **Le site ne s'ouvre pas au public tant qu'il reste une mention à compléter.**
+
+| Règle | Ce que fait le site | État |
+|---|---|---|
+| **Mentions légales** (jusqu'à 75 000 € / 375 000 € d'amende) | Page `/mentions-legales` : éditeur (dénomination, forme, capital, siège, immatriculation, TVA, téléphone, email), directeur de la publication, activité réglementée (déclaration ou agrément services à la personne et autorité), hébergeur (Vercel, serveurs à Paris), propriété intellectuelle. | En place (22/10) — identité à compléter |
+| **Lien sur chaque page** | Pied de page sur toutes les pages : Mentions légales, Confidentialité et cookies, Conditions générales de vente, **« Résilier votre contrat »**, Contact. | En place (22/10) |
+| **Confidentialité (RGPD)** | Page `/confidentialite` réécrite d'après ce que fait réellement le site : responsable, tableau données / finalités / bases légales, prestataires (Supabase, Vercel, Brevo, Systempay-BRED, Urssaf), stockage à Paris et garanties de transfert, durées, droits et CNIL, sécurité. | En place (22/10) — durées « compte » et « documents » à arrêter |
+| **Cookies** | Uniquement des traceurs strictement nécessaires (session, mémoire du choix sur les notifications, paiement) : **pas de bandeau de consentement**. Si un outil de mesure d'audience ou de publicité est ajouté un jour, il faudra un bandeau avec « Tout refuser » aussi visible que « Tout accepter ». | En place (22/10) |
+| **CGV** (obligatoires pour vendre à des particuliers) | Page `/cgv` : vendeur, service (mandataire : l'abonné reste employeur), prix tirés de la grille des formules, souscription et paiement mensuel, refus et nouveaux essais, durée sans engagement, résiliation, rétractation, engagements, données, réclamations et médiateur, droit français, **formulaire type de rétractation** en annexe. Version datée (`VERSION_CGV`), à changer à chaque modification. | En place (22/10) — à valider par Frédéric |
+| **Acceptation des CGV** | À la souscription, deux cases obligatoires (vérifiées aussi côté serveur) : « J'ai lu et j'accepte les CGV » et « Je demande que le service commence dès le paiement… ». La commande garde la preuve : version des CGV, date et heure, demande d'exécution immédiate. À l'inscription (création du compte, sans achat), la case renvoie aux CGV et à la politique de confidentialité. | En place (22/10, script 5d) — à recetter |
+| **Résiliation en ligne** (depuis le 1er juin 2023) | Lien « Résilier votre contrat » en pied de page vers le bloc de résiliation de « Mon abonnement » (brique 5b), confirmation par email. | En place |
+| **Rétractation en ligne : bouton « Renoncer au contrat ici »** (obligatoire depuis le 19 juin 2026, art. L221-21 ; jusqu'à 75 000 € d'amende) | Sur « Mon abonnement », pendant les 14 jours qui suivent une souscription en ligne : bloc « Droit de rétractation », bouton « Renoncer au contrat ici » qui ouvre un court formulaire (nom, prénom, email, contrat concerné) puis « **Confirmer la rétractation** ». Effet immédiat : abonnement résilié le jour même, échéances à venir annulées. **Accusé de réception** envoyé aussitôt par email (contenu de la demande, date et heure), alerte à Aide & Garde avec le montant à rembourser (montant payé moins les jours de service fournis, au prorata sur 30 jours). Le remboursement se fait depuis le Back Office Systempay, sous 14 jours ; la date est notée dans la table `retractations`. | En place (22/10, script 5d) — à recetter |
+| **Médiateur de la consommation** (obligatoire) | Nommé dans les CGV (article Réclamations). La plateforme européenne de règlement en ligne des litiges a fermé en 2025 : elle n'est plus citée. | À choisir et compléter |
+
+**À fournir par Frédéric** : dénomination, forme, capital, siège, immatriculation, n° de TVA (ou régime de franchise), directeur de la publication, n° de déclaration ou d'agrément services à la personne et autorité, médiateur choisi (nom et site), durées de conservation (compte, documents), mention de prix (TTC ou TVA non applicable), relecture des CGV (notamment : préavis d'un mois avant un changement de tarif, article « engagements »).
+
+## 10. Historique de ce document
+
+- 22/10/2026 — Obligations légales (F37351) : mentions légales, confidentialité réécrite, CGV avec formulaire de rétractation, pied de page avec « Résilier votre contrat », acceptation des CGV et demande d'exécution immédiate à la souscription, bouton « Renoncer au contrat ici » avec accusé de réception (obligatoire depuis le 19/06/2026), script 5d.
+
+- 22/10/2026 — Centre d'aide vérifié sur la convention collective IDCC 3239 (période d'essai, licenciement, préavis, indemnités, jours fériés : conformes ; repos hebdomadaire corrigé), références d'articles affichées.
 - 22/10/2026 — Brique 4 : dépôt en masse (onglet Dépôt), lecture stricte de la norme, contrôle des noms, empreinte des fichiers, remplacement sur confirmation avec trace, notification groupée par abonné ; dépôt unitaire aligné.
 - 21/10/2026 — Centre d'aide en place (10 thèmes, recherche, aide contextuelle, en relecture) ; onglet courant mis en valeur dans l'en-tête ; synthèse de l'abonnement remise au tableau de bord ; lien de retour retiré de la page Abonnement ; filtre Tarif en liste déroulante.
 - 21/10/2026 — Types AE / LIC / RUPT, précision au lieu du titre libre, lignes de documents sans répétition des noms, nom du fichier téléchargé normé, tableau de bord simplifié, onglet Documents par pastilles, périmètre de la reprise (en cours + terminées < 3 ans), proposition de centre d'aide (§ 6 bis).

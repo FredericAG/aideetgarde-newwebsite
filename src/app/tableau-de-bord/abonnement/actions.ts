@@ -15,6 +15,7 @@ import {
   lireCommande,
 } from "@/lib/systempay";
 import { emailAdmin } from "@/lib/email";
+import { VERSION_CGV } from "@/lib/entreprise";
 import { traiterReponseCommande } from "@/lib/paiement";
 
 export type EtatPaiement =
@@ -94,6 +95,18 @@ export async function preparerPaiement(
   if (type === "souscription") {
     const formule = formuleParQuota(Number(formData.get("quota")));
     if (!formule) return { etape: "choix", erreur: "Choisissez une formule." };
+    // Obligations de la vente en ligne : CGV acceptées et demande expresse
+    // d'exécution pendant le délai de rétractation (Code de la consommation,
+    // art. L221-25). Contrôlé ici, pas seulement dans le navigateur.
+    if (formData.get("cgv") !== "oui") {
+      return { etape: "choix", erreur: "Merci d'accepter les conditions générales de vente." };
+    }
+    if (formData.get("execution") !== "oui") {
+      return {
+        etape: "choix",
+        erreur: "Merci de confirmer que le service commence dès le paiement (case sur le délai de rétractation).",
+      };
+    }
 
     const [abo, places] = await Promise.all([
       supabase.from("abonnements").select("id").eq("employeur_id", user.id).eq("statut", "actif").maybeSingle(),
@@ -112,7 +125,16 @@ export async function preparerPaiement(
     }
     montant = formule.tarif;
     libelle = `Abonnement ${formule.libelle} – premier mois`;
-    ligne = { type, quota: formule.quota, tarif_mensuel: formule.tarif, montant };
+    ligne = {
+      type,
+      quota: formule.quota,
+      tarif_mensuel: formule.tarif,
+      montant,
+      // Preuve de l'acceptation (script brique5d).
+      cgv_version: VERSION_CGV,
+      cgv_acceptees_le: new Date().toISOString(),
+      execution_immediate: true,
+    };
   } else {
     const echeanceId = String(formData.get("echeance") ?? "");
     // Lecture avec la session de l'abonné : il ne voit que ses échéances.
@@ -266,4 +288,90 @@ export async function annulerMaResiliation() {
   await envoyerEmail({ a: emailAdmin(), sujet: `Résiliation annulée : ${nom || user.email}`, ...alerte });
   revalidatePath("/tableau-de-bord");
   redirect(`/tableau-de-bord/abonnement?ok=${encodeURIComponent("Résiliation annulée : votre abonnement continue normalement.")}`);
+}
+
+/**
+ * Rétractation en ligne (« Renoncer au contrat ici »), dans les 14 jours
+ * qui suivent la souscription en ligne : obligatoire depuis le 19 juin 2026
+ * (Code de la consommation, art. L221-21). L'abonnement prend fin le jour
+ * même ; un accusé de réception reprenant la déclaration, sa date et son
+ * heure est envoyé par email ; Aide & Garde rembourse dans les 14 jours le
+ * montant payé, moins le service déjà fourni (exécution demandée dès la
+ * souscription).
+ */
+export async function exercerMaRetractation(fd: FormData) {
+  const { supabase, user, profile } = await requireUser("/tableau-de-bord/abonnement");
+  const nom = String(fd.get("nom") ?? "").trim().slice(0, 100);
+  const prenom = String(fd.get("prenom") ?? "").trim().slice(0, 100);
+  const email = String(fd.get("email") ?? "").trim().slice(0, 254);
+  if (!nom || !prenom || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    redirect(`/tableau-de-bord/abonnement?erreur=${encodeURIComponent("Indiquez votre nom, votre prénom et une adresse email valide.")}#renoncer`);
+  }
+  const { data: abo } = await supabase
+    .from("abonnements")
+    .select("id, date_debut, tarif_mensuel")
+    .eq("employeur_id", user.id)
+    .eq("statut", "actif")
+    .maybeSingle();
+  const { data, error } = await supabase.rpc("exercer_retractation", { p_nom: nom, p_prenom: prenom, p_email: email });
+  if (error) {
+    const message = error.message.includes("exercer_retractation")
+      ? "La rétractation en ligne n'est pas encore disponible. Contactez-nous."
+      : error.message;
+    redirect(`/tableau-de-bord/abonnement?erreur=${encodeURIComponent(message)}`);
+  }
+  const quand = new Date(String(data));
+  const quandFr = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(quand);
+
+  // Montant payé et service déjà fourni, pour le remboursement.
+  const { data: cmd } = await supabase
+    .from("commandes")
+    .select("order_id, montant")
+    .eq("abonnement_id", abo?.id ?? "")
+    .eq("type", "souscription")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const paye = Number(cmd?.montant ?? abo?.tarif_mensuel ?? 0);
+  const jours = abo?.date_debut
+    ? Math.max(0, Math.round((quand.getTime() - new Date(`${abo.date_debut}T00:00:00Z`).getTime()) / 86400000))
+    : 0;
+  const fourni = Math.min(paye, Math.round(((paye * jours) / 30) * 100) / 100);
+  const rembourse = Math.max(0, Math.round((paye - fourni) * 100) / 100);
+
+  const site = await adresseSite();
+  const contenu = modeleEmail({
+    prenom: prenom || profile?.prenom || undefined,
+    titre: "Accusé de réception de votre rétractation",
+    paragraphes: [
+      `Nous avons bien reçu votre rétractation le ${quandFr}.`,
+      `Contenu de votre déclaration : ${prenom} ${nom}, contrat d'abonnement Aide & Garde${cmd?.order_id ? ` (référence ${cmd.order_id})` : ""}, email ${email}.`,
+      "Votre abonnement a pris fin ce jour : aucun prélèvement ne sera plus effectué.",
+      `Vous serez remboursé sous 14 jours sur la carte utilisée : ${formatEuros(paye)} payés, moins le service fourni depuis la souscription à votre demande (${jours} jour${jours > 1 ? "s" : ""}), soit environ ${formatEuros(rembourse)}.`,
+      "Vos documents restent consultables dans votre espace.",
+    ],
+    bouton: { texte: "Mon espace", url: `${site}/tableau-de-bord/abonnement` },
+  });
+  const destinataires = [...new Set([email, user.email].filter(Boolean) as string[])];
+  for (const a of destinataires) {
+    await envoyerEmail({ a, nom: `${prenom} ${nom}`, sujet: "Accusé de réception de votre rétractation — Aide & Garde", ...contenu });
+  }
+  const alerte = modeleEmail({
+    titre: "Rétractation d'un abonné : remboursement à faire",
+    paragraphes: [
+      `${prenom} ${nom} (${email}) s'est rétracté le ${quandFr}${cmd?.order_id ? `, commande ${cmd.order_id}` : ""}. L'abonnement est terminé et les échéances à venir sont annulées.`,
+      `À rembourser dans les 14 jours depuis le Back Office Systempay : ${formatEuros(paye)} payés, moins ${jours} jour(s) de service fourni (${formatEuros(fourni)}), soit environ ${formatEuros(rembourse)}.`,
+    ],
+    bouton: { texte: "Ouvrir la fiche", url: `${site}/admin/comptes/${user.id}` },
+  });
+  await envoyerEmail({ a: emailAdmin(), sujet: `Rétractation : ${prenom} ${nom}`, ...alerte });
+
+  revalidatePath("/tableau-de-bord/abonnement");
+  redirect(
+    `/tableau-de-bord/abonnement?ok=${encodeURIComponent(`Rétractation enregistrée le ${quandFr}. Un accusé de réception vous a été envoyé par email.`)}`,
+  );
 }
