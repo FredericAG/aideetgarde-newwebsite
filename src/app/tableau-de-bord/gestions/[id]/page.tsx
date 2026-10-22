@@ -236,6 +236,22 @@ export default async function DetailGestionPage({
           />
         )}
 
+        {gestion.statut === "en_cours" && (
+          <aside className="mt-6 flex flex-col gap-2 rounded-lg border-l-4 border-brand-teal bg-brand-sky-tint/30 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              <strong className="text-brand-teal">Pour votre salarié :</strong> loisirs à prix réduits, suivi médical,
+              protection sociale. Une page à lui remettre.
+            </span>
+            <a
+              href="/fiche-avantages-salarie.pdf"
+              download="Droits-et-avantages-salarie.pdf"
+              className="btn btn-secondaire btn-sm shrink-0 self-start sm:self-auto"
+            >
+              Télécharger la fiche
+            </a>
+          </aside>
+        )}
+
         <h2 className="mt-8 font-bold text-brand-teal">
           Documents ({documents.length})
         </h2>

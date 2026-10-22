@@ -557,4 +557,7 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | R.7 | Deuxième remplacement pour le même salarié absent | Refusé : « Un remplacement est déjà prévu pour ce salarié absent. » | |
 | R.8 | Gestion normale sur un abonnement complet | Toujours refusée à l'envoi (message de quota) | |
 | R.9 | Centre d'aide › La santé du salarié › Visite | Réponse SPSTN en 3 étapes, liste des règles, lien externe « Le SPSTN pour les particuliers employeurs ↗ » ; astuce remplacement dans « arrêt maladie » et « congé maternité » | |
-| R.10 | Bloc des prix (Découvrir, souscription) | Plus de mention du devis ; encadré « Mode mandataire. Dans le cadre d'un contrat… » (sans « Attention ») | |
+| R.10 | Bloc des prix (Découvrir, souscription) | Sous les prix, notes discrètes en petit gris, sans encadré : prix nets et TVA, crédit d'impôt, « Mode mandataire. Attention, dans le cadre… », mention du devis gratuit | |
+| R.11 | Centre d'aide › Employer un salarié › « Les avantages de votre salarié » | 4 questions (droits et fiche, ASC loisirs, Ircem, santé au travail) ; liens externes et PDF ouverts dans un nouvel onglet | |
+| R.12 | Page d'une gestion en cours | Encart « Pour votre salarié » avec « Télécharger la fiche » ; le PDF d'une page s'ouvre ou s'enregistre | |
+| R.13 | Valider une gestion (admin) | L'email « Votre gestion est validée » rappelle la fiche à remettre au salarié | |

@@ -42,6 +42,7 @@ Légifrance ne se lit pas depuis l'outil de Claude : vérification faite sur des
 | ☐ | L'arrêt de travail › Accident | Délai de 48 heures pour déclarer l'accident à la CPAM (ajouté). |
 | ☑ | La santé du salarié › Visite | Réglé le 23/10 : réponse réécrite d'après spstn.org (SPSTN depuis le 2 janvier 2025, adhésion par l'APNI via Cesu/Pajemploi, contact à l'embauche, une visite par type d'emploi, indemnisation APNI). |
 | ☐ | Les aides › Crédit d'impôt | Plafonds en vigueur à citer ou non. |
+| ☐ | Les avantages de votre salarié (nouveau, 23/10) | ASC loisirs, Ircem, santé au travail, et la fiche PDF à remettre au salarié (`outils/fiche-salarie/generer.py`). |
 | ☐ | Utiliser mon espace | Textes conformes au fonctionnement du site (déclaration, téléchargement, notifications, résiliation). |
 
 ## Contenu de la présentation non repris pour l'instant

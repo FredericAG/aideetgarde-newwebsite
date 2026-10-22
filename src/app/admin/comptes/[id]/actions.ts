@@ -569,6 +569,7 @@ export async function validerGestion(fd: FormData) {
       paragraphes: [
         `Aide & Garde a validé la gestion de ${salarie} : elle est désormais en cours.`,
         "Chaque mois, déclarez les heures travaillées depuis votre espace : nous établissons le bulletin et vous prévenons dès qu'il est disponible.",
+        "À remettre à votre salarié : sa fiche « Droits et avantages » (loisirs à prix réduits, suivi médical, protection sociale), à télécharger depuis la page de la gestion.",
       ],
       bouton: "Ouvrir la gestion",
     },

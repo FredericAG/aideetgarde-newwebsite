@@ -154,7 +154,7 @@ export default async function ThemeAidePage({ params }: { params: Promise<{ them
                 {q.source && <p className="text-xs text-foreground/60">Référence : {q.source}.</p>}
                 {q.lien && (
                   <p>
-                    {q.lien.href.startsWith("http") ? (
+                    {q.lien.href.startsWith("http") || q.lien.href.endsWith(".pdf") ? (
                       <a href={q.lien.href} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-teal underline">
                         {q.lien.libelle} ↗
                       </a>

@@ -720,6 +720,78 @@ export const THEMES: Theme[] = [
     ],
   },
 
+  {
+    slug: "avantages-du-salarie",
+    titre: "Les avantages de votre salarié",
+    porte: "employer",
+    intro: "Loisirs à prix réduits, santé au travail, protection sociale : ce à quoi votre salarié a droit.",
+    questions: [
+      {
+        slug: "fiche-salarie",
+        question: "À quoi mon salarié a-t-il droit, et comment l'en informer ?",
+        resume:
+          "À trois services souvent méconnus : des loisirs et vacances à prix réduits, un suivi de santé au travail, et la protection sociale de l'Ircem. Remettez-lui la fiche d'une page qui les résume.",
+        motsCles: ["avantages", "droits du salarié", "fiche", "loisirs", "Ircem", "SPSTN", "ASC"],
+        corps: [
+          {
+            liste: [
+              "Loisirs et vacances à prix réduits : offre des partenaires sociaux de la branche (ASC loisirs).",
+              "Santé au travail : visite d'information et de prévention par le SPSTN.",
+              "Protection sociale : retraite complémentaire, prévoyance et aides de l'Ircem.",
+            ],
+          },
+          {
+            note: "La fiche est aussi proposée sur la page de chaque gestion en cours, et rappelée dans l'email de validation d'une nouvelle gestion.",
+          },
+        ],
+        lien: { href: "/fiche-avantages-salarie.pdf", libelle: "Télécharger la fiche à remettre à votre salarié (PDF)" },
+      },
+      {
+        slug: "asc-loisirs",
+        question: "Quelles réductions sur les loisirs pour mon salarié ?",
+        resume:
+          "Les partenaires sociaux des métiers de l'emploi à domicile proposent à votre salarié des réductions sur les vacances, les parcs de loisirs, les musées, le cinéma, les spectacles et le sport.",
+        motsCles: ["ASC", "loisirs", "vacances", "réductions", "CEZAM", "activités sociales et culturelles", "comité d'entreprise"],
+        source: "asc-loisirs-emploidomicile.fr, consulté le 23/10/2026",
+        corps: [
+          {
+            p: "C'est l'équivalent d'un comité d'entreprise pour les salariés des particuliers employeurs et les assistants maternels. Votre salarié crée lui-même son compte, gratuitement, avec son adresse email et son numéro de salarié Cesu ou Pajemploi (14 caractères, indiqué sur ses bulletins de salaire). Vous n'avez aucune démarche à faire.",
+          },
+        ],
+        lien: { href: "https://www.asc-loisirs-emploidomicile.fr/accueil", libelle: "Le site ASC loisirs emploi à domicile" },
+      },
+      {
+        slug: "ircem",
+        question: "Que fait l'Ircem pour mon salarié ?",
+        resume:
+          "L'Ircem est le groupe de protection sociale de l'emploi à domicile : retraite complémentaire, prévoyance et action sociale de votre salarié, financées par les cotisations que vous versez.",
+        motsCles: ["Ircem", "prévoyance", "retraite complémentaire", "action sociale", "aides"],
+        source: "ircem.com, consulté le 23/10/2026",
+        corps: [
+          {
+            liste: [
+              "Retraite complémentaire : les cotisations donnent à votre salarié des points Agirc-Arrco.",
+              "Prévoyance : un complément aux indemnités de la Sécurité sociale en cas d'arrêt de travail (après 7 jours), des garanties en cas d'invalidité et de décès.",
+              "Action sociale : des aides gratuites, sous conditions de ressources, après un imprévu, pour le logement, la santé, la prévention ou les familles monoparentales.",
+            ],
+          },
+          {
+            p: "Votre salarié fait ses demandes depuis son espace client sur ircem.com, ou au 0 980 980 990 (appel non surtaxé, du lundi au vendredi de 8 h 30 à 18 h).",
+          },
+        ],
+        lien: { href: "https://www.ircem.com/", libelle: "Le site de l'Ircem" },
+      },
+      {
+        slug: "sante-au-travail",
+        question: "Et sa santé au travail ?",
+        resume:
+          "Depuis 2025, le SPSTN assure le suivi médical des salariés des particuliers employeurs. À l'embauche, contactez-le pour qu'il organise la visite d'information et de prévention.",
+        motsCles: ["SPSTN", "visite médicale"],
+        lien: { href: "/aide/sante-du-salarie#visite-information-prevention", libelle: "Tout savoir sur la visite médicale" },
+      },
+    ],
+  },
+
   // ------------------------------------------------------------------ Espace
   {
     slug: "mon-espace",

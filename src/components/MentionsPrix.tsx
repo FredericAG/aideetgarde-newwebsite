@@ -1,33 +1,31 @@
 import { ACompleter } from "@/components/ACompleter";
-import { ENTREPRISE, MENTION_MANDATAIRE, libelleTva } from "@/lib/entreprise";
+import { ENTREPRISE, MENTION_DEVIS, MENTION_MANDATAIRE, libelleTva } from "@/lib/entreprise";
 
 /**
- * Informations qui doivent accompagner les prix d'un organisme de services
- * à la personne en mode mandataire (arrêté du 17 mars 2015, art. 2 à 5) :
- * mode d'intervention et mention « vous êtes l'employeur », nature du prix
- * (frais de mandat), TVA, et l'avantage fiscal dans une
- * mention distincte, en plus petit que les prix.
- * Utilisé dans les CGV et sur le formulaire de souscription.
+ * Mentions qui doivent accompagner les prix d'un organisme de services à la
+ * personne en mode mandataire (arrêté du 17 mars 2015) : nature du prix et
+ * TVA, mention « le consommateur est l'employeur », devis gratuit, et
+ * l'avantage fiscal (mention distincte, plus petite que les prix).
+ *
+ * Principe (Frédéric, 23/10/2026) : les abonnés viennent pour se décharger de
+ * l'administratif et veulent comprendre d'un coup d'œil. Les textes légaux
+ * restent donc complets et lisibles, mais en notes discrètes sous les prix,
+ * sans encadré ni couleur qui les mettraient au premier plan.
  */
 export function MentionsPrix() {
   const tva = libelleTva();
   return (
-    <div className="flex flex-col gap-2 text-xs leading-relaxed text-foreground/75">
+    <div className="flex flex-col gap-1 border-t border-brand-gray/15 pt-3 text-[0.7rem] leading-snug text-foreground/55">
       <p>
         {ENTREPRISE.tauxTva === 0 ? "Prix mensuels nets" : "Prix mensuels toutes taxes comprises"},{" "}
-        {tva ?? <ACompleter valeur={null} quoi="taux de TVA (20 % ou « TVA non applicable »)" />}. L&apos;abonnement
-        rémunère le mandat confié à {ENTREPRISE.nomCommercial} (frais de gestion) ; il ne comprend ni le salaire
-        ni les cotisations sociales de vos salariés, que vous réglez vous-même.
+        {tva ?? <ACompleter valeur={null} quoi="taux de TVA" />}. Frais de mandat : le salaire et les cotisations de
+        vos salariés ne sont pas compris. Crédit d&apos;impôt de 50 % possible (article 199 sexdecies du code général
+        des impôts).
       </p>
-      <p className="rounded-md border-l-4 border-brand-jaune bg-brand-jaune/15 px-3 py-2 text-foreground/85">
-        <strong>Mode mandataire.</strong> {MENTION_MANDATAIRE}
+      <p>
+        <span className="font-semibold">Mode mandataire.</span> {MENTION_MANDATAIRE}
       </p>
-      <p className="text-[0.7rem] text-foreground/60">
-        {ENTREPRISE.nomCommercial} est un organisme de services à la personne déclaré : les sommes versées au
-        titre de l&apos;abonnement peuvent ouvrir droit à un crédit d&apos;impôt de 50 %, pour les activités
-        couvertes par sa déclaration et dans les conditions de l&apos;article 199 sexdecies du code général des
-        impôts.
-      </p>
+      <p>{MENTION_DEVIS}</p>
     </div>
   );
 }
