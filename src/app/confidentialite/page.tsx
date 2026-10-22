@@ -14,12 +14,22 @@ export const metadata = {
  * Rédigée d'après ce que fait réellement le site ; les durées de
  * conservation restent à arrêter par Aide & Garde (spécifications § 5.3).
  */
-const DUREES: Record<string, string | null> = {
-  compte: null, // ex. « durée de l'abonnement, puis 3 ans »
-  documents: null, // ex. « durée de l'abonnement, puis 5 ans »
-  paiements: "10 ans (obligation comptable)",
-  techniques: "12 mois",
+const DUREES = {
+  // Proposition du 23/10/2026, d'après le référentiel CNIL « gestion des
+  // activités commerciales » et les délais de prescription. La suppression
+  // automatique reste à programmer (spécifications § 9).
+  compte: "pendant l'abonnement, puis 5 ans après sa fin (délai de prescription)",
+  documents:
+    "pendant l'abonnement, puis 5 ans après sa fin : c'est aussi la durée pendant laquelle un employeur doit conserver le double des bulletins de paie ; pensez à télécharger les vôtres avant",
+  sansAbonnement: "2 ans sans connexion, puis suppression ; 3 mois si l'adresse email n'a jamais été confirmée",
+  preuves: "5 ans après la fin de l'abonnement",
+  paiements: "10 ans (pièces comptables)",
+  recommandations: "jamais conservée : elle ne sert qu'à l'envoi demandé",
+  techniques: "12 mois au plus",
 };
+
+/** Pixel Meta activé (variable Vercel) : le texte s'adapte. */
+const PIXEL = Boolean(process.env.NEXT_PUBLIC_META_PIXEL_ID);
 
 const sommaire = [
   { id: "responsable", titre: "Responsable du traitement" },
@@ -69,7 +79,11 @@ export default function ConfidentialitePage() {
                 ["Acceptation des CGV, rétractation, résiliation : date, heure et contenu", "Prouver vos choix et y donner suite", "Obligation légale"],
                 ["Notifications sur votre téléphone ou ordinateur : adresse technique de l'appareil", "Vous prévenir d'un nouveau document", "Consentement (activation dans « Mon compte », désactivable à tout moment)"],
                 ["Emails de service et de relance (copies des notifications désactivables)", "Vous informer de la vie de votre dossier", "Exécution du contrat ; intérêt légitime"],
-                ["Journaux techniques (adresse IP, date et heure de connexion)", "Sécurité du site et des comptes", "Intérêt légitime"],
+                ["Recommandation : prénom et email de la personne à qui vous écrivez, votre message", "Lui envoyer votre message, une seule fois (l'adresse n'est pas conservée)", "Intérêt légitime (envoi demandé par vous)"],
+              ["Journaux techniques (adresse IP, date et heure de connexion)", "Sécurité du site et des comptes", "Intérêt légitime"],
+              ...(PIXEL
+                ? [["Pages publiques visitées, identifiant de cookie Meta", "Mesurer l'efficacité de nos publicités", "Consentement (bandeau cookies)"]]
+                : []),
               ].map(([d, f, b]) => (
                 <tr key={d} className="border-t border-brand-gray/20 even:bg-[#f7f7f7]">
                   <td className={td}>{d}</td>
@@ -93,7 +107,13 @@ export default function ConfidentialitePage() {
           <li><strong>Vercel</strong> (hébergement du site), serveurs à Paris ;</li>
           <li><strong>Brevo</strong> (envoi des emails), société française ;</li>
           <li><strong>Lyra Network — Systempay</strong> et la <strong>BRED Banque Populaire</strong> (paiement par carte) ;</li>
-          <li>l&apos;<strong>Urssaf</strong> (centres Pajemploi et Cesu) et les organismes sociaux, pour les déclarations faites pour votre compte.</li>
+          <li>l&apos;<strong>Urssaf</strong> (centres Pajemploi et Cesu) et les organismes sociaux, pour les déclarations faites pour votre compte ;</li>
+          {PIXEL && (
+            <li>
+              <strong>Meta Platforms Ireland</strong> (Facebook, Instagram), uniquement si vous l&apos;acceptez, pour
+              la mesure des publicités sur les pages publiques du site (voir l&apos;article 7).
+            </li>
+          )}
         </ul>
       </Section>
 
@@ -107,10 +127,13 @@ export default function ConfidentialitePage() {
 
       <Section id="durees" titre="5. Durées de conservation">
         <ul>
-          <li>Compte et données de vos salariés : <ACompleter valeur={DUREES.compte} quoi="durée" /></li>
-          <li>Documents de paie et contrats : <ACompleter valeur={DUREES.documents} quoi="durée" /></li>
-          <li>Données de paiement et factures : {DUREES.paiements}</li>
-          <li>Journaux techniques : {DUREES.techniques}</li>
+          <li>Compte et données de vos salariés : {DUREES.compte}.</li>
+          <li>Documents de paie et contrats : {DUREES.documents}.</li>
+          <li>Compte créé sans abonnement : {DUREES.sansAbonnement}.</li>
+          <li>Acceptation des CGV, rétractation, résiliation : {DUREES.preuves}.</li>
+          <li>Données de paiement et factures : {DUREES.paiements}.</li>
+          <li>Adresse email d&apos;une personne à qui vous recommandez {e.nomCommercial} : {DUREES.recommandations}.</li>
+          <li>Journaux techniques : {DUREES.techniques}.</li>
         </ul>
       </Section>
 
@@ -128,18 +151,38 @@ export default function ConfidentialitePage() {
 
       <Section id="cookies" titre="7. Cookies et traceurs">
         <p>
-          Le site n&apos;utilise que des traceurs <strong>strictement nécessaires</strong> à son fonctionnement,
-          qui ne demandent pas votre consentement :
+          {PIXEL ? "Sans votre accord, le site" : "Le site"} n&apos;utilise que des traceurs{" "}
+          <strong>strictement nécessaires</strong> à son fonctionnement, qui ne demandent pas votre consentement :
         </p>
         <ul>
           <li>le cookie de session, qui vous garde connecté à votre espace ;</li>
           <li>une mémoire dans votre navigateur de votre choix sur les notifications (pour ne pas vous le redemander) ;</li>
-          <li>les traceurs du formulaire de paiement Systempay, au moment où vous payez.</li>
+          <li>les traceurs du formulaire de paiement Systempay, au moment où vous payez{PIXEL ? " ;" : "."}</li>
+          {PIXEL && <li>le cookie qui retient votre choix sur les cookies publicitaires (6 mois).</li>}
         </ul>
-        <p>
-          Aucun outil de mesure d&apos;audience ni de publicité n&apos;est utilisé. Si cela changeait, un bandeau vous
-          demanderait votre accord, modifiable à tout moment.
-        </p>
+        {PIXEL ? (
+          <>
+            <p>
+              <strong>Avec votre accord seulement</strong>, le pixel Meta (Facebook) mesure l&apos;efficacité de nos
+              publicités : il enregistre les pages publiques du site que vous visitez (accueil, centre d&apos;aide,
+              pages d&apos;information) et dépose un cookie de Meta (« _fbp », 90 jours). Il n&apos;est jamais chargé
+              dans votre espace personnel, ni sur les pages de connexion et d&apos;inscription : aucune donnée de
+              votre compte, de vos salariés ou de leur paie n&apos;est transmise à Meta. Meta Platforms Ireland est
+              responsable conjoint de ce traitement ; ses données peuvent être transférées aux États-Unis
+              (cadre de protection des données UE–États-Unis).
+            </p>
+            <p>
+              Votre choix est demandé à la première visite (« Tout accepter » ou « Tout refuser »), conservé 6 mois,
+              et modifiable à tout moment par le lien « Gérer les cookies » en bas de chaque page. Refuser
+              n&apos;empêche pas d&apos;utiliser le site.
+            </p>
+          </>
+        ) : (
+          <p>
+            Aucun outil de mesure d&apos;audience ni de publicité n&apos;est utilisé. Si cela changeait, un bandeau
+            vous demanderait votre accord, modifiable à tout moment.
+          </p>
+        )}
       </Section>
 
       <Section id="securite" titre="8. Sécurité">

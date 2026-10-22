@@ -1,3 +1,4 @@
+import { EncartRecommander } from "@/components/EncartRecommander";
 import { requireUser } from "@/lib/auth";
 import { type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
@@ -51,6 +52,8 @@ export default async function MonComptePage() {
           actifInitial={prefs?.notifications_email !== false}
           email={user.email ?? ""}
         />
+
+        {profile?.role !== "admin" && <EncartRecommander className="mt-8" />}
 
         {/* Sur téléphone, la déconnexion se trouve ici (onglet « Compte »). */}
         <div className="mt-8 border-t border-brand-gray/20 pt-6">

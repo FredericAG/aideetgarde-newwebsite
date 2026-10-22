@@ -7,7 +7,7 @@
 --
 -- 1. Preuve de l'acceptation des CGV à la souscription : version, date, et
 --    demande d'exécution immédiate (le service commence pendant le délai de
---    rétractation de 14 jours).
+--    rétractation de 14 jours), demande de déclaration Urssaf par Aide & Garde.
 -- 2. Rétractation en ligne (« Renoncer au contrat ici ») : obligatoire pour
 --    les contrats conclus en ligne depuis le 19 juin 2026 (Code de la
 --    consommation, art. L221-21 modifié par l'ordonnance du 5 janvier 2026).
@@ -19,6 +19,9 @@
 alter table public.commandes add column if not exists cgv_version text;
 alter table public.commandes add column if not exists cgv_acceptees_le timestamptz;
 alter table public.commandes add column if not exists execution_immediate boolean;
+-- Demande expresse de déclaration des salaires par Aide & Garde (Cesu /
+-- Pajemploi), cochée à la souscription.
+alter table public.commandes add column if not exists mandat_declaration boolean;
 
 create table if not exists public.retractations (
   id             uuid primary key default gen_random_uuid(),

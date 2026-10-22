@@ -474,3 +474,9 @@ button:disabled {
   background: var(--brand-jaune);
   color: var(--brand-black);
 }
+
+/* En-tête fixe (collant) : les ancres (#section) s'arrêtent sous l'en-tête
+   au lieu d'être masquées par lui. */
+html {
+  scroll-padding-top: 5.5rem;
+}

@@ -6,6 +6,8 @@ import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { FORMULES } from "@/lib/formules";
 import { formatEuros } from "@/lib/data";
+import { ENTREPRISE, prixHT } from "@/lib/entreprise";
+import { MentionsPrix } from "@/components/MentionsPrix";
 import { confirmerPaiement, preparerPaiement, type EtatPaiement } from "./actions";
 
 const URL_FORMULAIRE = "https://static.systempay.fr";
@@ -156,8 +158,13 @@ export function Souscription({
                 />
                 <span className="font-medium">{f.libelle}</span>
               </span>
-              <span className="whitespace-nowrap font-bold text-brand-teal">
-                {formatEuros(f.tarif)} <span className="text-xs font-normal text-foreground/60">/ mois</span>
+              <span className="flex flex-col items-end whitespace-nowrap font-bold text-brand-teal">
+                <span>
+                  {formatEuros(f.tarif)} <span className="text-xs font-normal text-foreground/60">{ENTREPRISE.tauxTva === 0 ? "/ mois" : "TTC / mois"}</span>
+                </span>
+                {ENTREPRISE.tauxTva !== 0 && prixHT(f.tarif) !== null && (
+                  <span className="text-xs font-normal text-foreground/60">soit {formatEuros(prixHT(f.tarif)!)} HT</span>
+                )}
               </span>
             </label>
           );
@@ -179,6 +186,7 @@ export function Souscription({
         prélevé automatiquement à la même date sur la carte enregistrée. Sans engagement :
         résiliable en ligne à tout moment, effet à la fin du mois en cours.
       </p>
+      <MentionsPrix />
       {/* Obligations de la vente en ligne : CGV et délai de rétractation. */}
       <div className="flex flex-col gap-2 rounded-lg border border-brand-gray/25 bg-white p-3 text-sm">
         <label className="flex items-start gap-2">
@@ -197,6 +205,14 @@ export function Souscription({
             Je demande que le service commence dès le paiement, sans attendre la fin du délai de
             rétractation de 14 jours. Si je me rétracte pendant ce délai (bouton « Renoncer au contrat
             ici » de cette page), je serai remboursé du montant payé, moins le service déjà fourni.
+          </span>
+        </label>
+        <label className="flex items-start gap-2">
+          <input type="checkbox" name="mandat" value="oui" required className="mt-1" />
+          <span>
+            Je demande à Aide &amp; Garde de déclarer pour mon compte les salaires de mes salariés auprès de
+            l&apos;Urssaf (Cesu ou Pajemploi). J&apos;ouvre moi-même mon compte employeur et je transmets à Aide
+            &amp; Garde les informations nécessaires : sans elles, aucune déclaration ne peut être faite.
           </span>
         </label>
       </div>

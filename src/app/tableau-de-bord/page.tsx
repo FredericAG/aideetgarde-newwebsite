@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NotificationsPush } from "@/components/NotificationsPush";
+import { EncartRecommander } from "@/components/EncartRecommander";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import { LienTelechargement } from "@/components/LienTelechargement";
 import { requireUser } from "@/lib/auth";
@@ -367,6 +368,8 @@ export default async function TableauDeBordPage({
             </Link>
           </p>
         </section>
+
+        <EncartRecommander className="mt-8" />
 
         <NotificationsPush compact />
       </div>

@@ -507,12 +507,37 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | L.1 | Bas de n'importe quelle page (connecté ou non, ordinateur et téléphone) | Pied de page : Mentions légales, Confidentialité et cookies, Conditions générales de vente, Résilier votre contrat, Contact ; au-dessus de la barre d'onglets sur téléphone | |
 | L.2 | Ouvrir « Mentions légales » | Éditeur, directeur de la publication, activité réglementée, hébergeur (Vercel, Paris), propriété intellectuelle ; informations manquantes en jaune | |
 | L.3 | Ouvrir « Confidentialité et cookies » | 8 rubriques avec sommaire ; tableau des données lisible sur téléphone (défilement horizontal) ; cookies : uniquement nécessaires, pas de bandeau | |
-| L.4 | Ouvrir « Conditions générales de vente » | 10 articles et l'annexe « formulaire de rétractation » ; tableau des prix identique à la grille de souscription ; version 2026-10-22 | |
+| L.4 | Ouvrir « Conditions générales de vente » | Mentions obligatoires seulement, et l'annexe « formulaire de rétractation » ; tableau des prix identique à la grille de souscription ; version 2026-10-22 | |
 | L.5 | « Résilier votre contrat » (pied de page), connecté | Page Mon abonnement, positionnée sur le bloc de résiliation ; non connecté : page de connexion puis retour | |
 | L.6 | Inscription | Case « J'accepte les conditions générales de vente et j'ai lu la politique de confidentialité » ; les deux liens s'ouvrent dans un nouvel onglet ; sans la case : message d'erreur | |
-| L.7 | Souscription en ligne (mode TEST), sans cocher les cases | Le navigateur bloque ; les deux cases (CGV, exécution immédiate) sont obligatoires | |
-| L.8 | Souscription en ligne avec les deux cases | Paiement normal ; dans Supabase, la commande porte `cgv_version` = 2026-10-22, `cgv_acceptees_le` et `execution_immediate` = true | |
+| L.7 | Souscription en ligne (mode TEST), sans cocher les cases | Le navigateur bloque ; les trois cases (CGV, exécution immédiate, déclaration Urssaf par Aide & Garde) sont obligatoires | |
+| L.8 | Souscription en ligne avec les trois cases | Paiement normal ; dans Supabase, la commande porte `cgv_version` = 2026-10-22, `cgv_acceptees_le`, `execution_immediate` = true et `mandat_declaration` = true | |
 | L.9 | Abonné souscrit en ligne depuis moins de 14 jours : page Mon abonnement | Bloc « Droit de rétractation » avec la date limite ; « Renoncer au contrat ici » ouvre le formulaire (nom, prénom, email préremplis, contrat concerné) | |
 | L.10 | « Confirmer la rétractation » | Message de confirmation ; abonnement résilié le jour même, plus de prochaine échéance ; email « accusé de réception » (contenu, date et heure, référence) ; alerte Aide & Garde avec le montant à rembourser | |
 | L.11 | Abonné souscrit il y a plus de 14 jours, ou abonnement hors site | Pas de bloc « Droit de rétractation » ; seule la résiliation est proposée | |
 | L.12 | Remboursement | Fait depuis le Back Office Systempay (mode TEST) ; date notée dans la table `retractations` (colonne `rembourse_le`) | |
+| L.13 | Bas de chaque page | Sous les liens : « Aide et Garde, organisme de services à la personne déclaré (n° SAP 838154383), intervient en mode mandataire… » et lien « Activités déclarées » | |
+| L.14 | Mentions légales | Identité complète (Aide et Garde, SASU au capital de 5 000 €, 131 rue du Temple, RCS Paris 838 154 383, SIRET), directeur de la publication, déclaration SAP, 12 activités, encadré « Mode mandataire », logo Charte nationale Qualité ; seul le n° de TVA reste en jaune | |
+| L.15 | Souscription : bloc des prix | Prix « TTC / mois » (et HT une fois le taux de TVA renseigné), encadré « Mode mandataire », mention du devis gratuit, crédit d'impôt en plus petit | |
+| L.16 | CGV | 7 articles courts + annexe : encadré « Mode mandataire » en tête ; vendeur ; objet du mandat ; obligations d'employeur (compte Urssaf) ; prix TTC et HT ; durée et résiliation ; rétractation ; réclamations et médiateur | |
+| L.17 | Pixel Meta désactivé (situation actuelle) | Aucun bandeau cookies, pas de lien « Gérer les cookies » | |
+| L.18 | Pixel Meta activé (`NEXT_PUBLIC_META_PIXEL_ID` dans Vercel, puis redéploiement) | Bandeau à la 1re visite ; « Tout refuser » et « Tout accepter » identiques ; après refus, plus de bandeau ; « Gérer les cookies » le rouvre ; après accord, le pixel se charge sur l'accueil et l'aide mais jamais dans l'espace abonné (vérifiable avec l'extension Meta Pixel Helper) | |
+| L.19 | Logo « S ! services à la personne » en bas de chaque page | Logo net (ni déformé ni flou), entouré de blanc ; un clic ouvre servicesalapersonne.gouv.fr dans un nouvel onglet | |
+
+## Recommandation, page « Découvrir », en-tête et bas de page fixes (23/10)
+
+**Préparation** : exécuter `supabase/brique5e_recommandations.sql` **avant** le Commit + Push. Pour recevoir les emails de test, utiliser une adresse à vous comme « contact ».
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| P.1 | Tableau de bord, puis Mon compte (abonné) | Encart jaune « Satisfait d'Aide & Garde ? » avec « Recommander à un proche » ; absent pour l'administrateur | |
+| P.2 | Cliquer « Recommander à un proche » | Page avec email, prénom (facultatif), message proposé signé de votre nom, modifiable ; « Revenir au message proposé » le rétablit | |
+| P.3 | Envoyer à une de vos adresses, avec un prénom | « Merci ! Votre message est parti pour … » ; champs email et prénom vidés, message conservé | |
+| P.4 | Email reçu | Expéditeur « Votre nom via Aide & Garde », objet « … vous recommande Aide & Garde », « Bonjour {prénom}, », votre message, bouton « Découvrir Aide & Garde », pied indiquant l'auteur et que l'adresse n'est pas conservée ; « Répondre » vous écrit à vous | |
+| P.5 | Erreurs | Adresse invalide ou votre propre adresse : message clair ; 11e envoi dans la journée : refusé avec remerciement | |
+| P.6 | Dans Supabase, table `recommandations` | Une ligne par envoi, sans email ni nom du contact | |
+| P.7 | Bouton « Découvrir Aide & Garde » de l'email | Page « Employer à domicile, sans la paperasse » avec le bandeau « Un de vos proches vous recommande… », étapes, prix (sans TVA, mentions obligatoires), « Créer mon compte » | |
+| P.8 | Faire défiler une longue page (ordinateur et téléphone) | L'en-tête et ses onglets restent en haut ; sur ordinateur, la bande des liens légaux reste en bas ; rien n'est masqué en fin de page | |
+| P.9 | Lien vers une rubrique (ex. CGV > sommaire > « Prix et paiement ») | Le titre de la rubrique s'affiche sous l'en-tête, pas caché derrière | |
+| P.10 | CGV, Mon abonnement, mentions légales | Prix affichés une seule fois avec « TVA non applicable, article 293 B du code général des impôts » ; plus de ligne « n° de TVA » | |
+| P.11 | Confidentialité, rubrique 5 | Durées de conservation renseignées (plus de repère jaune) | |

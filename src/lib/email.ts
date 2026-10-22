@@ -99,6 +99,10 @@ export async function envoyerEmail(o: {
   sujet: string;
   html: string;
   texte: string;
+  /** Nom affiché de l'expéditeur (par défaut « Aide & Garde »). */
+  nomExpediteur?: string;
+  /** Adresse de réponse (ex. l'abonné qui recommande le site). */
+  repondreA?: { email: string; nom?: string };
 }): Promise<BilanEmail> {
   const cle = process.env.BREVO_API_KEY;
   if (!cle) return { envoye: false, raison: "envoi d'emails non configuré (BREVO_API_KEY absente)" };
@@ -108,7 +112,8 @@ export async function envoyerEmail(o: {
       method: "POST",
       headers: { "api-key": cle, "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({
-        sender: { name: "Aide & Garde", email: process.env.EMAIL_EXPEDITEUR || "contact@aideetgarde.fr" },
+        sender: { name: o.nomExpediteur || "Aide & Garde", email: process.env.EMAIL_EXPEDITEUR || "contact@aideetgarde.fr" },
+        ...(o.repondreA ? { replyTo: { email: o.repondreA.email, ...(o.repondreA.nom ? { name: o.repondreA.nom } : {}) } } : {}),
         to: [{ email: o.a, ...(o.nom ? { name: o.nom } : {}) }],
         subject: o.sujet,
         htmlContent: o.html,

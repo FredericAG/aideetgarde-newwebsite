@@ -16,7 +16,7 @@ export async function SiteHeader() {
   const actions = isAdmin && supabase ? (await compterActionsAdmin(supabase)).total : 0;
 
   return (
-    <header className="border-b border-brand-gray/15 bg-white">
+    <header className="sticky top-0 z-30 border-b border-brand-gray/15 bg-white">
       {/* Repère du thème sombre de l'administration (voir globals.css). */}
       {isAdmin && <span className="theme-admin hidden" aria-hidden="true" />}
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">

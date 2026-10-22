@@ -1,7 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ACompleter } from "@/components/ACompleter";
 import { PageLegale, Section } from "@/components/PageLegale";
-import { ENTREPRISE, HEBERGEURS } from "@/lib/entreprise";
+import { ACTIVITES_DECLAREES, CHARTE_QUALITE, ENTREPRISE, HEBERGEURS, MENTION_MANDATAIRE } from "@/lib/entreprise";
 
 export const metadata = {
   title: "Mentions légales — Aide & Garde",
@@ -21,8 +22,12 @@ export default function MentionsLegalesPage() {
         </p>
         <ul>
           <li>Siège social : <ACompleter valeur={e.siege} quoi="adresse du siège" /></li>
-          <li>Immatriculation : <ACompleter valeur={e.rcs} quoi="n° RCS ou RNE" /></li>
-          <li>N° de TVA intracommunautaire : <ACompleter valeur={e.tva} quoi="n° de TVA (si assujetti)" /></li>
+          <li>Immatriculation : <ACompleter valeur={e.rcs} quoi="n° RCS ou RNE" /> (SIRET {e.siret})</li>
+          {e.tauxTva === 0 ? (
+            <li>TVA non applicable, article 293 B du code général des impôts</li>
+          ) : (
+            <li>N° de TVA intracommunautaire : <ACompleter valeur={e.tva} quoi="n° de TVA" /></li>
+          )}
           <li>Téléphone : {e.telephone} (numéro non surtaxé)</li>
           <li>Email : {e.email}</li>
         </ul>
@@ -32,13 +37,40 @@ export default function MentionsLegalesPage() {
         <p><ACompleter valeur={e.directeurPublication} quoi="nom du directeur de la publication" /></p>
       </Section>
 
-      <Section id="activite" titre="Activité réglementée">
+      <Section id="activite" titre="Activité réglementée : services à la personne">
         <p>
-          {e.nomCommercial} exerce une activité de services à la personne en mode mandataire :{" "}
-          <ACompleter valeur={e.sap} quoi="n° de déclaration ou d'agrément SAP" />, délivré par{" "}
-          <ACompleter valeur={e.sapAutorite} quoi="autorité (DREETS…)" />. Le particulier qui confie la gestion
-          de ses salariés à {e.nomCommercial} reste leur employeur.
+          {e.nomCommercial} est un organisme de services à la personne déclaré :{" "}
+          <ACompleter valeur={e.sap} quoi="n° de déclaration SAP" />, auprès de{" "}
+          <ACompleter valeur={e.sapAutorite} quoi="autorité" />. Activités déclarées, toutes en{" "}
+          <strong>mode mandataire</strong> :
         </p>
+        <ul>
+          {ACTIVITES_DECLAREES.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+        <p className="rounded-md border-l-4 border-brand-jaune bg-brand-jaune/15 px-3 py-2">
+          <strong>Mode mandataire.</strong> {MENTION_MANDATAIRE}
+        </p>
+        {CHARTE_QUALITE.adherent && (
+          <div className="flex items-center gap-4">
+            <Image
+              src={CHARTE_QUALITE.logo}
+              alt={`Charte nationale Qualité des services à la personne ${CHARTE_QUALITE.annee}`}
+              width={70}
+              height={103}
+            />
+            <p>
+              {e.nomCommercial} adhère à la Charte nationale Qualité des services à la personne : accueil et
+              réactivité, information claire, suivi personnalisé, compétence, confidentialité, évaluation annuelle
+              de la qualité de ses services. Liste des adhérents sur{" "}
+              <a href={CHARTE_QUALITE.lien} className="text-brand-teal underline" target="_blank" rel="noopener noreferrer">
+                servicesalapersonne.gouv.fr
+              </a>
+              .
+            </p>
+          </div>
+        )}
       </Section>
 
       <Section id="hebergement" titre="Hébergement">

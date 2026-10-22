@@ -3,6 +3,7 @@ import { corporative, stevieSans } from "@/fonts";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NavigationTelephone } from "@/components/NavigationTelephone";
 import { PiedDePage } from "@/components/PiedDePage";
+import { Consentement } from "@/components/Consentement";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <PiedDePage />
         <NavigationTelephone />
+        <Consentement />
       </body>
     </html>
   );

@@ -107,6 +107,13 @@ export async function preparerPaiement(
         erreur: "Merci de confirmer que le service commence dès le paiement (case sur le délai de rétractation).",
       };
     }
+    // Mandat de déclaration Urssaf : demande expresse de l'abonné (CGV, art. 7).
+    if (formData.get("mandat") !== "oui") {
+      return {
+        etape: "choix",
+        erreur: "Merci de confirmer votre demande de déclaration par Aide & Garde auprès de l'Urssaf.",
+      };
+    }
 
     const [abo, places] = await Promise.all([
       supabase.from("abonnements").select("id").eq("employeur_id", user.id).eq("statut", "actif").maybeSingle(),
@@ -134,6 +141,7 @@ export async function preparerPaiement(
       cgv_version: VERSION_CGV,
       cgv_acceptees_le: new Date().toISOString(),
       execution_immediate: true,
+      mandat_declaration: true,
     };
   } else {
     const echeanceId = String(formData.get("echeance") ?? "");
