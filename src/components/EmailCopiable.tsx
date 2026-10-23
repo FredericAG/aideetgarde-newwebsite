@@ -7,7 +7,16 @@ import { useState } from "react";
  * fixe (« Copié » prend la même place : rien ne bouge à l'écran). Placée au-dessus du lien étiré des lignes
  * de liste (relative z-10) : copier ne fait pas ouvrir la fiche.
  */
-export function EmailCopiable({ email, className = "" }: { email: string; className?: string }) {
+export function EmailCopiable({
+  email,
+  className = "",
+  phrase = false,
+}: {
+  email: string;
+  className?: string;
+  /** Texte (et non adresse) : coupure entre les mots, libellés adaptés. */
+  phrase?: boolean;
+}) {
   const [copie, setCopie] = useState(false);
   async function copier(e: React.MouseEvent) {
     e.preventDefault();
@@ -29,12 +38,12 @@ export function EmailCopiable({ email, className = "" }: { email: string; classN
   }
   return (
     <span className={`relative z-10 inline-flex flex-wrap items-center gap-x-1.5 ${className}`}>
-      <span className="select-all break-all">{email}</span>
+      <span className={phrase ? "select-all" : "select-all break-all"}>{email}</span>
       <button
         type="button"
         onClick={copier}
-        title="Copier l'adresse email"
-        aria-label={`Copier l'adresse ${email}`}
+        title={phrase ? "Copier le texte" : "Copier l'adresse email"}
+        aria-label={phrase ? "Copier le texte" : `Copier l'adresse ${email}`}
         className={`inline-flex w-[4.75rem] shrink-0 items-center justify-center gap-1 rounded border px-1 text-[11px] font-bold leading-4 ${
           copie
             ? "border-brand-teal bg-brand-teal text-white"

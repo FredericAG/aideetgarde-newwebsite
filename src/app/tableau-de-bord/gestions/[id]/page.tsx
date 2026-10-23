@@ -292,7 +292,7 @@ export default async function DetailGestionPage({
               protection sociale. Une page à lui remettre.
             </span>
             <a
-              href="/fiche-avantages-salarie.pdf"
+              href="/avantages/fiche?depuis=gestion"
               download="Droits-et-avantages-salarie.pdf"
               className="btn btn-secondaire btn-sm shrink-0 self-start sm:self-auto"
             >

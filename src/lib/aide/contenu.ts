@@ -709,7 +709,7 @@ export const THEMES: Theme[] = [
             ],
           },
         ],
-        lien: { href: "https://spstn.org/je-suis-particulier-employeur", libelle: "Le SPSTN pour les particuliers employeurs" },
+        lien: { href: "/avantages/spstn?depuis=aide", libelle: "Le SPSTN pour les particuliers employeurs" },
       },
       {
         slug: "complementaire-sante",
@@ -744,7 +744,7 @@ export const THEMES: Theme[] = [
             note: "La fiche est aussi proposée sur la page de chaque gestion en cours, et rappelée dans l'email de validation d'une nouvelle gestion.",
           },
         ],
-        lien: { href: "/fiche-avantages-salarie.pdf", libelle: "Télécharger la fiche à remettre à votre salarié (PDF)" },
+        lien: { href: "/avantages/fiche?depuis=aide", libelle: "Télécharger la fiche à remettre à votre salarié (PDF)" },
       },
       {
         slug: "asc-loisirs",
@@ -758,7 +758,7 @@ export const THEMES: Theme[] = [
             p: "C'est l'équivalent d'un comité d'entreprise pour les salariés des particuliers employeurs et les assistants maternels. Votre salarié crée lui-même son compte, gratuitement, avec son adresse email et son numéro de salarié Cesu ou Pajemploi (14 caractères, indiqué sur ses bulletins de salaire). Vous n'avez aucune démarche à faire.",
           },
         ],
-        lien: { href: "https://www.asc-loisirs-emploidomicile.fr/accueil", libelle: "Le site ASC loisirs emploi à domicile" },
+        lien: { href: "/avantages/asc?depuis=aide", libelle: "Le site ASC loisirs emploi à domicile" },
       },
       {
         slug: "ircem",
@@ -779,7 +779,7 @@ export const THEMES: Theme[] = [
             p: "Votre salarié fait ses demandes depuis son espace client sur ircem.com, ou au 0 980 980 990 (appel non surtaxé, du lundi au vendredi de 8 h 30 à 18 h).",
           },
         ],
-        lien: { href: "https://www.ircem.com/", libelle: "Le site de l'Ircem" },
+        lien: { href: "/avantages/ircem?depuis=aide", libelle: "Le site de l'Ircem" },
       },
       {
         slug: "sante-au-travail",

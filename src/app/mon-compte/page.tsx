@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { EncartRecommander } from "@/components/EncartRecommander";
 import { requireUser } from "@/lib/auth";
 import { type UserProfile } from "@/lib/user-profile";
@@ -54,6 +55,14 @@ export default async function MonComptePage() {
         />
 
         {profile?.role !== "admin" && <EncartRecommander className="mt-8" />}
+        {/* Téléphone : la barre d'onglets de l'administration est pleine. */}
+        {profile?.role === "admin" && (
+          <p className="mt-8 text-sm">
+            <Link href="/admin/partenaires" className="font-medium text-brand-teal underline">
+              Statistiques des visites envoyées aux partenaires ›
+            </Link>
+          </p>
+        )}
 
         {/* Sur téléphone, la déconnexion se trouve ici (onglet « Compte »). */}
         <div className="mt-8 border-t border-brand-gray/20 pt-6">

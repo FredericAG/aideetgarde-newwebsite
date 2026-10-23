@@ -30,6 +30,9 @@ export async function GET(request: Request) {
     const echeances = await encaisserEcheances(db);
     // Résiliations demandées arrivées à la fin du mois (brique 5b).
     const { data: resiliations } = await db.rpc("appliquer_resiliations");
+    // Clics vers les partenaires : lien avec le compte effacé après 13 mois
+    // (brique 10 ; sans le script, l'erreur est simplement ignorée).
+    await db.rpc("anonymiser_clics_partenaires");
     console.log("Traitement quotidien Systempay", { commandes, echeances, resiliations });
     return Response.json({ commandes, echeances, resiliations: resiliations ?? 0 });
   } catch (e) {

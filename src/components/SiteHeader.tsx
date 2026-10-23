@@ -58,6 +58,9 @@ export async function SiteHeader() {
                   <OngletEntete href="/admin/archives">
                     Archivés
                   </OngletEntete>
+                  <OngletEntete href="/admin/partenaires">
+                    Partenaires
+                  </OngletEntete>
                   <OngletEntete href="/mon-compte">
                     Mon compte
                   </OngletEntete>

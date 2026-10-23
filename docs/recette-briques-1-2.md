@@ -480,7 +480,7 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 
 ## Brique 4 — Dépôt en masse des PDF (22/10)
 
-**Préparation** : exécuter `supabase/brique4_depot_en_masse.sql` (après brique2h) **avant** le Commit + Push. Préparer quelques PDF fictifs nommés à la norme pour 2 ou 3 gestions de test (référence AG visible sur la fiche du compte), par exemple `AG00012_DUPONT_MARTIN_BP_2610.pdf`.
+**Préparation** : exécuter `supabase/brique4_depot_en_masse.sql` (après brique2h) **avant** le Commit + Push. PDF de test prêts à l'emploi dans le dossier `recette/brique4/` (fictifs, non publiés), générés pour 4 gestions des données de recette fictives par `outils/recette-pdf/generer.py` à partir des références données par `outils/recette-pdf/gestions_de_test.sql`. Mode d'emploi et résultat attendu de chaque fichier : `recette/brique4/LISEZMOI.txt`.
 
 | # | Scénario | Résultat attendu | Statut |
 |---|---|---|---|
@@ -578,3 +578,16 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | A.10 | Accueil, section « Ce que nos clients nous écrivent » | 6 témoignages (initiales, date, repère « accord à obtenir » sur le site de test), « Voir 13 autres témoignages » ; mention sur la sélection et l'absence de contrepartie | |
 | A.11 | Liens Google renseignés dans `src/lib/entreprise.ts` | « Voir nos avis sur Google ↗ » sur l'accueil ; « Donner mon avis sur Google ↗ » dans l'encart Recommander du tableau de bord | |
 | A.12 | Variables `GOOGLE_PLACES_API_KEY` et `GOOGLE_PLACE_ID` renseignées dans Vercel, puis redéploiement | Accueil : note « x,x ★★★★★ n avis Google ↗ » (lien vers la fiche), jusqu'à 5 avis Google avec auteur, ancienneté et « Lire sur Google » ; puis « Extraits de messages reçus » | |
+
+## Visites envoyées aux partenaires (brique 10, 23/10)
+
+**Préparation** : exécuter `supabase/brique10_clics_partenaires.sql` **avant** le Commit + Push. Faire les clics avec un compte **abonné** (les clics de l'administrateur ne sont pas comptés).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| V.1 | Centre d'aide › Les avantages de votre salarié : cliquer « Le site ASC loisirs… », « Le site de l'Ircem », la fiche PDF | Chaque lien ouvre le bon site (ou le PDF) dans un nouvel onglet | |
+| V.2 | Créer une gestion : lien « spstn.org » de l'encadré suivi médical | Ouvre la page employeurs du SPSTN | |
+| V.3 | Page d'une gestion en cours : « Télécharger la fiche » | Le PDF s'ouvre ; ses liens sont cliquables et ses 3 QR codes, scannés avec un téléphone, mènent aux partenaires (une fois le site sur aideetgarde.fr) | |
+| V.4 | Admin › Partenaires (onglet sur ordinateur ; lien dans Mon compte sur téléphone) | Les clics de V.1 à V.3 apparaissent : 12 mois, par mois, par provenance ; abonnés distincts = 1 ; « Part des abonnés » = 1 / nombre d'abonnés actifs (base affichée au-dessus du tableau) ; « Copier » copie la phrase pour le partenaire, pourcentage compris | |
+| V.5 | Cliquer un lien partenaire en étant administrateur | Redirection normale, mais aucun clic ajouté | |
+| V.6 | Politique de confidentialité | Ligne « Clics vers nos partenaires » dans le tableau des données et dans les durées (13 mois) | |

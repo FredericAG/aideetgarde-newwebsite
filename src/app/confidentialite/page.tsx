@@ -80,6 +80,7 @@ export default function ConfidentialitePage() {
                 ["Notifications sur votre téléphone ou ordinateur : adresse technique de l'appareil", "Vous prévenir d'un nouveau document", "Consentement (activation dans « Mon compte », désactivable à tout moment)"],
                 ["Emails de service et de relance (copies des notifications désactivables)", "Vous informer de la vie de votre dossier", "Exécution du contrat ; intérêt légitime"],
                 ["Recommandation : prénom et email de la personne à qui vous écrivez, votre message", "Lui envoyer votre message, une seule fois (l'adresse n'est pas conservée)", "Intérêt légitime (envoi demandé par vous)"],
+              ["Clics vers nos partenaires (ASC loisirs, Ircem, SPSTN) : date, destination, page d'origine et, si vous êtes connecté, votre compte", "Mesurer combien de personnes nous orientons vers eux (seuls des totaux leur sont communiqués)", "Intérêt légitime"],
               ["Journaux techniques (adresse IP, date et heure de connexion)", "Sécurité du site et des comptes", "Intérêt légitime"],
               ...(PIXEL
                 ? [["Pages publiques visitées, identifiant de cookie Meta", "Mesurer l'efficacité de nos publicités", "Consentement (bandeau cookies)"]]
@@ -133,6 +134,7 @@ export default function ConfidentialitePage() {
           <li>Acceptation des CGV, rétractation, résiliation : {DUREES.preuves}.</li>
           <li>Données de paiement et factures : {DUREES.paiements}.</li>
           <li>Adresse email d&apos;une personne à qui vous recommandez {e.nomCommercial} : {DUREES.recommandations}.</li>
+          <li>Clics vers nos partenaires : 13 mois avec le lien vers votre compte, puis seuls les totaux restent.</li>
           <li>Journaux techniques : {DUREES.techniques}.</li>
         </ul>
       </Section>

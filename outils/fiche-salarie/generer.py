@@ -7,6 +7,7 @@ Usage : python3 outils/fiche-salarie/generer.py
 Informations vérifiées le 23/10/2026 sur asc-loisirs-emploidomicile.fr,
 spstn.org et ircem.com : à revérifier une fois par an (date en bas de page).
 """
+import os
 from pathlib import Path
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
@@ -14,10 +15,28 @@ from reportlab.lib.units import mm
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph, Frame, Table, TableStyle, Spacer
 from reportlab.pdfgen import canvas
+from reportlab.graphics.barcode.qr import QrCodeWidget
+from reportlab.graphics.shapes import Drawing
 
 TEAL, VIOLET, JAUNE, GRIS, NOIR = (HexColor(c) for c in ("#376873", "#685c9b", "#f6ed78", "#7783a6", "#1c2e3e"))
 VERIFIE = "23/10/2026"
 SORTIE = Path(__file__).resolve().parents[2] / "public" / "fiche-avantages-salarie.pdf"
+# Liens et QR codes passent par le site pour compter les visites envoyées à
+# chaque partenaire (Administration > Partenaires). Domaine définitif par
+# défaut ; régénérer la fiche si le domaine change.
+BASE = os.environ.get("SITE_URL", "https://www.aideetgarde.fr").rstrip("/")
+
+
+def lien_suivi(cle):
+    return f"{BASE}/avantages/{cle}?depuis=fiche"
+
+
+def qr(url, taille=22 * mm):
+    w = QrCodeWidget(url)
+    x1, y1, x2, y2 = w.getBounds()
+    d = Drawing(taille, taille, transform=[taille / (x2 - x1), 0, 0, taille / (y2 - y1), 0, 0])
+    d.add(w)
+    return d
 
 st_titre = ParagraphStyle("t", fontName="Helvetica-Bold", fontSize=19, leading=23, textColor=TEAL)
 st_sous = ParagraphStyle("s", fontName="Helvetica", fontSize=10.5, leading=14, textColor=NOIR)
@@ -34,6 +53,7 @@ BLOCS = [
         "Créez gratuitement votre compte avec votre adresse email et votre numéro de salarié Cesu ou Pajemploi "
         "(14 caractères, indiqué sur vos bulletins de salaire).",
         "asc-loisirs-emploidomicile.fr",
+        "asc",
     ),
     (
         "Votre santé au travail",
@@ -43,6 +63,7 @@ BLOCS = [
         "Le temps passé en visite vous est indemnisé.",
         "Vous ou votre employeur contactez le SPSTN pour lui donner vos coordonnées ; il vous convoque par email.",
         "spstn.org · 0 986 865 865 (prix d'un appel local)",
+        "spstn_salarie",
     ),
     (
         "Votre protection sociale : l'Ircem",
@@ -52,6 +73,7 @@ BLOCS = [
         "logement, santé, prévention, familles monoparentales).",
         "Créez votre espace client sur ircem.com (rubriques « Aides » et « Diagnostic d'aide sociale »).",
         "ircem.com · 0 980 980 990 (appel non surtaxé)",
+        "ircem",
     ),
 ]
 
@@ -83,7 +105,9 @@ def dessiner():
         ),
         Spacer(1, 6 * mm),
     ]
-    for i, (titre, texte, comment, contact) in enumerate(BLOCS, 1):
+    for i, (titre, texte, comment, contact, cle) in enumerate(BLOCS, 1):
+        site, _, reste = contact.partition(" · ")
+        contact_html = f'<a href="{lien_suivi(cle)}" color="#376873"><u>{site}</u></a>' + (f" · {reste}" if reste else "")
         contenu = [
             Paragraph(f"{i}. {titre}", st_h),
             Spacer(1, 1.5 * mm),
@@ -91,9 +115,12 @@ def dessiner():
             Spacer(1, 1.5 * mm),
             Paragraph(f"<b>Comment faire :</b> {comment}", st_p),
             Spacer(1, 1.5 * mm),
-            Paragraph(contact, st_c),
+            Paragraph(contact_html, st_c),
         ]
-        t = Table([[contenu]], colWidths=[largeur - 36 * mm])
+        t = Table(
+            [[contenu, [qr(lien_suivi(cle)), Paragraph("Scannez avec<br/>votre téléphone", st_pied)]]],
+            colWidths=[largeur - 36 * mm - 30 * mm, 30 * mm],
+        )
         t.setStyle(
             TableStyle(
                 [
@@ -103,6 +130,8 @@ def dessiner():
                     ("RIGHTPADDING", (0, 0), (-1, -1), 9),
                     ("TOPPADDING", (0, 0), (-1, -1), 8),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (1, 0), (1, 0), "CENTER"),
                 ]
             )
         )
@@ -114,7 +143,9 @@ def dessiner():
             "Document d'information remis par votre employeur, préparé par Aide &amp; Garde, mandataire qui gère pour "
             "lui les formalités de votre emploi. Informations vérifiées le "
             f"{VERIFIE} sur les sites de ces organismes, seuls compétents pour vous renseigner sur vos droits. "
-            "Aide &amp; Garde n'est pas partenaire commercial de ces organismes et n'a pas accès à vos comptes.",
+            "Aide &amp; Garde n'est pas partenaire commercial de ces organismes et n'a pas accès à vos comptes. "
+            "Les liens et QR codes passent par aideetgarde.fr, qui compte le nombre de visites sans rien enregistrer "
+            "qui vous concerne.",
             st_pied,
         ),
     ]

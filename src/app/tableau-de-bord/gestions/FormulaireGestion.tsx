@@ -206,7 +206,11 @@ export function FormulaireGestion({
         <aside className="rounded-lg border-l-4 border-brand-teal bg-brand-sky-tint/30 p-3 text-sm">
           <strong className="text-brand-teal">Nouveau salarié : pensez à son suivi médical.</strong> Depuis 2025, il
           est assuré par le SPSTN, le service de santé au travail des salariés des particuliers employeurs. À
-          l&apos;embauche, contactez-le (0 986 865 865 ou spstn.org) pour transmettre les coordonnées de votre
+          l&apos;embauche, contactez-le (0 986 865 865 ou{" "}
+          <a href="/avantages/spstn?depuis=creation-gestion" target="_blank" rel="noopener" className="underline">
+            spstn.org
+          </a>
+          ) pour transmettre les coordonnées de votre
           salarié : il organise sa visite d&apos;information et de prévention, sauf s&apos;il l&apos;a déjà passée
           pour ce même emploi.{" "}
           <Link href="/aide/sante-du-salarie#visite-information-prevention" className="font-medium text-brand-teal underline">

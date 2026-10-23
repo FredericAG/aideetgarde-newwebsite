@@ -19,7 +19,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Les espaces privés n'ont rien à faire dans un moteur de recherche.
-        disallow: ["/admin", "/tableau-de-bord", "/mon-compte", "/documents", "/auth", "/recommander"],
+        disallow: ["/admin", "/tableau-de-bord", "/mon-compte", "/documents", "/auth", "/recommander", "/avantages/"],
       },
     ],
   };
