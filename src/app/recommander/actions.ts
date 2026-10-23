@@ -58,7 +58,7 @@ export async function envoyerRecommandation(
     prenom: prenomContact || undefined,
     titre: `${auteur} vous recommande Aide & Garde`,
     paragraphes,
-    bouton: { texte: "Découvrir Aide & Garde", url: `${site}/decouvrir?source=recommandation` },
+    bouton: { texte: "Découvrir Aide & Garde", url: `${site}/?source=recommandation` },
     piedDePage: `Ce message vous a été écrit par ${auteur}${user.email ? ` (${user.email})` : ""} depuis le site aideetgarde.fr ; en y répondant, vous lui écrivez directement. Aide & Garde n'a pas conservé votre adresse et ne l'utilisera pour aucun autre envoi.`,
   });
   const bilan = await envoyerEmail({

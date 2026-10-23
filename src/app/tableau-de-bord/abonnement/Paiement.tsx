@@ -53,6 +53,8 @@ function FormulaireCarte({
   const router = useRouter();
   const [etat, setEtat] = useState<"chargement" | "pret" | "confirmation" | "erreur">("chargement");
   const monte = useRef(false);
+  // Bibliothèque Systempay chargée, pour la retirer de la page ensuite.
+  const krRef = useRef<{ removeForms?: () => Promise<unknown> } | null>(null);
 
   useEffect(() => {
     if (monte.current) return;
@@ -65,11 +67,18 @@ function FormulaireCarte({
         const KRGlue = (await import("@lyracom/embedded-form-glue")).default;
         const { KR } = await KRGlue.loadLibrary(URL_FORMULAIRE, clePublique);
         await KR.setFormConfig({ formToken, "kr-language": "fr-FR" });
+        krRef.current = KR as unknown as { removeForms?: () => Promise<unknown> };
+        // Mode TEST : Systempay ajoute une barre « Informations / Méthodes de
+        // test » qui restait affichée après le paiement (retour du 23/10). Les
+        // cartes de test sont déjà indiquées sur la page : on la masque. Si le
+        // paramètre n'est pas reconnu, le formulaire s'affiche quand même.
+        await KR.setFormConfig({ "kr-hide-debug-toolbar": true } as never).catch(() => null);
         await KR.onSubmit(async () => {
           // Paiement accepté : on fait confirmer le résultat par le serveur
           // (qui interroge Systempay), puis on recharge la page.
           setEtat("confirmation");
           await confirmerPaiement(orderId).catch(() => null);
+          await krRef.current?.removeForms?.().catch(() => null);
           router.replace(`/tableau-de-bord/abonnement?commande=${encodeURIComponent(orderId)}`);
           router.refresh();
           return false; // pas de redirection automatique du formulaire
@@ -83,6 +92,8 @@ function FormulaireCarte({
     })();
     return () => {
       annule = true;
+      // Formulaire (et barre de test) retirés quand on quitte l'étape de paiement.
+      krRef.current?.removeForms?.()?.catch(() => null);
     };
   }, [formToken, orderId, clePublique, router]);
 

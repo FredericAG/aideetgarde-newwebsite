@@ -561,3 +561,20 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | R.11 | Centre d'aide › Employer un salarié › « Les avantages de votre salarié » | 4 questions (droits et fiche, ASC loisirs, Ircem, santé au travail) ; liens externes et PDF ouverts dans un nouvel onglet | |
 | R.12 | Page d'une gestion en cours | Encart « Pour votre salarié » avec « Télécharger la fiche » ; le PDF d'une page s'ouvre ou s'enregistre | |
 | R.13 | Valider une gestion (admin) | L'email « Votre gestion est validée » rappelle la fiche à remettre au salarié | |
+
+## Accueil, inscription, remplaçant, tri des abonnements, téléphone (23/10)
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| A.1 | Ouvrir l'accueil sans être connecté (ordinateur et téléphone) | « Employer à domicile, sans la paperasse », bouton « Commencer », emplois gérés, 3 étapes, atouts, prix avec crédit d'impôt et notes légales discrètes, bloc conseiller, questions, appel final ; rien ne dépasse de l'écran | |
+| A.2 | « Commencer » | Page « Créer mon compte » avec la colonne « Dans 2 minutes… » ; un seul champ mot de passe | |
+| A.3 | Créer un compte (adresse de test) | Écran « Vérifiez votre boîte mail » avec l'adresse saisie ; lien de confirmation reçu | |
+| A.4 | Lien d'un email de recommandation | Accueil avec le bandeau « Un de vos proches vous recommande… » | |
+| A.5 | iPhone : se connecter, toucher les champs email et mot de passe | La page ne zoome plus ; pas besoin de réajuster avec deux doigts ; même chose dans Mon compte et la recherche du centre d'aide | |
+| A.6 | Gestion en cours : « + Ajouter un salarié remplaçant » | Formulaire « Ajouter un salarié remplaçant » : case cochée, salarié remplacé et emploi repris, CDD sélectionné | |
+| A.7 | Après envoi du remplaçant, revenir sur la gestion du salarié absent | « Remplacement prévu : … » à la place du bouton ; la page du remplaçant indique « CDD de remplacement de … » | |
+| A.8 | Admin : onglet Abonnements | Plus récents d'abord (flèche ▼ sur « Depuis le ») ; un clic sur un titre de colonne trie, un second inverse | |
+| A.9 | Souscription en mode TEST, paiement accepté | La barre Systempay « Informations / Méthodes de test » n'apparaît plus, ou disparaît après le paiement | |
+| A.10 | Accueil, section « Ce que nos clients nous écrivent » | 6 témoignages (initiales, date, repère « accord à obtenir » sur le site de test), « Voir 13 autres témoignages » ; mention sur la sélection et l'absence de contrepartie | |
+| A.11 | Liens Google renseignés dans `src/lib/entreprise.ts` | « Voir nos avis sur Google ↗ » sur l'accueil ; « Donner mon avis sur Google ↗ » dans l'encart Recommander du tableau de bord | |
+| A.12 | Variables `GOOGLE_PLACES_API_KEY` et `GOOGLE_PLACE_ID` renseignées dans Vercel, puis redéploiement | Accueil : note « x,x ★★★★★ n avis Google ↗ » (lien vers la fiche), jusqu'à 5 avis Google avec auteur, ancienneté et « Lire sur Google » ; puis « Extraits de messages reçus » | |

@@ -52,6 +52,7 @@ export function FormulaireGestion({
   dateParDefaut = "",
   quota,
   salariesEnCours = [],
+  remplacementInitial,
 }: {
   gestion?: Gestion;
   /** Date de début proposée pour une nouvelle gestion (AAAA-MM-JJ). */
@@ -59,25 +60,27 @@ export function FormulaireGestion({
   /** Places de l'abonnement : prévient l'abonné avant l'envoi si c'est complet. */
   quota?: { utilisees: number; total: number };
   /** Gestions en cours (hors remplacements) : salariés qu'un CDD peut remplacer. */
-  salariesEnCours?: { id: string; nom: string }[];
+  salariesEnCours?: { id: string; nom: string; type_gestion?: string }[];
+  /** Arrivée depuis « Ajouter un salarié remplaçant » d'une gestion : préremplissage. */
+  remplacementInitial?: { id: string; nom: string; type_gestion?: string };
 }) {
   const [etat, action] = useActionState<EtatFormulaireGestion, FormData>(enregistrerGestion, {});
   const [v, setV] = useState({
-    type_gestion: (gestion?.type_gestion ?? "garde_enfants") as TypeGestion,
+    type_gestion: (gestion?.type_gestion ?? remplacementInitial?.type_gestion ?? "garde_enfants") as TypeGestion,
     prenom_salarie: gestion?.prenom_salarie ?? "",
     nom_salarie: gestion?.nom_salarie ?? "",
     date_debut: gestion?.date_debut ?? dateParDefaut,
-    type_contrat: gestion?.type_contrat ?? "",
+    type_contrat: gestion?.type_contrat ?? (remplacementInitial ? "CDD" : ""),
     date_fin_prevue: gestion?.date_fin_prevue ?? "",
     heures: gestion?.heures != null ? String(gestion.heures).replace(".", ",") : "",
     unite_heures: gestion?.unite_heures ?? "semaine",
     salaire_horaire_net:
       gestion?.salaire_horaire_net != null ? String(gestion.salaire_horaire_net).replace(".", ",") : "",
     precisions: gestion?.precisions ?? "",
-    remplace_gestion_id: gestion?.remplace_gestion_id ?? "",
+    remplace_gestion_id: gestion?.remplace_gestion_id ?? remplacementInitial?.id ?? "",
     motif_remplacement: (gestion?.motif_remplacement ?? "") as MotifRemplacement | "",
   });
-  const [remplacement, setRemplacement] = useState(Boolean(gestion?.remplace_gestion_id));
+  const [remplacement, setRemplacement] = useState(Boolean(gestion?.remplace_gestion_id ?? remplacementInitial));
   const complet = quota && quota.utilisees >= quota.total;
   const maj =
     (cle: keyof typeof v) =>

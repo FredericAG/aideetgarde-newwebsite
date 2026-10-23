@@ -21,6 +21,7 @@ import {
   formatDate,
   isUuid,
   nomSalarie,
+  MOTIFS_REMPLACEMENT,
   periodesDeclarables,
   trierDocuments,
   type Declaration,
@@ -83,7 +84,7 @@ export default async function DetailGestionPage({
     return <AutreCompte email={user.email} retour={`/tableau-de-bord/gestions/${id}`} />;
   }
 
-  const [{ data: docs }, { data: decls }, { data: avenants }] = await Promise.all([
+  const [{ data: docs }, { data: decls }, { data: avenants }, { data: liees }] = await Promise.all([
     supabase
       .from("documents")
       .select("id, gestion_id, type_document, periode, titre, complement, storage_path, created_at, consulte_le")
@@ -103,7 +104,23 @@ export default async function DetailGestionPage({
       .eq("gestion_id", id)
       .order("created_at", { ascending: false })
       .limit(5),
+    // CDD de remplacement (brique 3d) : le salarié remplacé, ou le remplaçant
+    // actif de ce salarié.
+    supabase
+      .from("gestions")
+      .select("id, prenom_salarie, nom_salarie, statut, remplace_gestion_id")
+      .eq("employeur_id", user.id)
+      .or(
+        gestion.remplace_gestion_id
+          ? `id.eq.${gestion.remplace_gestion_id},remplace_gestion_id.eq.${id}`
+          : `remplace_gestion_id.eq.${id}`,
+      ),
   ]);
+  const lies = (liees ?? []) as Pick<Gestion, "id" | "prenom_salarie" | "nom_salarie" | "statut" | "remplace_gestion_id">[];
+  const remplace = gestion.remplace_gestion_id ? lies.find((g) => g.id === gestion.remplace_gestion_id) : undefined;
+  const remplacant = lies.find(
+    (g) => g.remplace_gestion_id === id && ["brouillon", "envoyee", "en_cours"].includes(g.statut),
+  );
   const declarations = (decls ?? []) as Declaration[];
   const { options, parDefaut } = periodesDeclarables();
 
@@ -127,6 +144,38 @@ export default async function DetailGestionPage({
               ? `terminée (du ${formatDate(gestion.date_debut)} au ${formatDate(gestion.date_fin)})`
               : LIBELLES_STATUT_GESTION[gestion.statut].toLowerCase()}
         </p>
+
+        {/* CDD de remplacement (brique 3d) */}
+        {remplace && (
+          <p className="mt-2 text-sm">
+            CDD de remplacement de{" "}
+            <Link href={`/tableau-de-bord/gestions/${remplace.id}`} className="font-medium text-brand-teal underline">
+              {nomSalarie(remplace)}
+            </Link>
+            {gestion.motif_remplacement ? ` (${MOTIFS_REMPLACEMENT[gestion.motif_remplacement]})` : ""}, sans surcoût
+            d&apos;abonnement.
+          </p>
+        )}
+        {gestion.statut === "en_cours" && !gestion.remplace_gestion_id && (
+          remplacant ? (
+            <p className="mt-2 text-sm">
+              Remplacement prévu :{" "}
+              <Link href={`/tableau-de-bord/gestions/${remplacant.id}`} className="font-medium text-brand-teal underline">
+                {nomSalarie(remplacant) || "salarié remplaçant"}
+              </Link>
+              {remplacant.statut === "brouillon" ? " (brouillon à compléter)" : remplacant.statut === "envoyee" ? " (en attente de validation)" : ""}.
+            </p>
+          ) : (
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <Link href={`/tableau-de-bord/gestions/nouvelle?remplace=${id}`} className="btn btn-secondaire btn-sm">
+                + Ajouter un salarié remplaçant
+              </Link>
+              <span className="text-xs text-foreground/60">
+                Congé maternité ou arrêt maladie : CDD de remplacement, sans surcoût.
+              </span>
+            </div>
+          )
+        )}
 
         {messageOk && (
           <p role="status" className="mt-6 rounded-lg border border-brand-teal/40 bg-brand-teal/10 p-3 text-sm text-brand-teal">

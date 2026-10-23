@@ -480,3 +480,15 @@ button:disabled {
 html {
   scroll-padding-top: 5.5rem;
 }
+
+/* Téléphone : un champ de saisie en police de moins de 16 px fait zoomer
+   Safari (iPhone) quand on le touche, et la page reste agrandie : il faut
+   ensuite la réajuster avec deux doigts (retour de Frédéric du 23/10, à la
+   connexion). 16 px sur téléphone l'évite, sans bloquer le zoom volontaire. */
+@media (max-width: 639.98px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

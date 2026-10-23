@@ -35,10 +35,10 @@ export async function placesAbonnement(
 export async function salariesRemplacables(
   supabase: SupabaseClient,
   employeurId: string,
-): Promise<{ id: string; nom: string }[]> {
+): Promise<{ id: string; nom: string; type_gestion: string }[]> {
   const { data } = await supabase
     .from("gestions")
-    .select("id, prenom_salarie, nom_salarie")
+    .select("id, prenom_salarie, nom_salarie, type_gestion")
     .eq("employeur_id", employeurId)
     .eq("statut", "en_cours")
     .is("remplace_gestion_id", null)
@@ -46,5 +46,6 @@ export async function salariesRemplacables(
   return (data ?? []).map((g) => ({
     id: g.id as string,
     nom: `${g.prenom_salarie ?? ""} ${g.nom_salarie ?? ""}`.trim() || "(sans nom)",
+    type_gestion: g.type_gestion as string,
   }));
 }

@@ -77,6 +77,18 @@ interface CommandeAVerifier {
   profiles: { prenom: string; nom: string; reference_client: string | null } | null;
 }
 
+/** Tri par colonne (retour du 23/10) : par défaut, les plus récents d'abord. */
+type Tri = "ref" | "abonne" | "debut" | "tarif" | "places" | "paiement";
+const COLONNES_TRI: Record<Tri, string> = {
+  ref: "reference_client",
+  abonne: "nom_tri",
+  debut: "abonnement_debut",
+  tarif: "tarif_mensuel",
+  places: "places_utilisees",
+  paiement: "statut_paiement",
+};
+const TRI_DECROISSANT_D_ABORD: Tri[] = ["debut", "tarif", "places"];
+
 function nomCourt(p: { prenom: string; nom: string } | null): string {
   return p ? `${p.prenom} ${p.nom.toUpperCase()}`.trim() || "(sans nom)" : "(compte supprimé)";
 }
@@ -106,6 +118,17 @@ export default async function AbonnementsPage({
   ) as Record<(typeof CLES_FILTRES_ABONNEMENTS)[number], string>;
   const filtreActif = CLES_FILTRES_ABONNEMENTS.some((k) => filtresCol[k]);
   const enRecherche = Boolean(recherche) || filtreActif;
+  const triDemande = un(sp.tri);
+  const triChoisi = triDemande && triDemande in COLONNES_TRI ? (triDemande as Tri) : null;
+  // Résiliés sans tri choisi : les dernières résiliations d'abord.
+  const tri: Tri | null = triChoisi ?? (filtre === "resilies" && !enRecherche ? null : "debut");
+  const ordreDemande = un(sp.ordre);
+  const ordre: "asc" | "desc" =
+    ordreDemande === "asc" || ordreDemande === "desc"
+      ? ordreDemande
+      : tri && TRI_DECROISSANT_D_ABORD.includes(tri)
+        ? "desc"
+        : "asc";
 
   const { supabase } = await requireAdmin("/admin/abonnements");
 
@@ -146,21 +169,16 @@ export default async function AbonnementsPage({
     if (fc.fpai === "a_jour" || fc.fpai === "en_retard" || fc.fpai === "impaye") {
       requete = requete.eq("mode_paiement", "systempay").eq("statut_paiement", fc.fpai);
     }
-    requete = requete.order("nom_tri");
   } else if (filtre === "resilies") requete = requete.eq("abonnement_statut", "resilie");
   else {
     requete = requete.eq("abonnement_statut", "actif");
     if (filtre === "depassement") requete = requete.eq("quota_depasse", true);
     if (filtre === "sans_gestion") requete = requete.eq("categorie", "a_surveiller");
   }
-  if (!enRecherche) {
-    requete =
-      filtre === "resilies"
-        ? requete.order("abonnement_fin", { ascending: false, nullsFirst: false })
-        : filtre === "sans_gestion"
-          ? requete.order("abonnement_debut", { ascending: true })
-          : requete.order("nom_tri");
-  }
+  requete = tri
+    ? requete.order(COLONNES_TRI[tri], { ascending: ordre === "asc", nullsFirst: false })
+    : requete.order("abonnement_fin", { ascending: false, nullsFirst: false });
+  requete = requete.order("nom_tri");
   requete = requete.range((page - 1) * parPage, page * parPage - 1);
 
   const debutMois = new Date();
@@ -246,12 +264,40 @@ export default async function AbonnementsPage({
     if (p && p > 1) q.set("page", String(p));
     const t = taille === undefined ? (toutAfficher ? "tout" : null) : taille;
     if (t) q.set("taille", t);
+    if (triChoisi) q.set("tri", triChoisi);
+    if (ordreDemande === "asc" || ordreDemande === "desc") q.set("ordre", ordreDemande);
     if (p !== undefined || taille !== undefined) {
       if (recherche) q.set("q", recherche);
       for (const k of CLES_FILTRES_ABONNEMENTS) if (filtresCol[k]) q.set(k, filtresCol[k]);
     }
     const s = q.toString();
     return s ? `/admin/abonnements?${s}` : "/admin/abonnements";
+  };
+
+  // En-tête de colonne cliquable (même fonctionnement que la liste des comptes).
+  const enteteTri = (cle: Tri, libelle: string) => {
+    const actif = tri === cle;
+    const prochain = actif ? (ordre === "asc" ? "desc" : "asc") : TRI_DECROISSANT_D_ABORD.includes(cle) ? "desc" : "asc";
+    const q = new URLSearchParams();
+    if (filtre !== "actifs" && !enRecherche) q.set("filtre", filtre);
+    if (toutAfficher) q.set("taille", "tout");
+    if (recherche) q.set("q", recherche);
+    for (const k of CLES_FILTRES_ABONNEMENTS) if (filtresCol[k]) q.set(k, filtresCol[k]);
+    q.set("tri", cle);
+    q.set("ordre", prochain);
+    return (
+      <Link
+        href={`/admin/abonnements?${q.toString()}`}
+        scroll={false}
+        className={`inline-flex items-center gap-1 whitespace-nowrap hover:underline ${actif ? "text-brand-jaune" : ""}`}
+        title={`Trier par ${libelle.toLowerCase()}`}
+      >
+        {libelle}
+        <span aria-hidden="true" className="text-xs">
+          {actif ? (ordre === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </Link>
+    );
   };
 
   return (
@@ -431,13 +477,15 @@ export default async function AbonnementsPage({
           <table className="w-full min-w-[60rem] border-collapse text-left text-sm">
             <thead className="entete-liste">
               <tr>
-                <th className="w-[5.5rem] px-2 py-2">Réf.</th>
-                <th className="min-w-[19rem] px-3 py-2">Abonné</th>
-                <th className="px-3 py-2">{filtre === "resilies" && !enRecherche ? "Période" : "Depuis le"}</th>
-                <th className="px-3 py-2">Tarif</th>
-                <th className="px-3 py-2">Places</th>
+                <th className="w-[5.5rem] px-2 py-2">{enteteTri("ref", "Réf.")}</th>
+                <th className="min-w-[19rem] px-3 py-2">{enteteTri("abonne", "Abonné")}</th>
+                <th className="px-3 py-2">
+                  {enteteTri("debut", filtre === "resilies" && !enRecherche ? "Période" : "Depuis le")}
+                </th>
+                <th className="px-3 py-2">{enteteTri("tarif", "Tarif")}</th>
+                <th className="px-3 py-2">{enteteTri("places", "Places")}</th>
                 <th className="px-3 py-2">À vérifier</th>
-                <th className="px-3 py-2">Paiement</th>
+                <th className="px-3 py-2">{enteteTri("paiement", "Paiement")}</th>
               </tr>
               <FiltresColonnes colonnes={filtresAbonnements(tarifs)} />
             </thead>

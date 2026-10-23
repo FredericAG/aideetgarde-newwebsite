@@ -15,6 +15,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // Adresse de référence pour les liens absolus (partage, données
+  // structurées) : le domaine définitif, ou NEXT_PUBLIC_SITE_URL si renseigné.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.aideetgarde.fr"),
   // Une fois installé sur l'écran d'accueil d'un iPhone, le site s'ouvre
   // en plein écran avec ce nom sous l'icône.
   appleWebApp: { capable: true, title: "Aide & Garde", statusBarStyle: "default" },

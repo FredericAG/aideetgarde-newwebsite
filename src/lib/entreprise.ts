@@ -42,6 +42,11 @@ export const ENTREPRISE = {
   // Médiateur de la consommation (obligatoire pour vendre à des particuliers).
   mediateur: null as string | null, // nom de l'organisme
   mediateurSite: null as string | null, // adresse du site de saisine
+  // Fiche Google de l'établissement (avis clients publics) : lien « Partager
+  // le profil » de Google Business Profile, et lien direct « Demander des
+  // avis » (Google Business Profile > Demander des avis). null : masqués.
+  avisGoogle: null as string | null,
+  deposerAvisGoogle: null as string | null,
 };
 
 /**
