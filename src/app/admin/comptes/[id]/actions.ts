@@ -10,7 +10,10 @@ import {
   isUuid,
   libelleDocument,
   libelleMois,
+  libelleSignalement,
+  type ModeFinContrat,
   type TypeDocument,
+  type TypeSignalement,
 } from "@/lib/data";
 import { prevenirAbonne } from "@/lib/prevenir";
 import { cheminStockage, titreDocument } from "@/lib/nom-fichier";
@@ -812,4 +815,81 @@ export async function modifierContratGestion(fd: FormData) {
     .eq("employeur_id", compteId);
   if (error) retour(compteId, "erreur", messageErreur(error));
   retour(compteId, "ok", "Informations du contrat mises à jour.");
+}
+
+/**
+ * Événement signalé par l'abonné (fin de contrat, accident, arrêt maladie ;
+ * brique 3e) marqué comme traité, avec un commentaire facultatif : l'abonné
+ * est prévenu (notification et email).
+ */
+export async function marquerSignalementTraite(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const signalementId = texte(fd, "demande_id");
+  const commentaire = texte(fd, "commentaire").slice(0, 2000);
+  const { data, error } = await supabase
+    .from("signalements")
+    .update({ statut: "traitee", traitee_le: new Date().toISOString(), reponse_admin: commentaire || null })
+    .eq("id", signalementId)
+    .eq("employeur_id", compteId)
+    .eq("statut", "envoyee")
+    .select("gestion_id, type, precision");
+  if (error) retour(compteId, "erreur", messageErreur(error));
+  if (!data?.length) retour(compteId, "erreur", "Ce signalement est déjà traité.");
+
+  const s = data[0] as { gestion_id: string; type: TypeSignalement; precision: ModeFinContrat | "" };
+  const libelle = libelleSignalement(s);
+  const bilan = await prevenirAbonne(
+    supabase,
+    compteId,
+    {
+      title: `${libelle} : c'est traité`,
+      body: commentaire ? commentaire.slice(0, 120) : "Aide & Garde a traité votre demande.",
+      url: `/tableau-de-bord/gestions/${s.gestion_id}`,
+      tag: `signalement-${signalementId}`,
+    },
+    {
+      sujet: `${libelle} : votre demande est traitée`,
+      titre: `${libelle} : c'est traité`,
+      paragraphes: [
+        "Aide & Garde a traité votre demande.",
+        ...(commentaire ? [`Notre message : « ${commentaire} »`] : []),
+        "Les documents éventuels sont dans la gestion de votre salarié.",
+      ],
+      bouton: "Ouvrir la gestion",
+    },
+  );
+  retour(compteId, "ok", `${libelle} : marqué comme traité — ${bilan}.`);
+}
+
+/**
+ * Premier mois que l'abonné peut déclarer (brique 3e), pour un abonné repris
+ * en cours de contrat : les mois précédents ne lui sont plus proposés.
+ * Vide : depuis le début du contrat.
+ */
+export async function fixerPremierMoisADeclarer(fd: FormData) {
+  const { supabase, compteId } = await contexte(fd);
+  const gestionId = texte(fd, "gestion_id");
+  const mois = texte(fd, "premier_mois"); // AAAA-MM
+  const valeur = /^\d{4}-(0[1-9]|1[0-2])$/.test(mois) ? `${mois}-01` : null;
+  const { error } = await supabase
+    .from("gestions")
+    .update({ declarations_depuis: valeur })
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId);
+  if (error) {
+    retour(
+      compteId,
+      "erreur",
+      error.message.includes("declarations_depuis")
+        ? "Exécutez d'abord le script supabase/brique3e_actions_courriers.sql."
+        : messageErreur(error),
+    );
+  }
+  retour(
+    compteId,
+    "ok",
+    valeur
+      ? `Mois à déclarer : à partir de ${libelleMois(valeur.slice(2, 4) + valeur.slice(5, 7))}.`
+      : "Mois à déclarer : depuis le début du contrat.",
+  );
 }

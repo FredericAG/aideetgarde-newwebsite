@@ -16,6 +16,7 @@ export function TableauDepliable({
   colonnes,
   classeTable = "",
   classeEntete = "",
+  classeCadre = "",
 }: {
   /** Ligne d'en-tête (<tr> avec des <th>). */
   entete: React.ReactNode;
@@ -28,6 +29,8 @@ export function TableauDepliable({
   classeTable?: string;
   /** Classes de la ligne de titres (couleur de la catégorie). */
   classeEntete?: string;
+  /** Classes ajoutées au cadre du tableau. */
+  classeCadre?: string;
 }) {
   const [deplie, setDeplie] = useState(false);
   const reste = lignes.length - visibles;
@@ -36,7 +39,7 @@ export function TableauDepliable({
   return (
     <div>
       <div
-        className={`overflow-hidden rounded-lg border border-brand-gray/20 ${
+        className={`overflow-hidden rounded-lg border border-brand-gray/20 ${classeCadre} ${
           defilement ? "max-h-[27rem] overflow-y-auto" : ""
         }`}
       >

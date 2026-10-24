@@ -32,6 +32,13 @@ const icones = {
       <path d="M14 3v5h5M9 13h6M9 17h6" />
     </svg>
   ),
+  gestions: (
+    <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8" />
+    </svg>
+  ),
   aide: (
     <svg viewBox="0 0 24 24" {...trait} className="h-6 w-6" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
@@ -116,14 +123,14 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
     {
       href: "/tableau-de-bord",
       libelle: "Accueil",
-      actif: (p) => p === "/tableau-de-bord" || p.startsWith("/tableau-de-bord/gestions"),
+      actif: (p) => p === "/tableau-de-bord",
       icone: icones.accueil,
     },
     {
-      href: "/tableau-de-bord/documents",
-      libelle: "Documents",
-      actif: (p) => p.startsWith("/tableau-de-bord/documents"),
-      icone: icones.documents,
+      href: "/tableau-de-bord/gestions",
+      libelle: "Gestions",
+      actif: (p) => p.startsWith("/tableau-de-bord/gestions") || p.startsWith("/tableau-de-bord/documents"),
+      icone: icones.gestions,
     },
     {
       href: "/tableau-de-bord/abonnement",

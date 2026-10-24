@@ -115,7 +115,7 @@ export const THEMES: Theme[] = [
             ],
           },
         ],
-        lien: { href: "/tableau-de-bord/documents", libelle: "Retrouver mes documents" },
+        lien: { href: "/tableau-de-bord/gestions", libelle: "Retrouver mes documents" },
       },
     ],
   },
@@ -806,7 +806,7 @@ export const THEMES: Theme[] = [
           "Sur le tableau de bord, cliquez sur « Déclarer » en face du salarié, indiquez les heures et les événements du mois (absences, heures en plus), puis envoyez. Nous établissons le bulletin et vous prévenons quand il est en ligne.",
         motsCles: ["déclaration", "heures", "absences", "envoyer"],
         corps: [
-          { p: "Une erreur après l'envoi ? Depuis la gestion du salarié, demandez une modification : nous corrigeons le bulletin." },
+          { p: "Vous pouvez aussi déclarer depuis la gestion du salarié (« Mes gestions » › « Déclarer le mois ») : tous les mois sans bulletin depuis le début du contrat y sont proposés. Une erreur sur un bulletin en ligne ? Choisissez « Corriger un bulletin » : nous le corrigeons." },
         ],
         lien: { href: "/tableau-de-bord", libelle: "Aller au tableau de bord" },
       },
@@ -814,13 +814,13 @@ export const THEMES: Theme[] = [
         slug: "telecharger",
         question: "Où trouver et télécharger mes documents ?",
         resume:
-          "Dans l'onglet Documents : choisissez le salarié, puis cliquez sur « Télécharger ». Vos documents restent disponibles en permanence, même si vous changez d'ordinateur.",
+          "Dans l'onglet « Mes gestions » : choisissez le salarié en haut de la page, ses documents sont en bas, classés par type ; cliquez sur « Télécharger ». Ils restent disponibles en permanence, même si vous changez d'ordinateur.",
         motsCles: ["télécharger", "bulletin", "pdf", "documents"],
         corps: [
           { p: "Un document pas encore ouvert porte la pastille « Nouveau ». Le fichier enregistré porte le nom de l'employeur, du salarié, le type et le mois (ex. DUPONT_MARTIN_BP_2610.pdf)." },
           { p: "Sur iPhone, le PDF s'ouvre d'abord dans l'aperçu : touchez le bouton de partage puis « Enregistrer dans Fichiers »." },
         ],
-        lien: { href: "/tableau-de-bord/documents", libelle: "Mes documents" },
+        lien: { href: "/tableau-de-bord/gestions", libelle: "Mes gestions" },
       },
       {
         slug: "ajouter-un-salarie",

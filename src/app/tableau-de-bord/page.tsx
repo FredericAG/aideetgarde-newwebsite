@@ -13,7 +13,7 @@ import {
   formatEuros,
   libelleMois,
   nomSalarie,
-  periodesDeclarables,
+  moisADeclarerParDefaut,
   type Abonnement,
   type DocumentRow,
   type Gestion,
@@ -42,7 +42,7 @@ export default async function TableauDeBordPage({
   // L'administrateur n'a pas d'espace abonné : on l'envoie à l'administration.
   if (profile?.role === "admin") redirect("/admin");
 
-  const moisCourant = periodesDeclarables().parDefaut;
+  const moisCourant = moisADeclarerParDefaut();
 
   const [abosRes, gestionsRes, declsRes, nouveauxRes, bulletinsRes] = await Promise.all([
     supabase
@@ -375,8 +375,8 @@ export default async function TableauDeBordPage({
             </div>
           )}
           <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            <Link href="/tableau-de-bord/documents" className="font-medium text-brand-teal underline">
-              Tous mes documents
+            <Link href="/tableau-de-bord/gestions" className="font-medium text-brand-teal underline">
+              Mes gestions et tous mes documents
             </Link>
           </p>
         </section>

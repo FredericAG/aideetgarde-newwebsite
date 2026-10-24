@@ -13,6 +13,7 @@ import { IconePoubelle } from "@/components/IconePoubelle";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import {
+  DATES_SIGNALEMENT,
   MOTIFS_REMPLACEMENT,
   TYPES_GESTION,
   formatDate,
@@ -21,6 +22,7 @@ import {
   OBJETS_AVENANT,
   isUuid,
   libelleMois,
+  libelleSignalement,
   nomSalarie,
   trierDocuments,
   type Abonnement,
@@ -28,6 +30,7 @@ import {
   type DemandeAvenant,
   type DocumentRow,
   type Gestion,
+  type Signalement,
 } from "@/lib/data";
 import {
   creerAbonnement,
@@ -35,6 +38,8 @@ import {
   modifierAbonnement,
   resilierAbonnement,
   marquerAvenantTraite,
+  marquerSignalementTraite,
+  fixerPremierMoisADeclarer,
   cloreAvenant,
   cloreDeclaration,
   renvoyerGestion,
@@ -92,7 +97,7 @@ export default async function FicheComptePage({
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
-  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes, relancesRes, remplacementsRes] = await Promise.all([
+  const [compteRes, abosRes, gestionsRes, docsRes, declsRes, avenantsRes, paiementsRes, relancesRes, remplacementsRes, signalementsRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -148,6 +153,12 @@ export default async function FicheComptePage({
       .select("document_id, ancien_depose_le, ancien_consulte_le, remplace_le")
       .eq("employeur_id", id)
       .order("remplace_le", { ascending: false }),
+    // Événements signalés par l'abonné (brique 3e ; sans le script, aucun).
+    supabase
+      .from("signalements")
+      .select("*")
+      .eq("employeur_id", id)
+      .order("created_at", { ascending: false }),
   ]);  // « Remplace la version du … » sous chaque document remplacé (décision du 21/10).
   const notesRemplacement: Record<string, string> = {};
   for (const r of (remplacementsRes.data ?? []) as {
@@ -172,6 +183,7 @@ export default async function FicheComptePage({
   }[];
   const paiements = paiementsRes.data ?? [];
   const avenants = (avenantsRes.data ?? []) as DemandeAvenant[];
+  const signalements = (signalementsRes.data ?? []) as Signalement[];
   const declarations = (declsRes.data ?? []) as Declaration[];
 
   const compte = compteRes.data;
@@ -196,6 +208,7 @@ export default async function FicheComptePage({
     (depotCible && gestions.some((g) => g.id === depotCible) ? depotCible : null) ??
     gestions.find((g) => g.statut === "envoyee")?.id ??
     gestions.find((g) => avenants.some((a) => a.gestion_id === g.id && a.statut === "envoyee"))?.id ??
+    gestions.find((g) => signalements.some((x) => x.gestion_id === g.id && x.statut === "envoyee"))?.id ??
     gestions.find((g) =>
       declarations.some((d) => d.gestion_id === g.id && d.statut !== "traitee"),
     )?.id ??
@@ -549,8 +562,13 @@ Ajouter la gestion
                 const cible = depotCible === g.id;
                 const avenantsGestion = avenants.filter((a) => a.gestion_id === g.id);
                 const avenantsEnAttente = avenantsGestion.filter((a) => a.statut === "envoyee");
+                const signalementsGestion = signalements.filter((x) => x.gestion_id === g.id);
+                const signalementsEnAttente = signalementsGestion.filter((x) => x.statut === "envoyee");
                 const nbActions =
-                  enAttente.length + avenantsEnAttente.length + (g.statut === "envoyee" ? 1 : 0);
+                  enAttente.length +
+                  avenantsEnAttente.length +
+                  signalementsEnAttente.length +
+                  (g.statut === "envoyee" ? 1 : 0);
                 const periodeDepot =
                   cible && periodeCible && /^\d{4}$/.test(periodeCible)
                     ? periodeCible
@@ -595,7 +613,9 @@ Ajouter la gestion
                           <span className="ml-2 inline-block rounded-full bg-brand-violet px-2 py-0.5 text-xs font-bold text-white">
                             {g.statut === "envoyee"
                               ? "À valider"
-                              : avenantsEnAttente.length && !enAttente.length
+                              : signalementsEnAttente.length === nbActions
+                                ? libelleSignalement(signalementsEnAttente[0])
+                                : avenantsEnAttente.length && !enAttente.length
                                 ? "Avenant demandé"
                                 : nbActions === 1
                                   ? "1 action à faire"
@@ -678,7 +698,52 @@ Rouvrir
                         {avenantsEnAttente.length > 0 && (
                           <span className="text-brand-violet"> · avenant demandé</span>
                         )}
+                        {signalementsEnAttente.length > 0 && (
+                          <span className="text-brand-violet">
+                            {" "}· {signalementsEnAttente.map((x) => libelleSignalement(x).toLowerCase()).join(", ")}
+                          </span>
+                        )}
                       </summary>
+
+                      {signalementsGestion.length > 0 && (
+                        <section className="mt-3" aria-label="Événements signalés">
+                          <h3 className="text-sm font-bold text-brand-violet">Événements signalés par l&apos;abonné</h3>
+                          <ul className="mt-1 divide-y divide-brand-gray/15 text-sm">
+                            {signalementsGestion.map((x) => (
+                              <li key={x.id} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:gap-4">
+                                <span className="flex-1">
+                                  <span className="font-medium">{libelleSignalement(x)}</span>
+                                  <span className="text-foreground/70">
+                                    {" "}— {DATES_SIGNALEMENT[x.type].toLowerCase()} : {formatDate(x.date_evenement)}
+                                  </span>
+                                  {x.commentaire && <span className="block text-foreground/70">« {x.commentaire} »</span>}
+                                </span>
+                                <span className="flex shrink-0 flex-col items-start gap-1 text-xs sm:items-end">
+                                  {x.statut === "envoyee" ? (
+                                    <>
+                                      <span className="font-semibold text-brand-violet">
+                                        à traiter (signalé le {formatDate(x.created_at)})
+                                      </span>
+                                      <CloreDemande
+                                        action={marquerSignalementTraite}
+                                        champs={{ compte_id: id, demande_id: x.id }}
+                                        libelle="Marquer comme traité…"
+                                        bouton="Marquer comme traité"
+                                        aide="Documents établis (attestation de salaire, documents de fin de contrat…) ou demande réglée : l'abonné est prévenu, avec votre commentaire."
+                                      />
+                                    </>
+                                  ) : (
+                                    <span className="text-foreground/50">
+                                      traité le {formatDate(x.traitee_le)}
+                                      {x.reponse_admin ? ` — « ${x.reponse_admin} »` : ""}
+                                    </span>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      )}
 
                       {avenantsGestion.length > 0 && (
                         <section className="mt-3" aria-label="Demandes d'avenant">
@@ -741,6 +806,28 @@ Rouvrir
                           <RecapGestion gestion={g} />
                           {(g.statut === "en_cours" || g.statut === "terminee") && (
                             <ContratAdmin compteId={id} gestion={g} />
+                          )}
+                          {g.statut === "en_cours" && (
+                            <form action={fixerPremierMoisADeclarer} className="mt-3 flex flex-wrap items-end gap-2 text-xs">
+                              <input type="hidden" name="compte_id" value={id} />
+                              <input type="hidden" name="gestion_id" value={g.id} />
+                              <label className="flex flex-col gap-1 font-medium">
+                                Mois proposés à la déclaration : à partir de
+                                <input
+                                  type="month"
+                                  name="premier_mois"
+                                  defaultValue={g.declarations_depuis ? g.declarations_depuis.slice(0, 7) : ""}
+                                  className="rounded-md border border-brand-gray/40 bg-white px-2 py-1.5 text-sm"
+                                />
+                              </label>
+                              <BoutonEnvoi className="btn btn-secondaire btn-sm" enCours="Enregistrement…">
+                                Enregistrer
+                              </BoutonEnvoi>
+                              <span className="w-full text-foreground/60">
+                                Vide : depuis le début du contrat ({formatDate(g.date_debut)}). Pour un abonné repris en
+                                cours de contrat, indiquez le premier mois que nous établissons.
+                              </span>
+                            </form>
                           )}
                           {g.motif_retour && g.statut === "brouillon" && (
                             <p className="mt-2 text-xs text-foreground/70">

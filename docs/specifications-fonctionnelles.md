@@ -429,6 +429,19 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **Depuis la gestion du salarié absent** (retour du 23/10) | Sur la page d'une gestion en cours (hors remplacement) : bouton « + Ajouter un salarié remplaçant », qui ouvre le formulaire titré « Ajouter un salarié remplaçant » avec la case cochée, le salarié remplacé, l'emploi et le CDD déjà remplis. Si un remplacement existe déjà : « Remplacement prévu : … » avec lien. Sur la page du remplaçant : « CDD de remplacement de … (motif), sans surcoût d'abonnement ». | En place (23/10) |
 | **Fin** | Au retour du salarié absent, Aide & Garde termine la gestion de remplacement comme une autre. Si le salarié absent quitte son emploi, c'est à l'administrateur de juger (le remplaçant peut alors être réintégré dans le quota en ouvrant une gestion classique). | Règle de gestion |
 
+## 4 ter. « Mes gestions », cadre « Actions » et courriers préremplis — 24/10/2026
+
+| Élément | Règle | État |
+|---|---|---|
+| **Navigation** (demande de Frédéric) | L'onglet « Documents » devient **« Mes gestions »** (« Gestions » dans la barre du téléphone). Il ouvre directement la gestion la plus utile (nouveau document, sinon dernier document déposé). En haut de chaque gestion, une pastille par salarié (en cours, puis en préparation, puis terminées), celle affichée en violet, avec le nombre de nouveaux documents : on passe d'un salarié à l'autre sans revenir en arrière. Les anciens liens `/tableau-de-bord/documents` redirigent. | En place |
+| **Cadre « Que souhaitez-vous faire ? »** | Remplace les cartes « Déclarer le mois » et « Un changement dans le contrat ? ». Huit boutons : Déclarer le mois (ouvert d'office), Corriger un bulletin, Demander un avenant, Attestation d'emploi, Arrêt maladie, Accident du travail, Fin de contrat, Autres courriers. Un point signale une demande en cours. Les documents restent en dessous, comme avant. Lien direct possible : `?action=arret`, `fin`, etc. | En place |
+| **Mois à déclarer** | Tous les mois depuis le début du contrat jusqu'au mois en cours, **sauf** ceux dont le bulletin est en ligne et ceux qu'Aide & Garde a clos sans bulletin. Mois proposé : le précédent jusqu'au 10, le mois en cours ensuite. Pour un abonné repris en cours de contrat, l'administrateur fixe « à partir de » (fiche du compte › gestion › Informations du contrat). La correction d'un bulletin en ligne passe dans « Corriger un bulletin ». | En place (script 3e) |
+| **Courriers préremplis** (choix du 24/10 : mini-formulaire) | Chaque courrier ouvre un petit formulaire déjà rempli (employeur : Mon compte ; salarié : gestion). Civilités et adresse du salarié se saisissent une fois et sont mémorisées. Ce qui reste vide devient des pointillés. PDF fabriqué à la demande, non conservé. Modèles : attestation d'emploi ; convocation à l'entretien préalable ; lettre de licenciement (textes de départ : changement de mode de garde, suppression du poste, refus d'une modification, libre ; préavis calculé selon l'ancienneté) ; impossibilité de reclassement (inaptitude) ; démission et départ à la retraite (modèles pour le salarié, avec mise en garde) ; autorisation parentale (salarié mineur) ; avance sur salaire. Formulaires officiels préremplis : attestation sur l'honneur pour les indemnités journalières (maladie ou accident) et déclaration d'accident du travail (cerfa 14463*03). Textes : `src/lib/courriers/generer.ts`. | En place |
+| **Feuille d'accident (cerfa 11383)** | Pas de préremplissage : le modèle publié par ameli.fr est un spécimen protégé. L'original se demande à la CPAM, qui peut aussi le remettre au salarié. | Décision du 24/10 |
+| **« Prévenir Aide & Garde »** (choix du 24/10) | Arrêt maladie, accident du travail (attestation de salaire), fin de contrat (licenciement, rupture conventionnelle, démission) : l'abonné indique la date et une précision. La demande rejoint les actions à traiter (pastille Administration, liste « Événements signalés », fiche du compte) et part par email ; « Marquer comme traité » prévient l'abonné, avec un commentaire facultatif. Un seul signalement en attente par gestion et par type. | En place (script 3e) |
+| **Encart recommandation** | « Vous souhaitez partager Aide & Garde ? » remplace « Satisfait d'Aide & Garde ? ». | En place |
+| **Téléphone** | Les documents gardent la couleur de leur catégorie : bandeau de titre et cadre violet, turquoise ou orange. | En place |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -456,6 +469,7 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 24/10/2026 — « Mes gestions » remplace « Documents » ; cadre « Actions » dans chaque gestion (mois à déclarer depuis le début du contrat, courriers et formulaires préremplis, « Prévenir Aide & Garde ») ; couleurs des catégories de documents sur téléphone.
 - 23/10/2026 — Brique 10 : liens suivis vers les partenaires (ASC, Ircem, SPSTN), QR codes sur la fiche, onglet Administration > Partenaires.
 - 23/10/2026 — Note et avis Google sur l'accueil (API Places, côté serveur).
 - 23/10/2026 — Témoignages clients sur l'accueil (initiales, accord et date obligatoires), liens vers les avis Google.

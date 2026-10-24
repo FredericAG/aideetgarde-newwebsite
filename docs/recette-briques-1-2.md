@@ -591,3 +591,27 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | V.4 | Admin › Partenaires (onglet sur ordinateur ; lien dans Mon compte sur téléphone) | Les clics de V.1 à V.3 apparaissent : 12 mois, par mois, par provenance ; abonnés distincts = 1 ; « Part des abonnés » = 1 / nombre d'abonnés actifs (base affichée au-dessus du tableau) ; « Copier » copie la phrase pour le partenaire, pourcentage compris | |
 | V.5 | Cliquer un lien partenaire en étant administrateur | Redirection normale, mais aucun clic ajouté | |
 | V.6 | Politique de confidentialité | Ligne « Clics vers nos partenaires » dans le tableau des données et dans les durées (13 mois) | |
+
+## Mes gestions, cadre « Actions » et courriers (24/10)
+
+**Préparation** : exécuter `supabase/brique3e_actions_courriers.sql`, **puis relancer** `supabase/brique2g_liste_comptes_admin.sql`, **avant** le Commit + Push. Tester avec un compte abonné ayant au moins deux gestions en cours ; renseigner son adresse dans Mon compte.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| G.1 | Onglet « Mes gestions » (« Gestions » sur téléphone) | Ouvre une gestion ; pastilles de tous les salariés en haut, celle affichée en violet ; un clic sur une autre pastille change de salarié | |
+| G.2 | Ancien lien `/tableau-de-bord/documents` | Redirige vers « Mes gestions » | |
+| G.3 | Tableau de bord, encart du bas | « Vous souhaitez partager Aide & Garde ? » | |
+| G.4 | Cadre « Que souhaitez-vous faire ? » › Déclarer le mois | Liste : tous les mois depuis le début du contrat sans bulletin en ligne (les mois avec bulletin n'y sont plus) ; envoi comme avant | |
+| G.5 | Admin › fiche du compte › gestion › « Mois proposés à la déclaration : à partir de » : choisir un mois, Enregistrer | Côté abonné, la liste commence à ce mois ; vider le champ revient au début du contrat | |
+| G.6 | Corriger un bulletin | Choix du mois, téléchargement, demande de correction ; elle arrive dans les déclarations à traiter | |
+| G.7 | Demander un avenant | Même fonctionnement qu'avant, dans le cadre ; un point violet sur le bouton tant que la demande est en cours | |
+| G.8 | Attestation d'emploi : compléter civilités et adresse du salarié, Télécharger | PDF prérempli (nom, adresses, emploi, date d'entrée, CDI/CDD) ; en rouvrant, les coordonnées sont mémorisées (ligne « De : … Pour : … Modifier ») | |
+| G.9 | Fin de contrat › Licenciement : convocation puis lettre (motif « Changement de mode de garde ») | Deux PDF ; le texte du motif est modifiable ; durée du préavis selon l'ancienneté (1 semaine, 1 mois, 2 mois) ; champ vide = pointillés | |
+| G.10 | Fin de contrat › « Prévenir Aide & Garde » (date de fin) | Message de confirmation ; email reçu par Aide & Garde ; l'action apparaît dans Administration (pastille, « Événements signalés », fiche du compte) | |
+| G.11 | Admin › fiche du compte › « Marquer comme traité… » avec un commentaire | L'abonné reçoit la notification et l'email ; dans sa gestion, « Traité le … : « commentaire » » | |
+| G.12 | Rupture conventionnelle, Démission | Explications, « Prévenir Aide & Garde » ; démission : mise en garde et lettre préremplie au nom du salarié | |
+| G.13 | Arrêt maladie | Prévenir (attestation de salaire) ; attestation sur l'honneur de l'Assurance Maladie préremplie (nom, maladie cochée, employeur, téléphone, dernier jour travaillé, date de début d'arrêt) ; lien « Ajouter un salarié remplaçant » | |
+| G.14 | Accident du travail | Prévenir ; déclaration d'accident cerfa 14463*03 préremplie (employeur, salarié, contrat, accident) et modifiable à l'écran ; mention de la feuille d'accident à demander à la CPAM | |
+| G.15 | Autres courriers : départ à la retraite, impossibilité de reclassement, avance sur salaire, autorisation parentale | Quatre PDF préremplis | |
+| G.16 | Sur téléphone : documents d'une gestion | Chaque catégorie a son bandeau de titre et son cadre colorés (violet, turquoise, orange) ; pas de défilement horizontal | |
+

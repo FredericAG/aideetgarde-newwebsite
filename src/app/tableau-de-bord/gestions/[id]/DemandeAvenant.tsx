@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { OBJETS_AVENANT, formatDate, type DemandeAvenant as Demande } from "@/lib/data";
 import { demanderAvenant, type EtatAvenant } from "../actions";
@@ -18,9 +18,9 @@ function BoutonEnvoyer() {
 }
 
 /**
- * « Un changement dans le contrat ? » : demande d'avenant sur une gestion
- * en cours (brique 3b). Une seule demande en attente à la fois ; elle est
- * close automatiquement quand Aide & Garde dépose l'avenant.
+ * « Demander un avenant » (cadre Actions) : demande d'avenant sur une
+ * gestion en cours (brique 3b). Une seule demande en attente à la fois ;
+ * elle est close automatiquement quand Aide & Garde dépose l'avenant.
  */
 export function DemandeAvenant({
   gestionId,
@@ -30,13 +30,12 @@ export function DemandeAvenant({
   /** Demande déjà envoyée et pas encore traitée, s'il y en a une. */
   enAttente: Demande | null;
 }) {
-  const [ouvert, setOuvert] = useState(false);
   const [etat, action] = useActionState<EtatAvenant, FormData>(demanderAvenant, {});
 
   if (enAttente || etat.ok) {
     return (
-      <section className="mt-6 rounded-xl border-2 border-brand-violet/40 bg-brand-violet/5 p-4 text-sm sm:p-5">
-        <h2 className="font-bold text-brand-violet">Demande d&apos;avenant en cours</h2>
+      <div className="rounded-xl border-2 border-brand-violet/40 bg-brand-violet/5 p-4 text-sm">
+        <p className="font-bold text-brand-violet">Demande d&apos;avenant en cours</p>
         <p className="mt-1 text-foreground/80">
           {etat.ok && !enAttente
             ? etat.message
@@ -48,26 +47,17 @@ export function DemandeAvenant({
             {enAttente.date_effet ? ` — à partir du ${formatDate(enAttente.date_effet)}` : ""}
           </p>
         )}
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="carte mt-6 p-4 sm:p-5">
-      <h2 className="font-bold text-brand-teal">Un changement dans le contrat ?</h2>
-      <p className="mt-1 text-sm text-foreground/70">
+    <div>
+      <p className="text-sm text-foreground/70">
         Garde partagée, horaires, adresse, taux horaire… Signalez-le : nous
         préparons l&apos;avenant au contrat de travail.
       </p>
-      {!ouvert ? (
-        <button
-          type="button"
-          onClick={() => setOuvert(true)}
-          className="btn btn-secondaire btn-lg mt-3 w-full sm:w-auto"
-        >
-          Demander un avenant
-        </button>
-      ) : (
+      {(
         <form action={action} className="mt-4 flex flex-col gap-4 text-sm">
           <input type="hidden" name="gestion_id" value={gestionId} />
           {etat.message && (
@@ -107,12 +97,9 @@ export function DemandeAvenant({
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <BoutonEnvoyer />
-            <button type="button" onClick={() => setOuvert(false)} className="btn btn-secondaire btn-lg w-full sm:w-auto">
-              Annuler
-            </button>
           </div>
         </form>
       )}
-    </section>
+    </div>
   );
 }

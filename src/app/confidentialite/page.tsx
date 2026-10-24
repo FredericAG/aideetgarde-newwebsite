@@ -73,7 +73,7 @@ export default function ConfidentialitePage() {
             <tbody>
               {[
                 ["Votre compte : email, mot de passe (chiffré, illisible par nous), nom, prénom, téléphone, adresse", "Créer et sécuriser votre espace, vous contacter", "Exécution du contrat"],
-                ["Vos salariés : identité, emploi, contrat, heures et événements déclarés chaque mois", "Établir contrats, bulletins de paie, déclarations et documents de fin de contrat", "Exécution du contrat (mandat)"],
+                ["Vos salariés : identité, adresse, emploi, contrat, heures et événements déclarés chaque mois (arrêt, accident, fin de contrat)", "Établir contrats, bulletins de paie, déclarations, attestations, courriers et documents de fin de contrat", "Exécution du contrat (mandat)"],
                 ["Documents de paie et contrats (PDF)", "Les mettre à votre disposition en permanence", "Exécution du contrat ; obligations légales de conservation"],
                 ["Paiement : formule, montants, dates, 4 derniers chiffres et date d'expiration de la carte ; le numéro complet reste chez Systempay", "Encaisser l'abonnement, gérer les refus et les remboursements", "Exécution du contrat ; obligation comptable"],
                 ["Acceptation des CGV, rétractation, résiliation : date, heure et contenu", "Prouver vos choix et y donner suite", "Obligation légale"],

@@ -2,7 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { isUuid, libelleMois, lireHeures } from "@/lib/data";
+import {
+  MODES_FIN_CONTRAT,
+  TYPES_SIGNALEMENT,
+  formatDate,
+  isUuid,
+  libelleMois,
+  libelleSignalement,
+  lireHeures,
+  type ModeFinContrat,
+  type TypeSignalement,
+} from "@/lib/data";
+import { adresseSite, emailAdmin, envoyerEmail, modeleEmail } from "@/lib/email";
 
 export interface EtatDeclaration {
   statut: "idle" | "ok" | "erreur";
@@ -115,5 +126,75 @@ export async function demanderModification(
   return {
     statut: "ok",
     message: `Demande de modification du bulletin de ${libelleMois(periode)} envoyée : nous vous mettons en ligne un bulletin corrigé.`,
+  };
+}
+
+export interface EtatSignalement {
+  statut: "idle" | "ok" | "erreur";
+  message?: string;
+}
+
+/**
+ * « Prévenir Aide & Garde » (cadre Actions, brique 3e) : fin de contrat,
+ * accident du travail ou arrêt maladie. La demande rejoint les actions à
+ * traiter de l'administration ; un email d'alerte part aussi (sans bloquer).
+ */
+export async function signalerEvenement(_etat: EtatSignalement, fd: FormData): Promise<EtatSignalement> {
+  const gestionId = String(fd.get("gestion_id") ?? "");
+  const type = String(fd.get("type") ?? "") as TypeSignalement;
+  const precision = String(fd.get("precision") ?? "");
+  const date = String(fd.get("date") ?? "").trim();
+  const commentaire = String(fd.get("commentaire") ?? "").trim().slice(0, 2000);
+  if (!isUuid(gestionId) || !(type in TYPES_SIGNALEMENT)) {
+    return { statut: "erreur", message: "Demande invalide. Rechargez la page." };
+  }
+  if (type === "fin_contrat" && !(precision in MODES_FIN_CONTRAT)) {
+    return { statut: "erreur", message: "Précisez le mode de fin de contrat." };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { statut: "erreur", message: "Indiquez la date." };
+  }
+
+  const { supabase, user, profile } = await requireUser(`/tableau-de-bord/gestions/${gestionId}`);
+  const { error } = await supabase.rpc("signaler_evenement", {
+    p_gestion_id: gestionId,
+    p_type: type,
+    p_precision: type === "fin_contrat" ? precision : "",
+    p_date: date,
+    p_commentaire: commentaire,
+  });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") {
+      return { statut: "erreur", message: "Ce service n'est pas encore activé (script brique3e à exécuter dans Supabase)." };
+    }
+    return {
+      statut: "erreur",
+      message: error.code === "P0001" ? error.message : "L'envoi n'a pas abouti. Réessayez dans un instant.",
+    };
+  }
+
+  // Alerte à Aide & Garde (ne bloque jamais la demande).
+  const { data: g } = await supabase.from("gestions").select("prenom_salarie, nom_salarie").eq("id", gestionId).maybeSingle();
+  const salarie = g ? `${g.prenom_salarie ?? ""} ${g.nom_salarie ?? ""}`.trim() : "";
+  const employeur = `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim() || user.email || "un abonné";
+  const libelle = libelleSignalement({ type, precision: type === "fin_contrat" ? (precision as ModeFinContrat) : "" });
+  const site = await adresseSite();
+  const contenu = modeleEmail({
+    titre: libelle,
+    paragraphes: [
+      `${employeur} signale pour la gestion de ${salarie} : ${libelle.toLowerCase()}, date indiquée : ${formatDate(date)}.`,
+      ...(commentaire ? [`« ${commentaire} »`] : []),
+    ],
+    bouton: { texte: "Ouvrir la fiche du compte", url: `${site}/admin/comptes/${user.id}#gestion-${gestionId}` },
+  });
+  await envoyerEmail({ a: emailAdmin(), sujet: `${libelle} : ${employeur} – ${salarie}`, ...contenu });
+
+  revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
+  return {
+    statut: "ok",
+    message:
+      type === "fin_contrat"
+        ? "C'est noté : nous préparons les documents de fin de contrat et revenons vers vous."
+        : "C'est noté : nous établissons l'attestation de salaire et vous prévenons dès qu'elle est prête.",
   };
 }

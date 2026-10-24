@@ -67,11 +67,13 @@ export async function SiteHeader() {
                 </>
               ) : (
                 <>
-                  <OngletEntete href="/tableau-de-bord" exact sousPages={["/tableau-de-bord/gestions"]}>
+                  <OngletEntete href="/tableau-de-bord" exact>
                     Tableau de bord
                   </OngletEntete>
-                  <OngletEntete href="/tableau-de-bord/documents">
-                    Documents
+                  {/* « Mes gestions » remplace « Documents » (24/10) : un salarié,
+                      une page avec ses actions et ses documents. */}
+                  <OngletEntete href="/tableau-de-bord/gestions" sousPages={["/tableau-de-bord/documents"]}>
+                    Mes gestions
                   </OngletEntete>
                   <OngletEntete href="/tableau-de-bord/abonnement">
                     Abonnement

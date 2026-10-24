@@ -10,6 +10,9 @@
 -- Depuis la mise à jour du 21/10 (paiement et résiliation affichés dans la
 -- liste des abonnements), à lancer APRÈS brique5a et brique5b.
 --
+-- Depuis le 24/10 (événements signalés : fin de contrat, accident, arrêt
+-- maladie, comptés dans les actions à effectuer), à lancer APRÈS brique3e.
+--
 -- 1. Référence client (C00001, C00002…) : attribuée une fois pour toutes,
 --    visible de l'administrateur seulement. Elle départage les homonymes au
 --    téléphone (« Madame Martin, référence C00412 »), comme AG00001 pour
@@ -91,6 +94,7 @@ create trigger zz_recopier_confirmation_email
 create index if not exists gestions_employeur_statut_idx on public.gestions (employeur_id, statut);
 create index if not exists declarations_employeur_statut_idx on public.declarations_mensuelles (employeur_id, statut);
 create index if not exists demandes_avenant_employeur_statut_idx on public.demandes_avenant (employeur_id, statut);
+create index if not exists signalements_employeur_statut_idx on public.signalements (employeur_id, statut);
 create index if not exists abonnements_employeur_idx on public.abonnements (employeur_id);
 
 -- 3. Vue de la liste des comptes ------------------------------------------------
@@ -155,7 +159,7 @@ select
   coalesce(g.places, 0) as places_utilisees,
   (abo.statut = 'actif'
    and coalesce(g.places, 0) > abo.quota_gestions) as quota_depasse,
-  coalesce(g.envoyees, 0) + coalesce(d.nb, 0) + coalesce(av.nb, 0) as nb_actions,
+  coalesce(g.envoyees, 0) + coalesce(d.nb, 0) + coalesce(av.nb, 0) + coalesce(sg.nb, 0) as nb_actions,
   -- Catégorie de suivi :
   --  actif       : au moins une gestion en cours ou en attente de validation
   --  a_surveiller: abonnement actif mais aucune gestion en cours ni en
@@ -208,6 +212,10 @@ left join lateral (
   select count(*) as nb from public.demandes_avenant
    where employeur_id = p.id and statut = 'envoyee'
 ) av on true
+left join lateral (
+  select count(*) as nb from public.signalements
+   where employeur_id = p.id and statut = 'envoyee'
+) sg on true
 where p.role <> 'admin';
 
 revoke all on public.admin_comptes from anon;

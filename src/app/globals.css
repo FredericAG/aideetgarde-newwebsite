@@ -283,6 +283,30 @@ button:disabled {
     .tableau-documents .c-masque-mobile {
       display: none;
     }
+
+    /*
+     * Téléphone : la ligne de titres colorée du tableau est masquée ; la
+     * couleur de la catégorie (violet / turquoise / orange) passe donc au
+     * titre, en bandeau, et au cadre du tableau (demande du 24/10).
+     */
+    .cadre-categorie > h3 {
+      background: var(--cat);
+      color: #fff;
+      padding: 0.45rem 0.75rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .cadre-categorie > h3 > span[aria-hidden] {
+      display: none;
+    }
+    .cadre-categorie > h3 span,
+    .cadre-categorie > h3 a {
+      color: #fff !important;
+    }
+    .cadre-categorie .cadre-tableau {
+      border: 2px solid var(--cat);
+      border-top: 0;
+      border-radius: 0 0 0.5rem 0.5rem;
+    }
   }
 
   /*

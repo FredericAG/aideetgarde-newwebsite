@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/data";
 import {
   DetailActions,
   type AvenantATraiter,
+  type SignalementATraiter,
   type DeclarationATraiter,
   type GestionAValider,
 } from "./DetailActions";
@@ -165,7 +166,7 @@ export async function ListeComptes({
     .order("nom_tri", { ascending: true })
     .range((page - 1) * PAR_PAGE, page * PAR_PAGE - 1);
 
-  const [listeRes, resumeRes, avecActionsRes, declsRes, aValiderRes, avenantsRes] = await Promise.all([
+  const [listeRes, resumeRes, avecActionsRes, declsRes, aValiderRes, avenantsRes, signalementsRes] = await Promise.all([
     requete,
     supabase.from("admin_comptes_resume").select("categorie, nb_comptes, nb_actions"),
     supabase.from("admin_comptes").select("id", { count: "exact", head: true }).gt("nb_actions", 0),
@@ -188,6 +189,15 @@ export async function ListeComptes({
       .from("demandes_avenant")
       .select(
         "id, objets, date_effet, description, created_at, employeur_id, gestion_id, gestion:gestions(reference, prenom_salarie, nom_salarie), employeur:profiles(prenom, nom)",
+      )
+      .eq("statut", "envoyee")
+      .order("created_at", { ascending: true })
+      .limit(200),
+    // Événements signalés (brique 3e ; sans le script, liste vide).
+    supabase
+      .from("signalements")
+      .select(
+        "id, type, precision, date_evenement, commentaire, created_at, employeur_id, gestion_id, gestion:gestions(reference, prenom_salarie, nom_salarie), employeur:profiles(prenom, nom)",
       )
       .eq("statut", "envoyee")
       .order("created_at", { ascending: true })
@@ -235,6 +245,7 @@ export async function ListeComptes({
   const nbPages = Math.max(1, Math.ceil(total / PAR_PAGE));
 
   const avenants = (avenantsRes.data ?? []) as unknown as AvenantATraiter[];
+  const signalements = (signalementsRes.data ?? []) as unknown as SignalementATraiter[];
   const aValider = (aValiderRes.data ?? []) as unknown as GestionAValider[];
   const aTraiter = (declsRes.data ?? []) as unknown as DeclarationATraiter[];
 
@@ -607,7 +618,7 @@ export async function ListeComptes({
           <summary className="font-bold text-brand-violet">
             Détail des actions par type ({aValider.length + avenants.length + aTraiter.length})
           </summary>
-          <DetailActions avenants={avenants} aValider={aValider} aTraiter={aTraiter} />
+          <DetailActions signalements={signalements} avenants={avenants} aValider={aValider} aTraiter={aTraiter} />
         </details>
         )}
       </div>

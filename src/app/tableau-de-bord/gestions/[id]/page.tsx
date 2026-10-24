@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AutreCompte } from "@/components/AutreCompte";
-import { DemandeAvenant } from "./DemandeAvenant";
 import { DocumentsParCategorie } from "@/components/DocumentsParCategorie";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
@@ -12,7 +11,10 @@ import { placesAbonnement, salariesRemplacables } from "@/lib/places";
 import { annulerEnvoi, supprimerBrouillon } from "../actions";
 import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { requireUser } from "@/lib/auth";
-import { DeclarationMois } from "./DeclarationMois";
+import { ActionsGestion, type CleAction } from "./ActionsGestion";
+import { NavGestions } from "@/components/NavGestions";
+import { listerMesGestions } from "@/lib/mes-gestions";
+import { contexteCourrier } from "@/lib/courriers/contexte";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import {
   LIBELLES_STATUT_GESTION,
@@ -22,12 +24,13 @@ import {
   isUuid,
   nomSalarie,
   MOTIFS_REMPLACEMENT,
-  periodesDeclarables,
+  periodesADeclarer,
   trierDocuments,
   type Declaration,
   type DemandeAvenant as DemandeAvenantType,
   type DocumentRow,
   type Gestion,
+  type Signalement,
   type TriDocuments,
   intituleDocument,
 } from "@/lib/data";
@@ -52,6 +55,7 @@ export default async function DetailGestionPage({
   const triDemande = Array.isArray(sp.tri) ? sp.tri[0] : sp.tri;
   const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
   const messageErreur = Array.isArray(sp.erreur) ? sp.erreur[0] : sp.erreur;
+  const actionDemandee = Array.isArray(sp.action) ? sp.action[0] : sp.action;
   const tri: TriDocuments =
     triDemande && triDemande in LIBELLES_TRI ? (triDemande as TriDocuments) : "recent";
 
@@ -84,7 +88,7 @@ export default async function DetailGestionPage({
     return <AutreCompte email={user.email} retour={`/tableau-de-bord/gestions/${id}`} />;
   }
 
-  const [{ data: docs }, { data: decls }, { data: avenants }, { data: liees }] = await Promise.all([
+  const [{ data: docs }, { data: decls }, { data: avenants }, { data: liees }, { data: signals }, mesGestions, contexte] = await Promise.all([
     supabase
       .from("documents")
       .select("id, gestion_id, type_document, periode, titre, complement, storage_path, created_at, consulte_le")
@@ -115,6 +119,15 @@ export default async function DetailGestionPage({
           ? `id.eq.${gestion.remplace_gestion_id},remplace_gestion_id.eq.${id}`
           : `remplace_gestion_id.eq.${id}`,
       ),
+    // Événements signalés à Aide & Garde (brique 3e ; sans le script, aucun).
+    supabase
+      .from("signalements")
+      .select("*")
+      .eq("gestion_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    listerMesGestions(supabase, user.id),
+    contexteCourrier(supabase, profile, gestion),
   ]);
   const lies = (liees ?? []) as Pick<Gestion, "id" | "prenom_salarie" | "nom_salarie" | "statut" | "remplace_gestion_id">[];
   const remplace = gestion.remplace_gestion_id ? lies.find((g) => g.id === gestion.remplace_gestion_id) : undefined;
@@ -122,18 +135,33 @@ export default async function DetailGestionPage({
     (g) => g.remplace_gestion_id === id && ["brouillon", "envoyee", "en_cours"].includes(g.statut),
   );
   const declarations = (decls ?? []) as Declaration[];
-  const { options, parDefaut } = periodesDeclarables();
-
+  // En attente, ou traités depuis moins de 60 jours (réponse affichée).
+  const signalements = signalementsUtiles((signals ?? []) as Signalement[]);
   const documents = trierDocuments((docs ?? []) as DocumentRow[], tri);
+  // Bulletins en ligne, du plus récent au plus ancien (un par mois).
+  const bulletins = [
+    ...new Map(
+      documents
+        .filter((d) => d.type_document === "bulletin" && d.periode && d.storage_path)
+        .sort((a, b) => (b.periode as string).localeCompare(a.periode as string) || b.created_at.localeCompare(a.created_at))
+        .map((d) => [d.periode as string, { periode: d.periode as string, documentId: d.id }]),
+    ).values(),
+  ].sort((a, b) => b.periode.localeCompare(a.periode));
+  // Mois à déclarer : sans bulletin en ligne, ni déclaration close sans bulletin.
+  const declaration = periodesADeclarer(
+    gestion,
+    new Set([...bulletins.map((b) => b.periode), ...declarations.filter((d) => d.statut === "close").map((d) => d.periode)]),
+  );
+  const ACTIONS_VALIDES: CleAction[] = ["declarer", "corriger", "avenant", "attestation", "arret", "accident", "fin", "courriers"];
+  const actionInitiale: CleAction = ACTIONS_VALIDES.includes(actionDemandee as CleAction) ? (actionDemandee as CleAction) : "declarer";
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
       <div className="w-full max-w-4xl">
-        <Link href="/tableau-de-bord" className="text-sm text-brand-teal underline">
-          ← Tableau de bord
-        </Link>
+        {/* « Mes gestions » (24/10) : on passe d'un salarié à l'autre ici. */}
+        <NavGestions gestions={mesGestions} courante={gestion.id} />
 
-        <h1 className="mt-4 font-display font-black text-2xl text-brand-teal">
+        <h1 className="mt-5 font-display font-black text-2xl text-brand-teal">
           {nomSalarie(gestion) || "Nouveau salarié"}
         </h1>
         <p className="mt-2 text-sm text-foreground/70">
@@ -247,20 +275,6 @@ export default async function DetailGestionPage({
           <>
         <NouveauxDocuments documents={documents} />
 
-        {gestion.statut === "en_cours" && (
-          <DeclarationMois
-            gestionId={gestion.id}
-            options={options}
-            parDefaut={parDefaut}
-            declarations={declarations}
-            bulletins={Object.fromEntries(
-              documents
-                .filter((d) => d.type_document === "bulletin" && d.periode && d.storage_path)
-                .map((d) => [d.periode as string, d.id]),
-            )}
-          />
-        )}
-
         {(() => {
           const r = reponseAvenantRecente((avenants ?? []) as DemandeAvenantType[]);
           if (!r) return null;
@@ -279,9 +293,15 @@ export default async function DetailGestionPage({
         })()}
 
         {gestion.statut === "en_cours" && (
-          <DemandeAvenant
+          <ActionsGestion
             gestionId={gestion.id}
-            enAttente={((avenants ?? []) as DemandeAvenantType[]).find((a) => a.statut === "envoyee") ?? null}
+            actionInitiale={actionInitiale}
+            contexte={contexte}
+            declaration={declaration}
+            bulletins={bulletins}
+            declarations={declarations}
+            avenantEnAttente={((avenants ?? []) as DemandeAvenantType[]).find((a) => a.statut === "envoyee") ?? null}
+            signalements={signalements}
           />
         )}
 
@@ -301,7 +321,7 @@ export default async function DetailGestionPage({
           </aside>
         )}
 
-        <h2 className="mt-8 font-bold text-brand-teal">
+        <h2 id="documents" className="mt-8 scroll-mt-24 font-bold text-brand-teal">
           Documents ({documents.length})
         </h2>
 
@@ -373,4 +393,10 @@ function reponseAvenantRecente(liste: DemandeAvenantType[]): DemandeAvenantType 
   if (!r.reponse_admin && r.statut !== "close") return null;
   if (!r.traitee_le || Date.now() - new Date(r.traitee_le).getTime() > 60 * 86400000) return null;
   return r;
+}
+
+/** Signalements en attente, ou traités depuis moins de 60 jours (réponse affichée). */
+function signalementsUtiles(liste: Signalement[]): Signalement[] {
+  const limite = Date.now() - 60 * 86400000;
+  return liste.filter((x) => x.statut === "envoyee" || (x.traitee_le && new Date(x.traitee_le).getTime() > limite));
 }

@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Formulaire de l'Assurance Maladie prérempli par le site (courriers des
+  // gestions) : à embarquer avec la route qui le lit.
+  outputFileTracingIncludes: {
+    "/tableau-de-bord/gestions/[id]/courrier": ["./modeles-pdf/**"],
+  },
   experimental: {
     // Le navigateur garde en mémoire, pendant 30 secondes, les pages déjà
     // visitées : revenir sur une page vue il y a quelques instants

@@ -66,6 +66,64 @@ export interface Gestion {
   /** CDD de remplacement (brique 3d) : gestion du salarié absent, hors quota. */
   remplace_gestion_id?: string | null;
   motif_remplacement?: MotifRemplacement | null;
+  /** Coordonnées pour les courriers préremplis (brique 3e). */
+  civilite_salarie?: Civilite;
+  adresse_salarie?: string;
+  code_postal_salarie?: string;
+  ville_salarie?: string;
+  /**
+   * Premier mois à déclarer, fixé par l'administrateur pour un abonné repris
+   * en cours de contrat (brique 3e). null : depuis le début du contrat.
+   */
+  declarations_depuis?: string | null;
+}
+
+export type Civilite = "" | "Madame" | "Monsieur";
+
+// ---------------------------------------------------------------------------
+// Événements signalés à Aide & Garde (brique 3e)
+// ---------------------------------------------------------------------------
+
+export type TypeSignalement = "fin_contrat" | "accident_travail" | "arret_maladie";
+export type ModeFinContrat = "licenciement" | "rupture_conventionnelle" | "demission" | "retraite";
+
+export const TYPES_SIGNALEMENT: Record<TypeSignalement, string> = {
+  fin_contrat: "Fin de contrat",
+  accident_travail: "Accident du travail",
+  arret_maladie: "Arrêt maladie",
+};
+
+export const MODES_FIN_CONTRAT: Record<ModeFinContrat, string> = {
+  licenciement: "Licenciement",
+  rupture_conventionnelle: "Rupture conventionnelle",
+  demission: "Démission",
+  retraite: "Départ à la retraite",
+};
+
+/** Libellé de la date demandée selon le signalement. */
+export const DATES_SIGNALEMENT: Record<TypeSignalement, string> = {
+  fin_contrat: "Dernier jour du contrat (prévu)",
+  accident_travail: "Date de l'accident",
+  arret_maladie: "Premier jour d'arrêt",
+};
+
+export interface Signalement {
+  id: string;
+  gestion_id: string;
+  employeur_id: string;
+  type: TypeSignalement;
+  precision: ModeFinContrat | "";
+  date_evenement: string | null;
+  commentaire: string;
+  statut: "envoyee" | "traitee";
+  created_at: string;
+  traitee_le: string | null;
+  reponse_admin: string | null;
+}
+
+export function libelleSignalement(s: Pick<Signalement, "type" | "precision">): string {
+  if (s.type === "fin_contrat" && s.precision) return `${TYPES_SIGNALEMENT.fin_contrat} : ${MODES_FIN_CONTRAT[s.precision].toLowerCase()}`;
+  return TYPES_SIGNALEMENT[s.type];
 }
 
 export type MotifRemplacement = "conge_maternite" | "arret_maladie";
@@ -370,21 +428,80 @@ function aamm(date: Date): string {
 }
 
 /**
- * Mois proposés à la déclaration : le mois en cours et les deux précédents.
- * Mois sélectionné par défaut : le mois précédent jusqu'au 10 (période
- * habituelle de déclaration du mois écoulé), le mois en cours ensuite.
+ * Mois du mois de début au mois de fin (inclus), au format AAMM, du plus
+ * récent au plus ancien.
  */
-export function periodesDeclarables(aujourdhui = new Date()): {
-  options: { valeur: string; libelle: string }[];
-  parDefaut: string;
-} {
-  const options = [0, 1, 2].map((decalage) => {
-    const d = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - decalage, 1);
-    const valeur = aamm(d);
-    return { valeur, libelle: libelleMois(valeur) };
-  });
-  const parDefaut = aujourdhui.getDate() <= 10 ? options[1].valeur : options[0].valeur;
+function moisEntre(debut: Date, fin: Date): string[] {
+  const liste: string[] = [];
+  const d = new Date(fin.getFullYear(), fin.getMonth(), 1);
+  const limite = new Date(debut.getFullYear(), debut.getMonth(), 1);
+  while (d >= limite && liste.length < 240) {
+    liste.push(aamm(d));
+    d.setMonth(d.getMonth() - 1);
+  }
+  return liste;
+}
+
+function dateLocale(iso: string): Date {
+  const [y, m, j] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, j);
+}
+
+/** Mois en cours, au format AAMM. */
+export function moisCourant(aujourdhui = new Date()): string {
+  return aamm(aujourdhui);
+}
+
+/**
+ * Mois que l'abonné peut déclarer (demande du 24/10/2026) : tous les mois
+ * depuis le début du contrat (ou depuis le premier mois fixé par
+ * l'administrateur) jusqu'au mois en cours, sauf ceux dont le bulletin est
+ * en ligne et ceux qu'Aide & Garde a clos sans bulletin. Du plus récent au
+ * plus ancien.
+ *
+ * Mois sélectionné par défaut : le mois précédent jusqu'au 10 (période
+ * habituelle de déclaration du mois écoulé), le mois en cours ensuite ; à
+ * défaut, le plus récent de la liste.
+ */
+export function periodesADeclarer(
+  gestion: Pick<Gestion, "date_debut" | "date_fin" | "declarations_depuis">,
+  exclus: Set<string>,
+  aujourdhui = new Date(),
+): { options: { valeur: string; libelle: string }[]; parDefaut: string } {
+  const debut = [gestion.date_debut, gestion.declarations_depuis]
+    .filter((x): x is string => Boolean(x))
+    .map(dateLocale)
+    .reduce((a, b) => (b > a ? b : a), new Date(2000, 0, 1));
+  const fin = gestion.date_fin && dateLocale(gestion.date_fin) < aujourdhui ? dateLocale(gestion.date_fin) : aujourdhui;
+  const options = moisEntre(debut, fin)
+    .filter((m) => !exclus.has(m))
+    .map((valeur) => ({ valeur, libelle: libelleMois(valeur) }));
+  const precedent = aamm(new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - 1, 1));
+  const prefere = aujourdhui.getDate() <= 10 ? precedent : aamm(aujourdhui);
+  const parDefaut = options.find((o) => o.valeur === prefere)?.valeur ?? options[0]?.valeur ?? "";
   return { options, parDefaut };
+}
+
+/**
+ * Mois sélectionné par défaut pour déclarer (tableau de bord) : le mois
+ * précédent jusqu'au 10, le mois en cours ensuite.
+ */
+export function moisADeclarerParDefaut(aujourdhui = new Date()): string {
+  return aujourdhui.getDate() <= 10
+    ? aamm(new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - 1, 1))
+    : aamm(aujourdhui);
+}
+
+/**
+ * Ancienneté en mois révolus entre deux dates ISO (début du contrat → date
+ * de référence), pour la durée du préavis.
+ */
+export function ancienneteMois(debutIso: string, referenceIso: string): number {
+  const d = dateLocale(debutIso);
+  const r = dateLocale(referenceIso);
+  let mois = (r.getFullYear() - d.getFullYear()) * 12 + (r.getMonth() - d.getMonth());
+  if (r.getDate() < d.getDate()) mois -= 1;
+  return Math.max(0, mois);
 }
 
 /** "151,5" ou "151.5" → 151.5 ; vide → null ; invalide → NaN */

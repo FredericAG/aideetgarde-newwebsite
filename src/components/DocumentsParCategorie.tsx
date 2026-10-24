@@ -27,7 +27,9 @@ const tdBase = "px-3 py-2 align-middle";
  *   l'abonné (tiret rouge s'il ne l'a pas encore fait).
  * - vue « abonne » : date de mise en ligne, pastille « Nouveau » ; sur
  *   téléphone, chaque document tient sur deux lignes compactes (classe
- *   « tableau-documents » de globals.css).
+ *   « tableau-documents » de globals.css) et chaque catégorie garde sa
+ *   couleur : bandeau de titre et cadre colorés (« cadre-categorie »,
+ *   demande du 24/10).
  */
 export function DocumentsParCategorie({
   documents,
@@ -72,6 +74,7 @@ export function DocumentsParCategorie({
           <TableauDepliable
             classeTable={admin ? "" : "tableau-documents"}
             classeEntete={`entete-${cat.cle}`}
+            classeCadre={admin ? "" : "cadre-tableau"}
             colonnes={
               <>
                 <col />
@@ -136,7 +139,12 @@ export function DocumentsParCategorie({
         );
 
         return (
-          <section key={cat.cle} aria-label={cat.titre}>
+          <section
+            key={cat.cle}
+            aria-label={cat.titre}
+            className={admin ? "" : "cadre-categorie"}
+            style={{ "--cat": `var(--cat-${cat.cle})` } as React.CSSProperties}
+          >
             <h3 className="flex flex-wrap items-center gap-x-2 text-sm">
               <span
                 aria-hidden="true"
@@ -159,7 +167,7 @@ export function DocumentsParCategorie({
                 </Link>
               )}
             </h3>
-            <div className="mt-1">
+            <div className={admin ? "mt-1" : "mt-1 max-sm:mt-0"}>
               {admin ? (
                 // Administration (ordinateur) : défilement horizontal si
                 // la fenêtre est étroite.

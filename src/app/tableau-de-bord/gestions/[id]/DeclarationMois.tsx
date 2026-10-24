@@ -1,247 +1,108 @@
 "use client";
 
-import { LienTelechargement } from "@/components/LienTelechargement";
 import { useActionState, useState } from "react";
-import {
-  formatDate,
-  formatHeures,
-  libelleMois,
-  type Declaration,
-} from "@/lib/data";
-import {
-  demanderModification,
-  envoyerDeclaration,
-  type EtatDeclaration,
-} from "./actions";
+import { formatDate, formatHeures, type Declaration } from "@/lib/data";
+import { envoyerDeclaration, type EtatDeclaration } from "./actions";
 
-const champ =
-  "w-full rounded-md border border-brand-gray/40 bg-background px-3 py-2.5 text-base outline-none focus:border-brand-teal";
+export const champ =
+  "w-full rounded-md border border-brand-gray/40 bg-background px-3 py-2.5 text-base outline-none focus:border-brand-teal sm:text-sm";
 
 /**
- * Carte « Déclarer le mois », pensée d'abord pour le téléphone : gros
- * champs, clavier numérique pour les heures, un seul bouton.
- * Une fois le bulletin en ligne, elle propose de demander une modification.
+ * « Déclarer le mois » (action principale du cadre Actions), pensée d'abord
+ * pour le téléphone : gros champs, clavier numérique pour les heures, un
+ * seul bouton. La liste propose tous les mois sans bulletin en ligne depuis
+ * le début du contrat (ou depuis le premier mois fixé par Aide & Garde).
  */
 export function DeclarationMois({
   gestionId,
   options,
   parDefaut,
   declarations,
-  bulletins,
 }: {
   gestionId: string;
   options: { valeur: string; libelle: string }[];
   parDefaut: string;
   declarations: Declaration[];
-  /** Bulletins en ligne : mois (AAMM) → identifiant du document. */
-  bulletins: Record<string, string>;
 }) {
-  const [etat, action, enCours] = useActionState<EtatDeclaration, FormData>(
-    envoyerDeclaration,
-    { statut: "idle" },
-  );
-  const [etatModif, actionModif, enCoursModif] = useActionState<EtatDeclaration, FormData>(
-    demanderModification,
-    { statut: "idle" },
-  );
+  const [etat, action, enCours] = useActionState<EtatDeclaration, FormData>(envoyerDeclaration, { statut: "idle" });
   const [periode, setPeriode] = useState(parDefaut);
-  const [demandeOuverte, setDemandeOuverte] = useState(false);
+
+  if (options.length === 0) {
+    return (
+      <p className="rounded-md bg-brand-teal/10 p-3 text-sm text-brand-teal">
+        Tous les bulletins sont en ligne : rien à déclarer pour le moment.
+      </p>
+    );
+  }
 
   const existante = declarations.find((d) => d.periode === periode);
-  const bulletinId = bulletins[periode];
-  const bulletinEnLigne = Boolean(bulletinId);
-  const modificationEnCours = existante?.statut === "modification";
-  const close = existante?.statut === "close";
-  const formulaireOuvert = !bulletinEnLigne && !modificationEnCours && !close;
+  const libelle = options.find((o) => o.valeur === periode)?.libelle ?? "";
 
   return (
-    <section
-      id="declaration"
-      className="carte mt-6 p-4 sm:p-5"
-    >
-      <h2 className="font-bold text-brand-violet">Déclarer le mois</h2>
-      <p className="mt-1 text-sm text-foreground/70">
-        Indiquez les heures travaillées et validez : vous nous signalez ainsi
-        que le bulletin peut être établi. Si les heures sont les mêmes que
-        prévu au contrat, laissez le champ vide.
+    <form action={action} className="flex flex-col gap-4">
+      <p className="text-sm text-foreground/70">
+        Indiquez les heures travaillées et validez : nous établissons le bulletin. Si les heures sont celles du contrat,
+        laissez le champ vide.
       </p>
+      <input type="hidden" name="gestion_id" value={gestionId} />
+      <input type="hidden" name="periode" value={periode} />
 
-      <label className="mt-4 flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-sm font-medium">
         Mois
-        <select
-          value={periode}
-          onChange={(e) => {
-            setPeriode(e.target.value);
-            setDemandeOuverte(false);
-          }}
-          className={champ}
-        >
-          {options.map((o) => (
-            <option key={o.valeur} value={o.valeur}>
-              {o.libelle}
-            </option>
-          ))}
+        <select value={periode} onChange={(e) => setPeriode(e.target.value)} className={champ}>
+          {options.map((o) => {
+            const envoyee = declarations.some((d) => d.periode === o.valeur);
+            return (
+              <option key={o.valeur} value={o.valeur}>
+                {o.libelle}
+                {envoyee ? " — déclaration envoyée" : ""}
+              </option>
+            );
+          })}
         </select>
       </label>
 
-      {/* Modification déjà demandée, en attente du bulletin corrigé */}
-      {modificationEnCours && (
-        <p className="mt-4 rounded-md bg-brand-jaune/40 p-3 text-sm text-brand-black">
-          Modification du bulletin de {libelleMois(periode)} demandée le{" "}
-          {formatDate(existante?.modification_demandee_le)}
-          {existante?.motif_modification ? ` : « ${existante.motif_modification} »` : ""}.
-          Nous mettons en ligne un bulletin corrigé dès que possible.
+      {existante && (
+        <p className="rounded-md bg-brand-jaune/40 p-3 text-sm text-brand-black">
+          Déclaration de {libelle} envoyée le {formatDate(existante.envoyee_le)} ({formatHeures(existante.heures)}) : nous
+          établissons le bulletin. Vous pouvez encore la corriger.
         </p>
       )}
 
-      {/* Déclaration close par Aide & Garde, sans bulletin */}
-      {close && !bulletinEnLigne && (
-        <p className="mt-4 rounded-md border-l-4 border-brand-violet bg-white p-3 text-sm">
-          <strong className="text-brand-violet">Déclaration close</strong> par Aide &amp; Garde le{" "}
-          {formatDate(existante?.cloturee_le)} : pas de bulletin pour {libelleMois(periode)}.
-          {existante?.reponse_admin && (
-            <span className="mt-1 block text-foreground/80">« {existante.reponse_admin} »</span>
-          )}
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Heures travaillées dans le mois (facultatif)
+        <input
+          key={`h-${periode}`}
+          name="heures"
+          type="text"
+          inputMode="decimal"
+          placeholder="ex. 151,67"
+          defaultValue={existante?.heures != null ? String(existante.heures).replace(".", ",") : ""}
+          className={champ}
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Commentaire (absences, congés, heures en plus…)
+        <textarea
+          key={`c-${periode}`}
+          name="commentaire"
+          rows={3}
+          maxLength={2000}
+          defaultValue={existante?.commentaire ?? ""}
+          className={champ}
+        />
+      </label>
+
+      <button type="submit" disabled={enCours} className="btn btn-primaire w-full sm:w-auto sm:self-start">
+        {enCours ? "Envoi en cours…" : existante ? "Mettre à jour ma déclaration" : "Envoyer : le bulletin peut être établi"}
+      </button>
+
+      {etat.message && (
+        <p aria-live="polite" className={`text-sm ${etat.statut === "erreur" ? "text-red-600" : "text-brand-teal"}`}>
+          {etat.message}
         </p>
       )}
-
-      {/* Bulletin en ligne : possibilité de demander une modification */}
-      {bulletinEnLigne && !modificationEnCours && (
-        <div className="mt-4 flex flex-col gap-3">
-          <p className="rounded-md bg-brand-teal/10 p-3 text-sm text-brand-teal">
-            Le bulletin de {libelleMois(periode)} est en ligne
-            {existante?.traitee_le ? ` (établi le ${formatDate(existante.traitee_le)})` : ""}.
-          </p>
-          {existante?.cloturee_le && (
-            <p className="rounded-md border-l-4 border-brand-violet bg-white p-3 text-sm">
-              <strong className="text-brand-violet">Réponse à votre demande de modification</strong>{" "}
-              ({formatDate(existante.cloturee_le)}) : le bulletin est maintenu sans changement.
-              {existante.reponse_admin && (
-                <span className="mt-1 block text-foreground/80">« {existante.reponse_admin} »</span>
-              )}
-            </p>
-          )}
-          <LienTelechargement
-            documentId={bulletinId}
-            className="btn btn-primaire w-full sm:w-auto sm:self-start"
-          >
-            ⬇ Télécharger le bulletin de {libelleMois(periode)}
-          </LienTelechargement>
-          {!demandeOuverte ? (
-            <button
-              type="button"
-              onClick={() => setDemandeOuverte(true)}
-              className="btn btn-secondaire btn-sm w-full sm:w-auto sm:self-start"
-            >
-              Demander une modification du bulletin
-            </button>
-          ) : (
-            <form action={actionModif} className="flex flex-col gap-3">
-              <input type="hidden" name="gestion_id" value={gestionId} />
-              <input type="hidden" name="periode" value={periode} />
-              <label className="flex flex-col gap-1 text-sm font-medium">
-                Que faut-il corriger ?
-                <textarea
-                  name="motif"
-                  rows={3}
-                  required
-                  minLength={3}
-                  maxLength={2000}
-                  placeholder="ex. il manque 4 heures le 12, une journée de congé n'apparaît pas…"
-                  className={champ}
-                />
-              </label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="submit"
-                  disabled={enCoursModif}
-                  className="btn btn-primaire btn-sm w-full sm:w-auto"
-                >
-                  {enCoursModif ? "Envoi en cours…" : "Envoyer la demande"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDemandeOuverte(false)}
-                  className="btn btn-secondaire btn-sm w-full sm:w-auto"
-                >
-                  Annuler
-                </button>
-              </div>
-            </form>
-          )}
-          {etatModif.message && (
-            <p
-              aria-live="polite"
-              className={`text-sm ${etatModif.statut === "erreur" ? "text-red-600" : "text-brand-teal"}`}
-            >
-              {etatModif.message}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Déclaration du mois */}
-      {formulaireOuvert && (
-        <form action={action} className="mt-4 flex flex-col gap-4">
-          <input type="hidden" name="gestion_id" value={gestionId} />
-          <input type="hidden" name="periode" value={periode} />
-
-          {existante && (
-            <p className="rounded-md bg-brand-jaune/40 p-3 text-sm text-brand-black">
-              Déclaration envoyée le {formatDate(existante.envoyee_le)} (
-              {formatHeures(existante.heures)}). Vous pouvez encore la corriger.
-            </p>
-          )}
-
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Heures travaillées dans le mois (facultatif)
-            <input
-              key={`h-${periode}`}
-              name="heures"
-              type="text"
-              inputMode="decimal"
-              placeholder="ex. 151,67"
-              defaultValue={
-                existante?.heures != null ? String(existante.heures).replace(".", ",") : ""
-              }
-              className={champ}
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Commentaire (absences, congés, heures en plus…)
-            <textarea
-              key={`c-${periode}`}
-              name="commentaire"
-              rows={3}
-              maxLength={2000}
-              defaultValue={existante?.commentaire ?? ""}
-              className={champ}
-            />
-          </label>
-
-          <button
-            type="submit"
-            disabled={enCours}
-            className="btn btn-primaire w-full sm:w-auto sm:self-start"
-          >
-            {enCours
-              ? "Envoi en cours…"
-              : existante
-                ? "Mettre à jour ma déclaration"
-                : "Envoyer : le bulletin peut être établi"}
-          </button>
-
-          {etat.message && (
-            <p
-              aria-live="polite"
-              className={`text-sm ${etat.statut === "erreur" ? "text-red-600" : "text-brand-teal"}`}
-            >
-              {etat.message}
-            </p>
-          )}
-        </form>
-      )}
-    </section>
+    </form>
   );
 }

@@ -134,7 +134,7 @@ export async function notifierDepotGroupe(depots: DepotReussi[]): Promise<string
       {
         title: titre,
         body: n === 1 ? lignes[0].replace(/ \(.*\)/, "") : "Retrouvez-les dans votre espace Aide & Garde.",
-        url: n === 1 ? `/tableau-de-bord/gestions/${liste[0].gestionId}` : "/tableau-de-bord/documents",
+        url: n === 1 ? `/tableau-de-bord/gestions/${liste[0].gestionId}` : "/tableau-de-bord/gestions",
         tag: `depot-${compteId}-${Date.now()}`,
       },
       {
