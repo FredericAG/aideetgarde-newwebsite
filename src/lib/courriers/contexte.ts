@@ -18,17 +18,37 @@ export async function contexteCourrier(
   profile: UserProfile | null,
   gestion: Gestion,
 ): Promise<ContexteCourrier> {
-  const { data } = await supabase.from("profiles").select("civilite").eq("id", gestion.employeur_id).maybeSingle();
+  // select("*") : civilité et date de naissance n'existent qu'après les
+  // scripts brique3e et brique3g.
+  const { data } = await supabase.from("profiles").select("*").eq("id", gestion.employeur_id).maybeSingle();
+  const details = Object.fromEntries(
+    Object.entries(gestion.config ?? {}).filter(([, v]) => typeof v === "string"),
+  ) as Record<string, string>;
+  // L'abonné gère le contrat pour un proche (formulaire de la gestion) :
+  // l'employeur des courriers est ce proche, pas le titulaire du compte.
+  const tiers = details.employeur_tiers === "oui" && Boolean(details.employeur_nom);
   return {
-    employeur: {
-      civilite: civilite(data?.civilite),
-      prenom: profile?.prenom ?? "",
-      nom: profile?.nom ?? "",
-      adresse: profile?.adresse ?? "",
-      code_postal: profile?.code_postal ?? "",
-      ville: profile?.ville ?? "",
-      telephone: profile?.telephone ?? "",
-    },
+    employeur: tiers
+      ? {
+          civilite: civilite(details.employeur_civilite),
+          prenom: details.employeur_prenom ?? "",
+          nom: details.employeur_nom ?? "",
+          adresse: details.employeur_adresse ?? "",
+          code_postal: details.employeur_code_postal ?? "",
+          ville: details.employeur_ville ?? "",
+          telephone: profile?.telephone ?? "",
+          date_naissance: details.employeur_date_naissance ?? "",
+        }
+      : {
+          civilite: civilite(data?.civilite),
+          prenom: profile?.prenom ?? "",
+          nom: profile?.nom ?? "",
+          adresse: profile?.adresse ?? "",
+          code_postal: profile?.code_postal ?? "",
+          ville: profile?.ville ?? "",
+          telephone: profile?.telephone ?? "",
+          date_naissance: String(data?.date_naissance ?? "").slice(0, 10),
+        },
     salarie: {
       civilite: civilite(gestion.civilite_salarie),
       prenom: gestion.prenom_salarie,
@@ -47,8 +67,6 @@ export async function contexteCourrier(
       date_fin_prevue: gestion.date_fin_prevue ?? null,
       remplacement: Boolean(gestion.remplace_gestion_id),
     },
-    details: Object.fromEntries(
-      Object.entries(gestion.config ?? {}).filter(([, v]) => typeof v === "string"),
-    ) as Record<string, string>,
+    details,
   };
 }

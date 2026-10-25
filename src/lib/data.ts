@@ -3,7 +3,7 @@
  * brique 2 (voir supabase/brique2.sql pour la définition des tables).
  */
 
-export type TypeGestion = "garde_enfants" | "aide_domicile" | "employe_maison";
+export type TypeGestion = "garde_enfants" | "aide_domicile" | "employe_maison" | "environnement_technique" | "environnement_externe";
 export type TypeDocument =
   | "bulletin"
   | "contrat"
@@ -89,13 +89,14 @@ export type Civilite = "" | "Madame" | "Monsieur";
 // Événements signalés à Aide & Garde (brique 3e)
 // ---------------------------------------------------------------------------
 
-export type TypeSignalement = "fin_contrat" | "accident_travail" | "arret_maladie";
+export type TypeSignalement = "fin_contrat" | "accident_travail" | "arret_maladie" | "conge_maternite";
 export type ModeFinContrat = "licenciement" | "rupture_conventionnelle" | "demission" | "retraite";
 
 export const TYPES_SIGNALEMENT: Record<TypeSignalement, string> = {
   fin_contrat: "Fin de contrat",
   accident_travail: "Accident du travail",
   arret_maladie: "Arrêt maladie",
+  conge_maternite: "Congé maternité",
 };
 
 export const MODES_FIN_CONTRAT: Record<ModeFinContrat, string> = {
@@ -110,6 +111,7 @@ export const DATES_SIGNALEMENT: Record<TypeSignalement, string> = {
   fin_contrat: "Dernier jour du contrat (prévu)",
   accident_travail: "Date de l'accident",
   arret_maladie: "Premier jour d'arrêt",
+  conge_maternite: "Début du congé maternité",
 };
 
 export interface Signalement {
@@ -218,7 +220,9 @@ export const TAILLE_MAX_PDF = 20 * 1024 * 1024;
 export const TYPES_GESTION: Record<TypeGestion, string> = {
   garde_enfants: "Garde d'enfants",
   aide_domicile: "Aide à domicile",
-  employe_maison: "Employé de maison",
+  employe_maison: "Employé familial",
+  environnement_technique: "Cours, secrétariat, informatique",
+  environnement_externe: "Jardinage, petits travaux",
 };
 
 /**

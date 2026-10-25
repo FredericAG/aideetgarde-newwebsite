@@ -72,8 +72,8 @@ export default function ConfidentialitePage() {
             </thead>
             <tbody>
               {[
-                ["Votre compte : email, mot de passe (chiffré, illisible par nous), nom, prénom, téléphone, adresse", "Créer et sécuriser votre espace, vous contacter", "Exécution du contrat"],
-                ["Vos salariés : identité, adresse, emploi, contrat, heures et événements déclarés chaque mois (arrêt, accident, fin de contrat)", "Établir contrats, bulletins de paie, déclarations, attestations, courriers et documents de fin de contrat", "Exécution du contrat (mandat)"],
+                ["Votre compte : email, mot de passe (chiffré, illisible par nous), civilité, nom, prénom, date de naissance, téléphone, adresse", "Créer et sécuriser votre espace, vous contacter, préremplir vos contrats, courriers et déclarations", "Exécution du contrat"],
+                ["Vos salariés : identité, date et lieu de naissance, nationalité et titre de séjour le cas échéant, numéro de sécurité sociale, adresse, emploi, contrat, heures et événements déclarés (arrêt, accident, maternité, fin de contrat)", "Établir contrats, bulletins de paie, déclarations, attestations, courriers et documents de fin de contrat", "Exécution du contrat (mandat)"],
                 ["Documents de paie et contrats (PDF)", "Les mettre à votre disposition en permanence", "Exécution du contrat ; obligations légales de conservation"],
                 ["Paiement : formule, montants, dates, 4 derniers chiffres et date d'expiration de la carte ; le numéro complet reste chez Systempay", "Encaisser l'abonnement, gérer les refus et les remboursements", "Exécution du contrat ; obligation comptable"],
                 ["Acceptation des CGV, rétractation, résiliation : date, heure et contenu", "Prouver vos choix et y donner suite", "Obligation légale"],
@@ -107,6 +107,11 @@ export default function ConfidentialitePage() {
           <li><strong>Supabase</strong> (base de données, comptes, fichiers PDF), données stockées à Paris ;</li>
           <li><strong>Vercel</strong> (hébergement du site), serveurs à Paris ;</li>
           <li><strong>Brevo</strong> (envoi des emails), société française ;</li>
+          <li>
+            l&apos;<strong>IGN</strong> (Géoplateforme, service public) pour les suggestions d&apos;adresses et de
+            communes pendant la saisie : seul le texte tapé dans le champ adresse ou code postal lui est transmis,
+            sans lien avec votre compte ;
+          </li>
           <li><strong>Lyra Network — Systempay</strong> et la <strong>BRED Banque Populaire</strong> (paiement par carte) ;</li>
           <li>l&apos;<strong>Urssaf</strong> (centres Pajemploi et Cesu) et les organismes sociaux, pour les déclarations faites pour votre compte ;</li>
           {PIXEL && (

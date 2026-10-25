@@ -462,6 +462,25 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **Aide « situation irrégulière »** | Complétée avec la régularisation par le travail (admission exceptionnelle au séjour), la pratique des préfectures (35 h chez un même employeur) et le mode d'emploi du cerfa, d'après le texte de Frédéric. | En place |
 | **Installer l'application** | Page `/installer` (publique) : étapes en grand, une action par étape, adaptées au téléphone (Samsung Internet, Chrome Android, Firefox, iPhone Safari) avec le pictogramme du bouton ; bouton « Installer Aide & Garde » en un geste quand le téléphone le permet (Chrome, Edge sur Android) ; « Vous aidez quelqu'un ? » pour les autres téléphones. Carte « Installez Aide & Garde » sur le tableau de bord (téléphone non installé, « Plus tard » = 30 jours). Lien dans Mon compte ; question dans le centre d'aide. | En place — à tester sur un vrai téléphone |
 
+## 4 sexies. Nouvelle gestion par catégorie, profil complété une fois, actions par verbe — 25/10/2026
+
+| Élément | Règle | État |
+|---|---|---|
+| **Formulaire « Créer une gestion » (v2)** | Remplace la v1 (4 quater). Parcours en 7 étapes avec pastilles (✓ quand rien n'y manque) : Emploi, Salarié, Poste, Contrat, Horaires, Salaire, Envoi ; boutons Précédent / Suivant ; « Envoyer » seulement à la dernière étape, qui liste ce qui manque (lien vers l'étape). Texte rassurant en tête et à l'envoi : Aide & Garde relit, adapte, corrige et recontacte l'abonné. | En place — à valider sur le visuel |
+| **Catégorie d'abord** | Six tuiles : Garde d'enfants à domicile, Garde partagée, Ménage-repassage-courses, Aide à une personne âgée ou handicapée, Cours-secrétariat-informatique, Jardinage-petits travaux-gardiennage. Les questions suivantes dépendent de la catégorie. Deux types de gestion ajoutés : `environnement_technique` et `environnement_externe` (script 3g). | En place |
+| **CDI / CDD en haut** | Juste après la catégorie ; « CDI (conseillé) ». Choisir CDD affiche pourquoi nous le déconseillons (motif obligatoire, essai court, impossible à rompre ensuite sauf faute grave ou accord, prime de précarité de 10 %), avec lien vers l'aide. | En place |
+| **Classification (CCN IDCC 3239, en vigueur au 1/1/2026)** | Étape « Poste » : emplois-repères du domaine de la catégorie (annexes A à E : baby-sitter, garde d'enfant(s) A/B, handicap A/B/C, assistant(e) de vie A-D, employé(e) familial(e) A/B, secrétaire, enseignant A/B/C, assistant informatique A/B, entretien A/B, gardien A/B) avec échelle et résumé ; puis tâches à cocher (selon la catégorie) et précisions en texte libre avec exemples. L'emploi choisi alimente l'emploi, le niveau et le code ROME des courriers (`src/lib/contrat/classification.ts`). | En place |
+| **Employeur tiers** | « Êtes-vous vous-même l'employeur ? » : si non (parent, proche), civilité, nom, date de naissance et adresse de l'employeur ; les courriers sont alors établis à son nom. | En place |
+| **Matrice Excel 2021** | Champs repris et réorganisés ; montants de 2014 retirés des aides ; « assistante maternelle » non reprise (hors services à la personne, en attente de la décision de Frédéric). | À valider |
+| **Profil complété une seule fois** | Pas à l'inscription. À la première création de gestion, étape préalable « Vos coordonnées d'employeur » : civilité, date de naissance, téléphone, adresse (script 3g, fonction `completer_profil`). Aussi dans Mon compte. Sans le script, la civilité et la date ne sont pas demandées. | En place |
+| **Adresses** | Suggestions pendant la saisie (Base Adresse Nationale via la Géoplateforme de l'IGN : gratuit, public, sans clé, données en France ; choix préféré à Google Maps). Saisie libre possible si l'adresse n'est pas reconnue ; un code postal propose sa ou ses communes. Mon compte, formulaire de gestion, courriers. Mentionné dans la politique de confidentialité. | En place — à tester en ligne |
+| **Courriers** | Seules les coordonnées manquantes sont demandées (« Modifier » pour tout revoir) ; « Fait à » : ville de l'employeur, ou code postal → commune ; informations reprises de la gestion rangées dans « Déjà renseigné d'après la gestion — vérifier ». Élision corrigée (« en qualité d'aide à domicile »). | En place |
+| **Cadre « Que souhaitez-vous faire ? »** | Rangé par verbe, compact : Déclarer (le mois — mis en avant —, un arrêt maladie, un accident du travail, un congé maternité), Demander (un avenant, une correction de bulletin), Rédiger (une attestation d'emploi, un autre courrier), Prévoir (une fin de contrat). Libellés courts sur téléphone. | En place |
+| **Congé maternité** | Nouveau : « Prévenir Aide & Garde » (date de début) ; Aide & Garde prépare l'attestation de salaire (cerfa 11135*04, S3201) ; rappel « pas de salaire pendant le congé » ; remplaçant hors quota. Masqué si le salarié est un homme. Arrêt maladie : même cerfa 11135*04 ; accident du travail : cerfa 11137*03 (S6202). | En place |
+| **Déclarer le mois** | Mois et heures côte à côte (même sur téléphone), commentaire plus court. | En place |
+| **Abonnement sur le tableau de bord** | Une ligne compacte (salariés suivis, tarif, depuis, Gérer). | En place |
+| **Lecture du dernier bulletin** | Idée de Frédéric : reprendre emploi, niveau, adresses, n° Urssaf et NIR du dernier bulletin. Faisable à l'import des PDF (texte du bulletin) si les bulletins du logiciel actuel ont une mise en page stable : 2 ou 3 bulletins anonymisés nécessaires. | À étudier |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -489,6 +508,7 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 25/10/2026 — Nouvelle gestion en 7 étapes, catégorie d'abord, CDI/CDD en haut, classification de la convention collective ; profil complété une fois avant la première gestion ; suggestions d'adresses (IGN) ; courriers sans questions inutiles ; cadre des actions rangé par verbe avec congé maternité ; déclaration du mois plus compacte ; abonnement compact sur le tableau de bord (script 3g).
 - 25/10/2026 — Formulaire « Créer une gestion » enrichi (v1, champs configurables) ; cerfa 15186 prérempli et aide sur la régularisation par le travail ; page « Installer l'application » et carte sur le tableau de bord.
 - 24/10/2026 — « Mes gestions » remplace « Documents » ; cadre « Actions » dans chaque gestion (mois à déclarer depuis le début du contrat, courriers et formulaires préremplis, « Prévenir Aide & Garde ») ; couleurs des catégories de documents sur téléphone.
 - 23/10/2026 — Brique 10 : liens suivis vers les partenaires (ASC, Ircem, SPSTN), QR codes sur la fiche, onglet Administration > Partenaires.

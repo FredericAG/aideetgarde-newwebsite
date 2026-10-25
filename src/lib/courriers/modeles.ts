@@ -8,7 +8,7 @@
  * Pour ajouter un modèle : une entrée ici, une fonction dans generer.ts.
  */
 import type { Civilite, TypeGestion } from "@/lib/data";
-import { EMPLOIS_REPERES } from "@/lib/contrat/champs";
+import { posteDeLaGestion } from "@/lib/contrat/classification";
 
 export type CleCourrier =
   | "attestation_emploi"
@@ -34,6 +34,8 @@ export interface ContexteCourrier {
     code_postal: string;
     ville: string;
     telephone: string;
+    /** AAAA-MM-JJ, ou vide (profil non complété). */
+    date_naissance: string;
   };
   salarie: {
     civilite: Civilite;
@@ -66,6 +68,11 @@ export interface ChampCourrier {
   options?: { valeur: string; libelle: string }[];
   /** Valeur proposée d'office. */
   defaut?: (c: ContexteCourrier) => string;
+  /**
+   * Repris des informations de la gestion : une fois connu, le champ est
+   * rangé dans « Déjà renseigné » plutôt que redemandé (demande du 25/10).
+   */
+  connu?: boolean;
   /** Champ affiché seulement si un autre champ a cette valeur. */
   si?: { champ: string; valeur: string };
   /**
@@ -94,7 +101,7 @@ export interface ModeleCourrier {
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 /** Emploi tel qu'il s'écrit dans une phrase (« en qualité de … »). */
-export function emploiEnToutesLettres(c: Pick<ContexteCourrier, "gestion" | "salarie">): string {
+export function emploiEnToutesLettres(c: Pick<ContexteCourrier, "gestion" | "salarie" | "details">): string {
   switch (c.gestion.type_gestion) {
     case "garde_enfants":
       return "garde d'enfants";
@@ -102,16 +109,38 @@ export function emploiEnToutesLettres(c: Pick<ContexteCourrier, "gestion" | "sal
       return "aide à domicile";
     case "employe_maison":
       return c.salarie.civilite === "Madame" ? "employée de maison" : "employé de maison";
+    case "environnement_technique": {
+      const f = c.salarie.civilite === "Madame";
+      const cle = c.details.emploi_repere ?? "";
+      if (cle.startsWith("enseignant")) return f ? "enseignante particulière" : "enseignant particulier";
+      if (cle.startsWith("informatique")) return f ? "assistante informatique" : "assistant informatique";
+      return f ? "secrétaire particulière" : "secrétaire particulier";
+    }
+    case "environnement_externe": {
+      const f = c.salarie.civilite === "Madame";
+      if ((c.details.emploi_repere ?? "").startsWith("gardien")) return f ? "gardienne" : "gardien";
+      return f ? "employée d'entretien et de petits travaux" : "employé d'entretien et de petits travaux";
+    }
   }
+}
+
+/** « d'aide à domicile », « de gardien » (élision devant une voyelle). */
+export function deEmploi(c: Pick<ContexteCourrier, "gestion" | "salarie" | "details">): string {
+  const emploi = emploiEnToutesLettres(c);
+  return /^[aeéèêiîoôuh]/i.test(emploi) ? `d'${emploi}` : `de ${emploi}`;
+}
+
+/** « en qualité d'aide à domicile », « en qualité de gardien ». */
+export function enQualiteDe(c: Pick<ContexteCourrier, "gestion" | "salarie" | "details">): string {
+  return `en qualité ${deEmploi(c)}`;
 }
 
 /** Textes de motif proposés pour la lettre de licenciement. */
 function motifsLicenciement(c: ContexteCourrier): Record<string, string> {
-  const emploi = emploiEnToutesLettres(c);
   return {
     changement_garde:
       "Mon organisation familiale évolue (entrée de mes enfants à l'école, nouveaux horaires, autre solution de garde…) : j'ai décidé de changer le mode de garde de mes enfants, ce qui entraîne la suppression du poste de garde d'enfants que vous occupez.\n\nCette décision ne remet aucunement en cause la qualité de votre travail.",
-    suppression_poste: `Mes besoins ont changé et je ne suis plus en mesure de maintenir le poste de ${emploi} que vous occupez, qui est donc supprimé.\n\nCette décision ne remet aucunement en cause la qualité de votre travail.`,
+    suppression_poste: `Mes besoins ont changé et je ne suis plus en mesure de maintenir le poste ${deEmploi(c)} que vous occupez, qui est donc supprimé.\n\nCette décision ne remet aucunement en cause la qualité de votre travail.`,
     refus_modification:
       "Je vous ai proposé une modification de votre contrat de travail (nouveaux horaires, nouvelle durée de travail…), nécessaire à l'organisation de mon foyer. Vous l'avez refusée, ce qui ne me permet pas de poursuivre notre collaboration dans les conditions actuelles.",
     libre: "",
@@ -261,7 +290,7 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
     adresseSalarie: false,
     champs: [
       { nom: "parent", libelle: "Prénom et nom du parent", type: "text" },
-      { nom: "date_naissance", libelle: "Date de naissance du salarié", type: "date" },
+      { nom: "date_naissance", connu: true, libelle: "Date de naissance du salarié", type: "date", defaut: (c) => c.details.date_naissance ?? "" },
       { nom: "du", libelle: "Emploi du", type: "date", defaut: (c) => c.gestion.date_debut },
       { nom: "au", libelle: "au (facultatif)", type: "date" },
     ],
@@ -364,26 +393,29 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
     champs: [
       {
         nom: "numero_declarant",
+        connu: true,
         libelle: "Votre numéro Pajemploi ou CESU",
         type: "text",
         aide: "Il remplace le numéro SIRET / URSSAF demandé par le formulaire.",
         defaut: (c) => c.details.numero_declarant ?? "",
       },
-      { nom: "date_naissance", libelle: "Date de naissance du salarié", type: "date", defaut: (c) => c.details.date_naissance ?? "" },
+      { nom: "date_naissance", connu: true, libelle: "Date de naissance du salarié", type: "date", defaut: (c) => c.details.date_naissance ?? "" },
       {
         nom: "nationalite",
+        connu: true,
         libelle: "Nationalité du salarié",
         type: "text",
         defaut: (c) => c.details.nationalite_pays ?? "",
       },
       {
         nom: "emploi",
+        connu: true,
         libelle: "Emploi occupé",
         type: "text",
-        defaut: (c) => c.details.emploi_repere || EMPLOIS_REPERES[c.gestion.type_gestion].emploi,
+        defaut: (c) => posteDeLaGestion(c.gestion.type_gestion, c.details).emploi,
       },
-      { nom: "niveau", libelle: "Niveau (convention collective)", type: "text", defaut: (c) => EMPLOIS_REPERES[c.gestion.type_gestion].niveau },
-      { nom: "rome", libelle: "Code ROME", type: "text", defaut: (c) => EMPLOIS_REPERES[c.gestion.type_gestion].rome },
+      { nom: "niveau", connu: true, libelle: "Niveau (convention collective)", type: "text", defaut: (c) => posteDeLaGestion(c.gestion.type_gestion, c.details).niveau },
+      { nom: "rome", connu: true, libelle: "Code ROME", type: "text", defaut: (c) => posteDeLaGestion(c.gestion.type_gestion, c.details).rome },
       {
         nom: "salaire_brut",
         libelle: "Salaire horaire brut (€)",

@@ -3,29 +3,92 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { MOTIFS_REMPLACEMENT, TYPES_GESTION, type Gestion, type MotifRemplacement, type TypeGestion } from "@/lib/data";
+import { MOTIFS_REMPLACEMENT, type Gestion, type MotifRemplacement, type TypeGestion } from "@/lib/data";
 import {
-  EMPLOIS_REPERES,
-  RUBRIQUES,
+  CHAMPS,
+  ETAPES,
   champObligatoire,
   champVisible,
   champsManquants,
+  lireEnfants,
   optionsDe,
+  placeholderDe,
   type ChampContrat,
+  type CleEtape,
   type ContexteChamps,
-  type RubriqueContrat,
   type Valeurs,
 } from "@/lib/contrat/champs";
+import {
+  CATEGORIES,
+  categorie as trouverCategorie,
+  categorieDeLaGestion,
+  echelleEnRomain,
+  emploisDeLaCategorie,
+  type Categorie,
+} from "@/lib/contrat/classification";
+import { SaisieAdresse } from "@/components/SaisieAdresse";
 import { enregistrerGestion, type EtatFormulaireGestion } from "./actions";
 
 const champ =
   "w-full rounded-lg border border-brand-gray/40 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-teal sm:text-sm";
 const etiquette = "flex flex-col gap-1 text-sm font-medium";
 const aide = "text-xs font-normal text-foreground/60";
+const etoile = <span className="text-brand-violet" aria-label="nécessaire pour l'envoi"> *</span>;
 
-const etoile = <span className="text-brand-violet" aria-label="obligatoire pour l'envoi"> *</span>;
+/** Groupes adresse / code postal / ville saisis avec suggestions. */
+const GROUPES_ADRESSE: [string, string, string][] = [
+  ["adresse_salarie", "code_postal_salarie", "ville_salarie"],
+  ["employeur_adresse", "employeur_code_postal", "employeur_ville"],
+];
 
-/** Saisie d'un champ complémentaire (src/lib/contrat/champs.ts). */
+function BoutonsEnvoi({ dernier }: { dernier: boolean }) {
+  const { pending, data } = useFormStatus();
+  const intention = data?.get("intention");
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
+      {dernier && (
+        <button type="submit" name="intention" value="envoyer" disabled={pending} className="btn btn-primaire btn-lg w-full sm:w-auto">
+          {pending && intention === "envoyer" ? "Envoi en cours…" : "Envoyer à Aide & Garde"}
+        </button>
+      )}
+      <button type="submit" name="intention" value="brouillon" disabled={pending} className="btn btn-secondaire btn-lg w-full sm:w-auto">
+        {pending && intention === "brouillon" ? "Enregistrement…" : "Enregistrer le brouillon"}
+      </button>
+    </div>
+  );
+}
+
+/** Boutons de choix (deux ou trois options), en grand. */
+function Choix({
+  options,
+  valeur,
+  onChange,
+  libelle,
+}: {
+  options: { valeur: string; libelle: string }[];
+  valeur: string;
+  onChange: (v: string) => void;
+  libelle: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={libelle}>
+      {options.map((o) => (
+        <button
+          key={o.valeur}
+          type="button"
+          role="radio"
+          aria-checked={valeur === o.valeur}
+          onClick={() => onChange(valeur === o.valeur ? "" : o.valeur)}
+          className={`btn btn-sm min-w-20 ${valeur === o.valeur ? "btn-primaire" : "btn-secondaire"}`}
+        >
+          {o.libelle}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Saisie d'un champ du fichier src/lib/contrat/champs.ts. */
 function ChampSaisie({
   champ: c,
   valeur,
@@ -39,36 +102,101 @@ function ChampSaisie({
   contexte: ContexteChamps;
   onChange: (v: string) => void;
 }) {
-  const largeur = c.largeur === "entier" || c.type === "textarea" ? "sm:col-span-2" : "";
-  const libelle = (
-    <>
+  const largeur =
+    c.largeur === "entier" || c.type === "textarea" || c.type === "multi" || c.type === "enfants" ? "sm:col-span-2" : "";
+  const titre = (
+    <span>
       {c.libelle}
       {obligatoire && etoile}
-    </>
+    </span>
   );
   const aideTexte = c.aide ? <span className={aide}>{c.aide}</span> : null;
+  const options = optionsDe(c, contexte);
 
-  if (c.type === "oui_non" || (c.type === "choix" && optionsDe(c, contexte).length <= 2)) {
-    const options = c.type === "oui_non" ? [{ valeur: "oui", libelle: "Oui" }, { valeur: "non", libelle: "Non" }] : optionsDe(c, contexte);
+  if (c.type === "oui_non" || (c.type === "choix" && options.length <= 3 && options.every((o) => o.libelle.length < 60))) {
     return (
-      <div className={`${etiquette} ${largeur}`} role="radiogroup" aria-label={c.libelle}>
-        <span>{libelle}</span>
-        <div className="flex flex-wrap gap-2">
+      <div className={`${etiquette} ${largeur}`}>
+        {titre}
+        <Choix
+          libelle={c.libelle}
+          options={c.type === "oui_non" ? [{ valeur: "oui", libelle: "Oui" }, { valeur: "non", libelle: "Non" }] : options}
+          valeur={valeur}
+          onChange={onChange}
+        />
+        {aideTexte}
+      </div>
+    );
+  }
+  if (c.type === "multi") {
+    const choisis = new Set(valeur ? valeur.split("|") : []);
+    return (
+      <fieldset className={`${etiquette} ${largeur}`}>
+        <legend className="mb-1">
+          {c.libelle}
+          {obligatoire && etoile}
+        </legend>
+        <div className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
           {options.map((o) => (
-            <button
-              key={o.valeur}
-              type="button"
-              role="radio"
-              aria-checked={valeur === o.valeur}
-              onClick={() => onChange(valeur === o.valeur ? "" : o.valeur)}
-              className={`btn btn-sm min-w-20 ${valeur === o.valeur ? "btn-primaire" : "btn-secondaire"}`}
-            >
+            <label key={o.valeur} className="flex items-start gap-2 font-normal">
+              <input
+                type="checkbox"
+                checked={choisis.has(o.valeur)}
+                onChange={(e) => {
+                  const n = new Set(choisis);
+                  if (e.target.checked) n.add(o.valeur);
+                  else n.delete(o.valeur);
+                  onChange(options.map((x) => x.valeur).filter((x) => n.has(x)).join("|"));
+                }}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-violet)]"
+              />
               {o.libelle}
-            </button>
+            </label>
           ))}
         </div>
         {aideTexte}
-      </div>
+      </fieldset>
+    );
+  }
+  if (c.type === "enfants") {
+    const liste = lireEnfants(valeur);
+    const lignes = liste.length ? liste : [{ prenom: "", nom: "", naissance: "" }];
+    const majEnfant = (i: number, cle: "prenom" | "nom" | "naissance", v: string) =>
+      onChange(JSON.stringify(lignes.map((e, j) => (j === i ? { ...e, [cle]: v } : e))));
+    return (
+      <fieldset className={`${etiquette} ${largeur}`}>
+        <legend className="mb-1">
+          {c.libelle}
+          {obligatoire && etoile}
+        </legend>
+        {aideTexte}
+        <div className="flex flex-col gap-2">
+          {lignes.map((e, i) => (
+            <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_11rem_auto]">
+              <input value={e.prenom} placeholder="Prénom" aria-label={`Prénom de l'enfant ${i + 1}`} onChange={(x) => majEnfant(i, "prenom", x.target.value)} className={champ} />
+              <input value={e.nom} placeholder="Nom" aria-label={`Nom de l'enfant ${i + 1}`} onChange={(x) => majEnfant(i, "nom", x.target.value)} className={champ} />
+              <input type="date" value={e.naissance} aria-label={`Date de naissance de l'enfant ${i + 1}`} onChange={(x) => majEnfant(i, "naissance", x.target.value)} className={champ} />
+              {lignes.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onChange(JSON.stringify(lignes.filter((_, j) => j !== i)))}
+                  className="text-xs font-medium text-brand-teal underline"
+                >
+                  Retirer
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {lignes.length < 4 && (
+          <button
+            type="button"
+            onClick={() => onChange(JSON.stringify([...lignes, { prenom: "", nom: "", naissance: "" }]))}
+            className="btn btn-secondaire btn-sm mt-1 self-start"
+          >
+            + Un autre enfant
+          </button>
+        )}
+      </fieldset>
     );
   }
   let saisie: React.ReactNode;
@@ -76,7 +204,7 @@ function ChampSaisie({
     saisie = (
       <select value={valeur} onChange={(e) => onChange(e.target.value)} className={champ}>
         <option value="">Choisir…</option>
-        {optionsDe(c, contexte).map((o) => (
+        {options.map((o) => (
           <option key={o.valeur} value={o.valeur}>
             {o.libelle}
           </option>
@@ -85,15 +213,15 @@ function ChampSaisie({
     );
   } else if (c.type === "textarea") {
     saisie = (
-      <textarea rows={2} maxLength={2000} value={valeur} placeholder={c.placeholder} onChange={(e) => onChange(e.target.value)} className={champ} />
+      <textarea rows={2} maxLength={2000} value={valeur} placeholder={placeholderDe(c, contexte)} onChange={(e) => onChange(e.target.value)} className={champ} />
     );
   } else {
     saisie = (
       <input
-        type={c.type === "date" ? "date" : c.type === "email" ? "email" : c.type === "telephone" ? "tel" : "text"}
-        inputMode={c.type === "nombre" ? "decimal" : undefined}
+        type={c.type === "date" ? "date" : c.type === "heure" ? "time" : c.type === "email" ? "email" : c.type === "telephone" ? "tel" : "text"}
+        inputMode={c.type === "nombre" || c.type === "montant" ? "decimal" : undefined}
         value={valeur}
-        placeholder={c.placeholder}
+        placeholder={placeholderDe(c, contexte)}
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
         className={champ}
@@ -102,78 +230,70 @@ function ChampSaisie({
   }
   return (
     <label className={`${etiquette} ${largeur}`}>
-      <span>{libelle}</span>
+      {titre}
       {saisie}
       {aideTexte}
     </label>
   );
 }
 
-/** Champs complémentaires d'une rubrique, deux par ligne sur ordinateur. */
-function ChampsRubrique({
-  rubrique,
+/** Champs d'une étape, deux par ligne sur ordinateur. */
+function ChampsEtape({
+  etape,
   valeurs,
   contexte,
   maj,
 }: {
-  rubrique: RubriqueContrat;
+  etape: CleEtape;
   valeurs: Valeurs;
   contexte: ContexteChamps;
-  maj: (cle: string, v: string) => void;
+  maj: (modif: Valeurs) => void;
 }) {
-  const visibles = rubrique.champs.filter((c) => champVisible(c, valeurs, contexte));
+  const visibles = CHAMPS.filter((c) => c.etape === etape && champVisible(c, valeurs, contexte));
   if (!visibles.length) return null;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {visibles.map((c) => (
-        <ChampSaisie
-          key={c.cle}
-          champ={c}
-          valeur={valeurs[c.cle] ?? ""}
-          obligatoire={champObligatoire(c, valeurs, contexte)}
-          contexte={contexte}
-          onChange={(v) => maj(c.cle, v)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function Boutons() {
-  const { pending, data } = useFormStatus();
-  const intention = data?.get("intention");
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
-      <button
-        type="submit"
-        name="intention"
-        value="envoyer"
-        disabled={pending}
-        className="btn btn-primaire btn-lg w-full sm:w-auto"
-      >
-        {pending && intention === "envoyer" ? "Envoi en cours…" : "Envoyer à Aide & Garde"}
-      </button>
-      <button
-        type="submit"
-        name="intention"
-        value="brouillon"
-        disabled={pending}
-        className="btn btn-secondaire btn-lg w-full sm:w-auto"
-      >
-        {pending && intention === "brouillon" ? "Enregistrement…" : "Enregistrer le brouillon"}
-      </button>
+      {visibles.map((c) => {
+        if (c.adresse === "code_postal" || c.adresse === "ville") return null;
+        if (c.adresse === "rue") {
+          const [a, cp, vi] = GROUPES_ADRESSE.find((g) => g[0] === c.cle) ?? [c.cle, "", ""];
+          return (
+            <SaisieAdresse
+              key={c.cle}
+              valeur={{ adresse: valeurs[a] ?? "", code_postal: valeurs[cp] ?? "", ville: valeurs[vi] ?? "" }}
+              onChange={(x) => maj({ [a]: x.adresse, [cp]: x.code_postal, [vi]: x.ville })}
+              obligatoire={champObligatoire(c, valeurs, contexte)}
+              etoile={etoile}
+              classeChamp={champ}
+              libelles={{ adresse: c.libelle, code_postal: "Code postal", ville: "Ville" }}
+            />
+          );
+        }
+        return (
+          <ChampSaisie
+            key={c.cle}
+            champ={c}
+            valeur={valeurs[c.cle] ?? ""}
+            obligatoire={champObligatoire(c, valeurs, contexte)}
+            contexte={contexte}
+            onChange={(val) => maj({ [c.cle]: val })}
+          />
+        );
+      })}
     </div>
   );
 }
 
 /**
- * Formulaire de création / modification d'une gestion par l'abonné
- * (brique 3). Champs contrôlés : en cas d'erreur, rien de ce qui a été
- * saisi n'est perdu.
+ * Nouvelle gestion, en étapes (retour du 25/10) : d'abord le type d'emploi
+ * et le type de contrat, qui adaptent les questions ; puis le salarié, le
+ * poste (emploi de la convention collective et tâches), le contrat, les
+ * horaires, le salaire, et une dernière étape de vérification. On passe
+ * d'une étape à l'autre librement, on enregistre un brouillon à tout moment,
+ * et Aide & Garde relit tout avant de revenir vers l'abonné.
  *
- * Deux boutons : « Enregistrer le brouillon » (rien n'est transmis, tout
- * reste modifiable) et « Envoyer à Aide & Garde » (contrôle des champs
- * obligatoires, puis validation par Aide & Garde).
+ * Toutes les étapes restent dans la page (seule celle en cours est
+ * affichée) : rien de ce qui a été saisi n'est perdu en changeant d'étape.
  */
 export function FormulaireGestion({
   gestion,
@@ -183,106 +303,132 @@ export function FormulaireGestion({
   remplacementInitial,
 }: {
   gestion?: Gestion;
-  /** Date de début proposée pour une nouvelle gestion (AAAA-MM-JJ). */
   dateParDefaut?: string;
-  /** Places de l'abonnement : prévient l'abonné avant l'envoi si c'est complet. */
   quota?: { utilisees: number; total: number };
-  /** Gestions en cours (hors remplacements) : salariés qu'un CDD peut remplacer. */
   salariesEnCours?: { id: string; nom: string; type_gestion?: string }[];
-  /** Arrivée depuis « Ajouter un salarié remplaçant » d'une gestion : préremplissage. */
   remplacementInitial?: { id: string; nom: string; type_gestion?: string };
 }) {
   const [etat, action] = useActionState<EtatFormulaireGestion, FormData>(enregistrerGestion, {});
+  const typeInitial = (gestion?.type_gestion ?? remplacementInitial?.type_gestion ?? "garde_enfants") as TypeGestion;
   const [v, setV] = useState({
-    type_gestion: (gestion?.type_gestion ?? remplacementInitial?.type_gestion ?? "garde_enfants") as TypeGestion,
+    type_gestion: typeInitial,
     prenom_salarie: gestion?.prenom_salarie ?? "",
     nom_salarie: gestion?.nom_salarie ?? "",
     date_debut: gestion?.date_debut ?? dateParDefaut,
-    type_contrat: gestion?.type_contrat ?? (remplacementInitial ? "CDD" : ""),
+    type_contrat: gestion?.type_contrat ?? (remplacementInitial ? "CDD" : "CDI"),
     date_fin_prevue: gestion?.date_fin_prevue ?? "",
     heures: gestion?.heures != null ? String(gestion.heures).replace(".", ",") : "",
     unite_heures: gestion?.unite_heures ?? "semaine",
-    salaire_horaire_net:
-      gestion?.salaire_horaire_net != null ? String(gestion.salaire_horaire_net).replace(".", ",") : "",
+    salaire_horaire_net: gestion?.salaire_horaire_net != null ? String(gestion.salaire_horaire_net).replace(".", ",") : "",
     precisions: gestion?.precisions ?? "",
     remplace_gestion_id: gestion?.remplace_gestion_id ?? remplacementInitial?.id ?? "",
     motif_remplacement: (gestion?.motif_remplacement ?? "") as MotifRemplacement | "",
   });
   const [remplacement, setRemplacement] = useState(Boolean(gestion?.remplace_gestion_id ?? remplacementInitial));
-  // Champs complémentaires (brique 3f) : config de la gestion, coordonnées
-  // du salarié, et valeurs proposées pour une nouvelle gestion.
   const [details, setDetails] = useState<Valeurs>(() => {
-    const ctx: ContexteChamps = { type_gestion: v.type_gestion, type_contrat: v.type_contrat, remplacement };
-    const base: Valeurs = {};
-    if (!gestion) {
-      for (const r of RUBRIQUES) for (const c of r.champs) if (c.defaut) base[c.cle] = c.defaut(ctx);
+    const cfg: Valeurs = { ...(gestion?.config ?? {}) };
+    // Gestion d'avant les catégories, ou remplaçant : catégorie déduite.
+    if (!cfg.categorie && (gestion || remplacementInitial)) {
+      cfg.categorie = categorieDeLaGestion(typeInitial, cfg.garde_partagee).cle;
     }
+    const catInit = trouverCategorie(cfg.categorie);
+    const ctx: ContexteChamps = {
+      type_gestion: typeInitial,
+      categorie: catInit?.cle ?? "",
+      type_contrat: gestion?.type_contrat ?? "CDI",
+      remplacement: Boolean(gestion?.remplace_gestion_id ?? remplacementInitial),
+    };
+    const base: Valeurs = {};
+    if (!gestion) for (const c of CHAMPS) if (c.defaut) base[c.cle] = c.defaut(ctx);
+    if (catInit && !cfg.emploi_repere) base.emploi_repere = catInit.emploiParDefaut;
     return {
       ...base,
-      ...(gestion?.config ?? {}),
+      ...cfg,
       civilite_salarie: gestion?.civilite_salarie ?? "",
       adresse_salarie: gestion?.adresse_salarie ?? "",
       code_postal_salarie: gestion?.code_postal_salarie ?? "",
       ville_salarie: gestion?.ville_salarie ?? "",
     };
   });
-  const contexte: ContexteChamps = { type_gestion: v.type_gestion, type_contrat: v.type_contrat, remplacement };
-  const majDetail = (cle: string, valeur: string) => setDetails((d) => ({ ...d, [cle]: valeur }));
-  const rubrique = (cle: RubriqueContrat["cle"]) => RUBRIQUES.find((r) => r.cle === cle)!;
-  // Ce qu'il reste à remplir pour pouvoir envoyer (indication, la vérification
-  // définitive est faite à l'envoi).
-  const manquants = [
-    ...(!v.prenom_salarie.trim() ? ["le prénom"] : []),
-    ...(!v.nom_salarie.trim() ? ["le nom"] : []),
-    ...(!v.type_contrat ? ["le type de contrat"] : []),
-    ...(v.type_contrat === "CDD" && !remplacement && !v.date_fin_prevue ? ["la date de fin du CDD"] : []),
-    ...(!v.heures.trim() ? ["la durée de travail"] : []),
-    ...(!v.salaire_horaire_net.trim() ? ["le salaire horaire"] : []),
-    ...champsManquants(details, contexte),
-  ];
-  const complet = quota && quota.utilisees >= quota.total;
+  const cat = trouverCategorie(details.categorie);
+  const contexte: ContexteChamps = { type_gestion: v.type_gestion, categorie: cat?.cle ?? "", type_contrat: v.type_contrat, remplacement };
+  const [etape, setEtape] = useState(0);
+  const cleEtape = ETAPES[etape].cle;
+
   const maj =
     (cle: keyof typeof v) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setV((x) => ({ ...x, [cle]: e.target.value }));
+  const majDetails = (modif: Valeurs) => setDetails((d) => ({ ...d, ...modif }));
+  const choisirCategorie = (c: Categorie) => {
+    setV((x) => ({ ...x, type_gestion: c.type_gestion }));
+    setDetails((d) => ({
+      ...d,
+      categorie: c.cle,
+      garde_partagee: c.garde_partagee ? "oui" : "",
+      // Emploi d'une autre catégorie : on reprend celui proposé d'office.
+      emploi_repere: emploisDeLaCategorie(c).some((e) => e.cle === d.emploi_repere) ? d.emploi_repere : c.emploiParDefaut,
+    }));
+  };
+  const allerA = (i: number) => {
+    setEtape(i);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Ce qu'il reste à remplir pour envoyer, par étape.
+  const manquants: { libelle: string; etape: CleEtape }[] = [
+    ...(!cat ? [{ libelle: "le type d'emploi", etape: "categorie" as CleEtape }] : []),
+    ...(!v.prenom_salarie.trim() ? [{ libelle: "le prénom du salarié", etape: "salarie" as CleEtape }] : []),
+    ...(!v.nom_salarie.trim() ? [{ libelle: "le nom du salarié", etape: "salarie" as CleEtape }] : []),
+    ...(v.type_contrat === "CDD" && !remplacement && !v.date_fin_prevue
+      ? [{ libelle: "la date de fin du CDD", etape: "contrat" as CleEtape }]
+      : []),
+    ...(!v.heures.trim() ? [{ libelle: "le nombre d'heures", etape: "horaires" as CleEtape }] : []),
+    ...(!v.salaire_horaire_net.trim() ? [{ libelle: "le salaire horaire", etape: "remuneration" as CleEtape }] : []),
+    ...champsManquants(details, contexte),
+  ].sort((a, b) => ETAPES.findIndex((e) => e.cle === a.etape) - ETAPES.findIndex((e) => e.cle === b.etape));
+  const manquePour = (e: CleEtape) => manquants.filter((m) => m.etape === e).length;
+  const complet = quota && quota.utilisees >= quota.total;
 
   return (
-    <form action={action} className="mt-6 flex flex-col gap-6">
+    <form action={action} className="mt-6 flex flex-col gap-5">
       {gestion && <input type="hidden" name="gestion_id" value={gestion.id} />}
       <input type="hidden" name="details" value={JSON.stringify(details)} />
-
-      <p
-        aria-live="polite"
-        className={`rounded-lg p-3 text-sm ${manquants.length ? "bg-brand-sky-tint/30" : "bg-brand-teal/10 font-medium text-brand-teal"}`}
-      >
-        {manquants.length ? (
-          <>
-            Les champs marqués {etoile} sont nécessaires pour envoyer :{" "}
-            <strong>
-              encore {manquants.length} information{manquants.length > 1 ? "s" : ""}
-            </strong>
-            . Vous pouvez enregistrer un brouillon à tout moment.
-          </>
-        ) : (
-          "✓ Tout ce qui est nécessaire est rempli : vous pouvez envoyer la gestion."
-        )}
-      </p>
-
-      {complet && !remplacement && (
-        <p className="rounded-lg border-2 border-brand-jaune bg-brand-jaune/25 p-3 text-sm">
-          <strong>Votre abonnement est complet</strong> ({quota.utilisees} / {quota.total} gestions
-          en cours ou en attente de validation). Vous pouvez préparer et enregistrer ce brouillon ;
-          pour l&apos;envoyer, terminez d&apos;abord une gestion ou contactez Aide &amp; Garde pour
-          faire évoluer votre abonnement.
-          {salariesEnCours.length > 0 && (
-            <>
-              {" "}
-              Exception : le <strong>CDD de remplacement</strong> d&apos;un salarié en congé maternité ou en arrêt
-              maladie ne prend pas de place (case ci-dessous).
-            </>
-          )}
-        </p>
+      <input type="hidden" name="type_gestion" value={v.type_gestion} />
+      <input type="hidden" name="type_contrat" value={v.type_contrat} />
+      {remplacement && (
+        <>
+          <input type="hidden" name="remplacement" value="oui" />
+          <input type="hidden" name="remplace_gestion_id" value={v.remplace_gestion_id} />
+          <input type="hidden" name="motif_remplacement" value={v.motif_remplacement} />
+        </>
       )}
+
+      {/* Étapes : pastilles cliquables, ✓ quand rien n'y manque. */}
+      <nav aria-label="Étapes" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <ol className="flex w-max gap-1.5 sm:w-auto sm:flex-wrap">
+          {ETAPES.map((e, i) => {
+            const fait = Boolean(cat) && manquePour(e.cle) === 0 && i < ETAPES.length - 1;
+            return (
+              <li key={e.cle}>
+                <button
+                  type="button"
+                  onClick={() => allerA(i)}
+                  aria-current={i === etape ? "step" : undefined}
+                  className={`inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1 text-sm font-bold ${
+                    i === etape
+                      ? "border-brand-violet bg-brand-violet text-white"
+                      : "border-brand-violet/25 bg-white text-brand-violet hover:border-brand-violet"
+                  }`}
+                >
+                  <span aria-hidden="true">{fait ? "✓" : i + 1}</span>
+                  {e.court}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
       {etat.message && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -290,33 +436,116 @@ export function FormulaireGestion({
         </p>
       )}
 
-      <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
-        <legend className="sr-only">Le salarié</legend>
-        <h2 className="font-bold text-brand-teal">Le salarié</h2>
-        <label className={etiquette}>
-          Emploi
-          <select
-            name="type_gestion"
-            value={v.type_gestion}
-            onChange={(e) => {
-              const nouveau = e.target.value as TypeGestion;
-              setV((x) => ({ ...x, type_gestion: nouveau }));
-              // Intitulé de l'emploi encore celui proposé d'office : on suit.
-              setDetails((d) =>
-                !d.emploi_repere || Object.values(EMPLOIS_REPERES).some((r) => r.emploi === d.emploi_repere)
-                  ? { ...d, emploi_repere: EMPLOIS_REPERES[nouveau].emploi }
-                  : d,
-              );
-            }}
-            className={champ}
-          >
-            {Object.entries(TYPES_GESTION).map(([cle, libelle]) => (
-              <option key={cle} value={cle}>
-                {libelle}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* ---------- 1. Type d'emploi et de contrat ---------- */}
+      <section hidden={cleEtape !== "categorie"} className="carte flex flex-col gap-5 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[0].titre}</h2>
+        <p className="-mt-3 rounded-lg bg-brand-sky-tint/30 p-3 text-sm">
+          Remplissez ce que vous savez, sans vous inquiéter des blancs : <strong>Aide &amp; Garde relit tout</strong>,
+          adapte et corrige si besoin, et vous contacte pour finaliser le contrat avec vous.
+        </p>
+        <div role="radiogroup" aria-label="Type d'emploi" className="grid gap-2 sm:grid-cols-2">
+          {CATEGORIES.map((c) => {
+            const actif = cat?.cle === c.cle;
+            return (
+              <button
+                key={c.cle}
+                type="button"
+                role="radio"
+                aria-checked={actif}
+                onClick={() => choisirCategorie(c)}
+                className={`rounded-xl border-2 p-3 text-left transition-colors ${
+                  actif ? "border-brand-violet bg-brand-violet/5" : "border-brand-gray/25 bg-white hover:border-brand-violet/50"
+                }`}
+              >
+                <span className="block font-bold text-brand-teal">
+                  {actif && <span aria-hidden="true">✓ </span>}
+                  {c.titre}
+                </span>
+                <span className="block text-sm text-foreground/70">{c.description}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={etiquette}>
+          <span>Type de contrat{etoile}</span>
+          <Choix
+            libelle="Type de contrat"
+            options={[
+              { valeur: "CDI", libelle: "CDI (conseillé)" },
+              { valeur: "CDD", libelle: "CDD" },
+            ]}
+            valeur={v.type_contrat}
+            onChange={(t) => setV((x) => ({ ...x, type_contrat: t === "CDD" ? "CDD" : "CDI" }))}
+          />
+          {v.type_contrat === "CDD" && !remplacement && (
+            <div className="mt-1 rounded-lg border-l-4 border-brand-jaune bg-brand-jaune/15 p-3 text-sm font-normal">
+              <strong>Pourquoi nous conseillons le CDI.</strong> Un CDD n&apos;est possible que pour remplacer un salarié
+              absent ou pour un besoin temporaire plus important ; sa période d&apos;essai est très courte ; une fois
+              celle-ci passée, il ne peut plus être interrompu avant son terme, sauf faute grave ou accord commun ; et une
+              prime de précarité de 10 % des salaires versés est due à la fin.{" "}
+              <Link href="/aide/contrat#cdd" target="_blank" className="font-medium text-brand-teal underline">
+                En savoir plus
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {salariesEnCours.length > 0 && (
+          <label className="flex items-start gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={remplacement}
+              onChange={(e) => {
+                setRemplacement(e.target.checked);
+                if (e.target.checked) setV((x) => ({ ...x, type_contrat: "CDD" }));
+              }}
+              className="mt-1 h-5 w-5 accent-[var(--brand-violet)]"
+            />
+            <span>
+              Ce salarié remplace un de vos salariés absent (congé maternité ou arrêt maladie)
+              <span className={`block ${aide}`}>CDD de remplacement : il ne prend pas de place dans votre abonnement.</span>
+            </span>
+          </label>
+        )}
+        {remplacement && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={etiquette}>
+              Salarié remplacé
+              <select value={v.remplace_gestion_id} onChange={maj("remplace_gestion_id")} className={champ}>
+                <option value="">Choisir…</option>
+                {salariesEnCours.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nom}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={etiquette}>
+              Motif de son absence
+              <select value={v.motif_remplacement} onChange={maj("motif_remplacement")} className={champ}>
+                <option value="">Choisir…</option>
+                {Object.entries(MOTIFS_REMPLACEMENT).map(([cle, libelle]) => (
+                  <option key={cle} value={cle}>
+                    {libelle.charAt(0).toUpperCase() + libelle.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+        {complet && !remplacement && (
+          <p className="rounded-lg border border-brand-jaune bg-brand-jaune/15 p-3 text-sm">
+            <strong>Votre abonnement est complet</strong> ({quota?.utilisees} / {quota?.total}) : vous pouvez préparer ce
+            brouillon ; pour l&apos;envoyer, terminez une gestion ou changez de formule.
+          </p>
+        )}
+        <ChampsEtape etape="categorie" valeurs={details} contexte={contexte} maj={majDetails} />
+      </section>
+
+      {/* ---------- 2. Le salarié ---------- */}
+      <section hidden={cleEtape !== "salarie"} className="carte flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[1].titre}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={etiquette}>
             <span>Prénom{etoile}</span>
@@ -327,214 +556,174 @@ export function FormulaireGestion({
             <input name="nom_salarie" value={v.nom_salarie} onChange={maj("nom_salarie")} autoComplete="off" className={champ} />
           </label>
         </div>
-        <ChampsRubrique rubrique={rubrique("salarie")} valeurs={details} contexte={contexte} maj={majDetail} />
-      </fieldset>
-
-      {salariesEnCours.length > 0 && (
-        <fieldset className="carte flex flex-col gap-3 p-4 sm:p-5">
-          <legend className="sr-only">Remplacement</legend>
-          <label className="flex items-start gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              checked={remplacement}
-              onChange={(e) => {
-                setRemplacement(e.target.checked);
-                if (e.target.checked) setV((x) => ({ ...x, type_contrat: "CDD" }));
-              }}
-              className="mt-1"
-            />
-            <span>
-              Ce salarié remplace un salarié absent (congé maternité ou arrêt maladie)
-              <span className={`block ${aide}`}>
-                CDD de remplacement : il ne prend pas de place dans votre abonnement, sans surcoût.
-              </span>
-            </span>
-          </label>
-          {remplacement && (
-            <>
-              <input type="hidden" name="remplacement" value="oui" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className={etiquette}>
-                  Salarié remplacé
-                  <select
-                    name="remplace_gestion_id"
-                    required
-                    value={v.remplace_gestion_id}
-                    onChange={maj("remplace_gestion_id")}
-                    className={champ}
-                  >
-                    <option value="">Choisir…</option>
-                    {salariesEnCours.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.nom}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={etiquette}>
-                  Motif de son absence
-                  <select
-                    name="motif_remplacement"
-                    required
-                    value={v.motif_remplacement}
-                    onChange={maj("motif_remplacement")}
-                    className={champ}
-                  >
-                    <option value="">Choisir…</option>
-                    {Object.entries(MOTIFS_REMPLACEMENT).map(([cle, libelle]) => (
-                      <option key={cle} value={cle}>
-                        {libelle.charAt(0).toUpperCase() + libelle.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </>
-          )}
-        </fieldset>
-      )}
-
-      {(!gestion || gestion.statut === "brouillon") && (
+        <ChampsEtape etape="salarie" valeurs={details} contexte={contexte} maj={majDetails} />
         <aside className="rounded-lg border-l-4 border-brand-teal bg-brand-sky-tint/30 p-3 text-sm">
-          <strong className="text-brand-teal">Nouveau salarié : pensez à son suivi médical.</strong> Depuis 2025, il
-          est assuré par le SPSTN, le service de santé au travail des salariés des particuliers employeurs. À
-          l&apos;embauche, contactez-le (0 986 865 865 ou{" "}
+          <strong className="text-brand-teal">Nouveau salarié : pensez à son suivi médical.</strong> À l&apos;embauche,
+          contactez le SPSTN (0 986 865 865 ou{" "}
           <a href="/avantages/spstn?depuis=creation-gestion" target="_blank" rel="noopener" className="underline">
             spstn.org
           </a>
-          ) pour transmettre les coordonnées de votre
-          salarié : il organise sa visite d&apos;information et de prévention, sauf s&apos;il l&apos;a déjà passée
-          pour ce même emploi.{" "}
-          <Link href="/aide/sante-du-salarie#visite-information-prevention" className="font-medium text-brand-teal underline">
+          ) : il organise sa visite d&apos;information et de prévention.{" "}
+          <Link href="/aide/sante-du-salarie#visite-information-prevention" target="_blank" className="font-medium text-brand-teal underline">
             En savoir plus
           </Link>
         </aside>
-      )}
+      </section>
 
-      <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
-        <legend className="sr-only">L&apos;emploi</legend>
-        <h2 className="font-bold text-brand-teal">L&apos;emploi</h2>
-        <ChampsRubrique rubrique={rubrique("emploi")} valeurs={details} contexte={contexte} maj={majDetail} />
-      </fieldset>
+      {/* ---------- 3. Le poste ---------- */}
+      <section hidden={cleEtape !== "poste"} className="carte flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[2].titre}</h2>
+        {cat ? (
+          <>
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-1 text-sm font-medium">
+                Quel emploi de la convention collective correspond le mieux ?
+                <span className={`block ${aide}`}>
+                  Il fixe le niveau (échelle) et le salaire minimum. Dans le doute, gardez celui proposé : nous le vérifions
+                  avec vous.
+                </span>
+              </legend>
+              {emploisDeLaCategorie(cat).map((e) => {
+                const actif = details.emploi_repere === e.cle;
+                return (
+                  <label
+                    key={e.cle}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border-2 p-3 text-sm ${
+                      actif ? "border-brand-violet bg-brand-violet/5" : "border-brand-gray/20 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="choix_emploi_repere"
+                      checked={actif}
+                      onChange={() => majDetails({ emploi_repere: e.cle })}
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--brand-violet)]"
+                    />
+                    <span>
+                      <strong className="text-brand-teal">{e.libelle}</strong>{" "}
+                      <span className="text-xs text-foreground/50">échelle {echelleEnRomain(e.echelle)}</span>
+                      <span className="block text-foreground/70">{e.resume}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
+            <ChampsEtape etape="poste" valeurs={details} contexte={contexte} maj={majDetails} />
+          </>
+        ) : (
+          <p className="text-sm text-foreground/70">
+            Choisissez d&apos;abord le type d&apos;emploi (étape 1) : les questions s&apos;y adaptent.
+          </p>
+        )}
+      </section>
 
-      <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
-        <legend className="sr-only">Le contrat</legend>
-        <h2 className="font-bold text-brand-teal">Le contrat</h2>
+      {/* ---------- 4. Le contrat ---------- */}
+      <section hidden={cleEtape !== "contrat"} className="carte flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[3].titre}</h2>
+        <p className="-mt-2 text-sm text-foreground/70">
+          {v.type_contrat === "CDD" ? "Contrat à durée déterminée" : "Contrat à durée indéterminée"} (modifiable à
+          l&apos;étape 1).
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={etiquette}>
             Date de début
             <input type="date" name="date_debut" value={v.date_debut} onChange={maj("date_debut")} className={champ} />
           </label>
-          <div className={etiquette} role="radiogroup" aria-label="Type de contrat">
-            <span>Type de contrat{etoile}</span>
-            <div className="flex gap-3">
-              {(["CDI", "CDD"] as const).map((t) => (
-                <label
-                  key={t}
-                  className={`btn flex-1 ${v.type_contrat === t ? "btn-primaire" : "btn-secondaire"}`}
-                >
-                  <input
-                    type="radio"
-                    name="type_contrat"
-                    value={t}
-                    checked={v.type_contrat === t}
-                    onChange={maj("type_contrat")}
-                    disabled={remplacement && t === "CDI"}
-                    className="sr-only"
-                  />
-                  {t}
-                </label>
-              ))}
-            </div>
+          {v.type_contrat === "CDD" && (
+            <label className={etiquette}>
+              <span>
+                {remplacement ? "Date de fin (facultative)" : "Date de fin du CDD"}
+                {!remplacement && etoile}
+              </span>
+              <input type="date" name="date_fin_prevue" value={v.date_fin_prevue} onChange={maj("date_fin_prevue")} className={champ} />
+              {remplacement && <span className={aide}>Laissez vide si le contrat prend fin au retour du salarié absent.</span>}
+            </label>
+          )}
+        </div>
+        <ChampsEtape etape="contrat" valeurs={details} contexte={contexte} maj={majDetails} />
+      </section>
+
+      {/* ---------- 5. Les horaires ---------- */}
+      <section hidden={cleEtape !== "horaires"} className="carte flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[4].titre}</h2>
+        <div className={etiquette}>
+          <span>Nombre d&apos;heures de travail{etoile}</span>
+          <div className="flex gap-2 sm:w-1/2">
+            <input name="heures" inputMode="decimal" value={v.heures} onChange={maj("heures")} placeholder="ex. 20" aria-label="Nombre d'heures" className={`${champ} w-28`} />
+            <select name="unite_heures" value={v.unite_heures} onChange={maj("unite_heures")} aria-label="Unité" className={champ}>
+              <option value="semaine">par semaine</option>
+              <option value="mois">par mois</option>
+            </select>
           </div>
+          <span className={aide}>Par mois si les horaires varient d&apos;une semaine à l&apos;autre. En général, 50 heures par semaine au plus.</span>
         </div>
-        {v.type_contrat === "CDD" && (
-          <label className={etiquette}>
-            <span>
-              {remplacement ? "Date de fin prévue (facultative)" : "Date de fin prévue du CDD"}
-              {!remplacement && etoile}
-            </span>
-            <input type="date" name="date_fin_prevue" value={v.date_fin_prevue} onChange={maj("date_fin_prevue")} className={champ} />
-            {remplacement && (
-              <span className={aide}>Laissez vide si le contrat prend fin au retour du salarié absent.</span>
-            )}
-          </label>
-        )}
-        <ChampsRubrique rubrique={rubrique("contrat")} valeurs={details} contexte={contexte} maj={majDetail} />
-      </fieldset>
+        <ChampsEtape etape="horaires" valeurs={details} contexte={contexte} maj={majDetails} />
+      </section>
 
-      <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
-        <legend className="sr-only">Les horaires</legend>
-        <h2 className="font-bold text-brand-teal">Les horaires</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className={etiquette}>
-            <span>Durée de travail (heures){etoile}</span>
-            <div className="flex gap-2">
-              <input
-                name="heures"
-                inputMode="decimal"
-                value={v.heures}
-                onChange={maj("heures")}
-                placeholder="ex. 20"
-                aria-label="Nombre d'heures"
-                className={`${champ} w-28`}
-              />
-              <select name="unite_heures" value={v.unite_heures} onChange={maj("unite_heures")} aria-label="Unité" className={champ}>
-                <option value="semaine">par semaine</option>
-                <option value="mois">par mois</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <ChampsRubrique rubrique={rubrique("horaires")} valeurs={details} contexte={contexte} maj={majDetail} />
-      </fieldset>
-
-      <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
-        <legend className="sr-only">La rémunération</legend>
-        <h2 className="font-bold text-brand-teal">La rémunération</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className={etiquette}>
-            <span>Salaire horaire net (€){etoile}</span>
-            <input
-              name="salaire_horaire_net"
-              inputMode="decimal"
-              value={v.salaire_horaire_net}
-              onChange={maj("salaire_horaire_net")}
-              placeholder="ex. 12,50"
-              className={champ}
-            />
-            <span className={aide}>Montant net par heure, avant prélèvement à la source.</span>
-          </label>
-        </div>
-        <ChampsRubrique rubrique={rubrique("remuneration")} valeurs={details} contexte={contexte} maj={majDetail} />
-      </fieldset>
-
-      <fieldset className="carte flex flex-col gap-4 p-4 sm:p-5">
-        <legend className="sr-only">{rubrique("employeur").titre}</legend>
-        <h2 className="font-bold text-brand-teal">{rubrique("employeur").titre}</h2>
-        {rubrique("employeur").intro && <p className="-mt-2 text-sm text-foreground/70">{rubrique("employeur").intro}</p>}
-        <ChampsRubrique rubrique={rubrique("employeur")} valeurs={details} contexte={contexte} maj={majDetail} />
-        <label className={etiquette}>
-          Précisions (facultatif)
-          <textarea
-            name="precisions"
-            rows={3}
-            maxLength={2000}
-            value={v.precisions}
-            onChange={maj("precisions")}
-            placeholder="Tout ce qui peut nous aider à établir le contrat"
-            className={champ}
-          />
+      {/* ---------- 6. Salaire et congés ---------- */}
+      <section hidden={cleEtape !== "remuneration"} className="carte flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[5].titre}</h2>
+        <label className={`${etiquette} sm:w-1/2`}>
+          <span>Salaire horaire net (€){etoile}</span>
+          <input name="salaire_horaire_net" inputMode="decimal" value={v.salaire_horaire_net} onChange={maj("salaire_horaire_net")} placeholder="ex. 12,50" className={champ} />
+          <span className={aide}>Avant prélèvement à la source. Au moins le minimum de l&apos;emploi choisi : nous le vérifions.</span>
         </label>
-      </fieldset>
+        <ChampsEtape etape="remuneration" valeurs={details} contexte={contexte} maj={majDetails} />
+      </section>
 
-      <div className="flex flex-col gap-2">
-        <Boutons />
+      {/* ---------- 7. Vérifier et envoyer ---------- */}
+      <section hidden={cleEtape !== "envoi"} className="carte flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="font-bold text-brand-teal">{ETAPES[6].titre}</h2>
+        <ChampsEtape etape="envoi" valeurs={details} contexte={contexte} maj={majDetails} />
+        <label className={etiquette}>
+          Autres précisions pour Aide &amp; Garde (facultatif)
+          <textarea name="precisions" rows={3} maxLength={2000} value={v.precisions} onChange={maj("precisions")} placeholder="Tout ce qui peut nous aider à établir le contrat" className={champ} />
+        </label>
+        {manquants.length > 0 ? (
+          <div className="rounded-lg bg-brand-sky-tint/30 p-3 text-sm">
+            <p>
+              <strong>Pour envoyer, il manque encore :</strong>
+            </p>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {manquants.map((m) => (
+                <li key={`${m.etape}-${m.libelle}`}>
+                  <button type="button" onClick={() => allerA(ETAPES.findIndex((e) => e.cle === m.etape))} className="text-left text-brand-teal underline">
+                    {m.libelle}
+                  </button>{" "}
+                  <span className="text-foreground/50">({ETAPES.find((e) => e.cle === m.etape)?.court})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="rounded-lg bg-brand-teal/10 p-3 text-sm font-medium text-brand-teal">
+            ✓ Tout ce qui est nécessaire est rempli : vous pouvez envoyer.
+          </p>
+        )}
+        <p className="text-sm text-foreground/80">
+          Après l&apos;envoi, <strong>Aide &amp; Garde relit votre demande</strong>, l&apos;adapte et la corrige si besoin,
+          et vous contacte pour les points à préciser. Vous validez le contrat avant qu&apos;il soit signé.
+        </p>
+      </section>
+
+      {/* Navigation entre étapes et enregistrement */}
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          {etape > 0 && (
+            <button type="button" onClick={() => allerA(etape - 1)} className="btn btn-secondaire">
+              ← Précédent
+            </button>
+          )}
+          {etape < ETAPES.length - 1 && (
+            <button type="button" onClick={() => allerA(etape + 1)} className="btn btn-primaire ml-auto">
+              Suivant →
+            </button>
+          )}
+        </div>
+        <BoutonsEnvoi dernier={etape === ETAPES.length - 1} />
         <p className="text-xs text-foreground/60">
-          <strong>Brouillon</strong> : rien n&apos;est transmis, vous pouvez y revenir quand vous
-          voulez. <strong>Envoyer</strong> : Aide &amp; Garde vérifie les informations et démarre
-          la gestion ; vous êtes prévenu dès qu&apos;elle est validée. Une gestion envoyée occupe
-          une place de votre abonnement, sauf un CDD de remplacement.
+          <strong>Brouillon</strong> : rien n&apos;est transmis, vous y revenez quand vous voulez. Une gestion envoyée
+          occupe une place de votre abonnement, sauf un CDD de remplacement.
         </p>
       </div>
     </form>

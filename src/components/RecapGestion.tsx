@@ -6,21 +6,17 @@ import {
   nomSalarie,
   type Gestion,
 } from "@/lib/data";
-import { RUBRIQUES, champVisible, optionsDe, type ContexteChamps } from "@/lib/contrat/champs";
-
-/** Valeur lisible d'un champ complémentaire (option, oui/non, date). */
-function lisible(valeur: string, options: { valeur: string; libelle: string }[]): string {
-  if (valeur === "oui") return "Oui";
-  if (valeur === "non") return "Non";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(valeur)) return formatDate(valeur);
-  return options.find((o) => o.valeur === valeur)?.libelle ?? valeur;
-}
+import { CHAMPS, ETAPES, champVisible, valeurLisible, type ContexteChamps } from "@/lib/contrat/champs";
+import { categorie, categorieDeLaGestion, echelleEnRomain, emploiRepere } from "@/lib/contrat/classification";
 
 /** Récapitulatif des informations du contrat d'une gestion (lecture seule). */
 export function RecapGestion({ gestion: g }: { gestion: Gestion }) {
   const lignes: [string, string][] = [
     ["Salarié", nomSalarie(g)],
-    ["Emploi", TYPES_GESTION[g.type_gestion]],
+    ["Emploi", (() => {
+      const e = emploiRepere(g.config?.emploi_repere);
+      return e ? `${e.libelle} (niveau ${echelleEnRomain(e.echelle)})` : TYPES_GESTION[g.type_gestion];
+    })()],
     ["Début", formatDate(g.date_debut)],
     [
       "Contrat",
@@ -54,14 +50,15 @@ export function RecapGestion({ gestion: g }: { gestion: Gestion }) {
         };
         const ctx: ContexteChamps = {
           type_gestion: g.type_gestion,
+          categorie: (categorie(valeurs.categorie) ?? categorieDeLaGestion(g.type_gestion, valeurs.garde_partagee)).cle,
           type_contrat: g.type_contrat ?? "",
           remplacement: Boolean(g.remplace_gestion_id),
         };
-        const blocs = RUBRIQUES.map((r) => ({
-          titre: r.titre,
-          lignes: r.champs
+        const blocs = ETAPES.map((e) => ({
+          titre: e.titre,
+          lignes: CHAMPS.filter((c) => c.etape === e.cle)
             .filter((c) => champVisible(c, valeurs, ctx) && (valeurs[c.cle] ?? "").trim())
-            .map((c) => [c.libelle.replace(/ \?$/, ""), lisible(valeurs[c.cle], optionsDe(c, ctx))] as [string, string]),
+            .map((c) => [c.libelle.replace(/ \?$/, ""), valeurLisible(c, valeurs[c.cle], ctx, formatDate)] as [string, string]),
         })).filter((b) => b.lignes.length);
         if (!blocs.length) return null;
         return (

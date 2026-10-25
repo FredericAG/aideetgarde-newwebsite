@@ -39,29 +39,44 @@ export function DeclarationMois({
   const libelle = options.find((o) => o.valeur === periode)?.libelle ?? "";
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={action} className="flex flex-col gap-3">
       <p className="text-sm text-foreground/70">
-        Indiquez les heures travaillées et validez : nous établissons le bulletin. Si les heures sont celles du contrat,
-        laissez le champ vide.
+        Indiquez les heures travaillées et validez : nous établissons le bulletin.
       </p>
       <input type="hidden" name="gestion_id" value={gestionId} />
       <input type="hidden" name="periode" value={periode} />
 
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Mois
-        <select value={periode} onChange={(e) => setPeriode(e.target.value)} className={champ}>
-          {options.map((o) => {
-            const envoyee = declarations.some((d) => d.periode === o.valeur);
-            return (
-              <option key={o.valeur} value={o.valeur}>
-                {o.libelle}
-                {envoyee ? " — déclaration envoyée" : ""}
-              </option>
-            );
-          })}
-        </select>
-      </label>
-
+      {/* Mois et heures sur une ligne, même sur téléphone (demande du 25/10). */}
+      <div className="grid grid-cols-[1.5fr_1fr] gap-3 sm:max-w-lg">
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Mois
+          <select value={periode} onChange={(e) => setPeriode(e.target.value)} className={`${champ} truncate`}>
+            {options.map((o) => {
+              const envoyee = declarations.some((d) => d.periode === o.valeur);
+              return (
+                <option key={o.valeur} value={o.valeur}>
+                  {o.libelle}
+                  {envoyee ? " — déclaration envoyée" : ""}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Heures du mois
+          <input
+            key={`h-${periode}`}
+            name="heures"
+            type="text"
+            inputMode="decimal"
+            placeholder="ex. 151,67"
+            aria-describedby="aide-heures"
+            defaultValue={existante?.heures != null ? String(existante.heures).replace(".", ",") : ""}
+            className={champ}
+          />
+        </label>
+      </div>
+      <p id="aide-heures" className="-mt-1 text-xs text-foreground/60">Heures : facultatif. Laissées vides, ce sont celles du contrat.</p>
       {existante && (
         <p className="rounded-md bg-brand-jaune/40 p-3 text-sm text-brand-black">
           Déclaration de {libelle} envoyée le {formatDate(existante.envoyee_le)} ({formatHeures(existante.heures)}) : nous
@@ -70,24 +85,11 @@ export function DeclarationMois({
       )}
 
       <label className="flex flex-col gap-1 text-sm font-medium">
-        Heures travaillées dans le mois (facultatif)
-        <input
-          key={`h-${periode}`}
-          name="heures"
-          type="text"
-          inputMode="decimal"
-          placeholder="ex. 151,67"
-          defaultValue={existante?.heures != null ? String(existante.heures).replace(".", ",") : ""}
-          className={champ}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm font-medium">
         Commentaire (absences, congés, heures en plus…)
         <textarea
           key={`c-${periode}`}
           name="commentaire"
-          rows={3}
+          rows={2}
           maxLength={2000}
           defaultValue={existante?.commentaire ?? ""}
           className={champ}

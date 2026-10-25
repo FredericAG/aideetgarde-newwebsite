@@ -77,3 +77,36 @@ export async function updateUserProfile(
     throw error;
   }
 }
+
+/**
+ * Compléments du profil demandés une seule fois, avant la première gestion
+ * (demande du 25/10) : civilité (courriers) et date de naissance (certaines
+ * déclarations Urssaf). Lecture tolérante : tant que le script brique3g n'a
+ * pas été exécuté, les colonnes n'existent pas et `disponible` vaut false.
+ */
+export interface ComplementProfil {
+  disponible: boolean;
+  civilite: "" | "Madame" | "Monsieur";
+  date_naissance: string;
+}
+
+export function lireComplementProfil(ligne: Record<string, unknown> | null | undefined): ComplementProfil {
+  const disponible = Boolean(ligne && "civilite" in ligne && "date_naissance" in ligne);
+  const c = String(ligne?.civilite ?? "");
+  return {
+    disponible,
+    civilite: c === "Madame" || c === "Monsieur" ? c : "",
+    date_naissance: String(ligne?.date_naissance ?? "").slice(0, 10),
+  };
+}
+
+/** Ce qui manque au profil pour préparer contrats et courriers. */
+export function profilIncomplet(p: UserProfile, c: ComplementProfil): string[] {
+  const manque: string[] = [];
+  if (c.disponible && !c.civilite) manque.push("civilité");
+  if (!p.prenom.trim() || !p.nom.trim()) manque.push("prénom et nom");
+  if (c.disponible && !c.date_naissance) manque.push("date de naissance");
+  if (!p.telephone.trim()) manque.push("téléphone");
+  if (!p.adresse.trim() || !p.code_postal.trim() || !p.ville.trim()) manque.push("adresse");
+  return manque;
+}

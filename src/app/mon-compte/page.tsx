@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EncartRecommander } from "@/components/EncartRecommander";
 import { requireUser } from "@/lib/auth";
-import { type UserProfile } from "@/lib/user-profile";
+import { lireComplementProfil, type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
@@ -45,7 +45,7 @@ export default async function MonComptePage() {
         </h1>
         <p className="mt-2 text-sm text-foreground/70">{user.email}</p>
 
-        <ProfileForm profile={safeProfile} />
+        <ProfileForm profile={safeProfile} complement={lireComplementProfil(prefs)} />
 
         <NotificationsPush />
 

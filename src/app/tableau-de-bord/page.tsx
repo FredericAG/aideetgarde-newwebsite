@@ -154,57 +154,52 @@ export default async function TableauDeBordPage({
             </Link>
           </p>
         )}
-        {quotaAtteint && (
-          <p className="mt-6 rounded-lg border border-brand-jaune bg-brand-jaune/25 px-4 py-3 text-sm">
-            {quotaDepasse ? (
-              <>
-                <strong>Vous dépassez votre abonnement</strong> : {placesUtilisees} gestions pour{" "}
-                {abonnement?.quota_gestions} prévues. Aide &amp; Garde va vous contacter pour l&apos;ajuster.
-              </>
-            ) : (
-              <>
-                <strong>Abonnement complet</strong> : pour ajouter un salarié, terminez une gestion ou{" "}
-                <Link href="/aide" className="text-brand-teal underline">contactez-nous</Link>.
-              </>
-            )}
-          </p>
-        )}
-        {/* --- Synthèse de l'abonnement (remise le 21/10 : places utilisées
-            par rapport aux places prévues, d'un coup d'œil) --- */}
+        {/* --- Abonnement : une ligne compacte (retour du 25/10), avec
+            l'alerte « complet » ou « dépassé » intégrée. --- */}
         {abonnement?.statut === "actif" && (
-          <section aria-label="Mon abonnement" className="mt-6 overflow-hidden rounded-xl border border-brand-teal/25 bg-white">
-            <div className="flex items-center justify-between gap-3 bg-brand-teal px-4 py-2 text-white">
-              <h2 className="text-sm font-bold">Mon abonnement</h2>
-              <Link href="/tableau-de-bord/abonnement" className="text-xs font-bold text-white underline">
-                Gérer
-              </Link>
-            </div>
-            <dl className="grid grid-cols-3 divide-x divide-brand-gray/15 text-center">
-              <div className="px-2 py-3">
-                <dt className="text-xs font-bold text-foreground/70">Salariés suivis</dt>
-                <dd className="mt-0.5 text-base font-bold tabular-nums text-brand-teal sm:text-xl">
-                  {placesUtilisees} <span className="text-sm text-foreground/60">/ {abonnement.quota_gestions}</span>
-                </dd>
-                <div className="mx-auto mt-1.5 h-1.5 w-16 overflow-hidden rounded-full bg-brand-gray/20" aria-hidden="true">
-                  <div
-                    className={`h-full rounded-full ${quotaDepasse ? "bg-red-600" : "bg-brand-violet"}`}
-                    style={{ width: `${Math.min(100, (placesUtilisees / Math.max(1, abonnement.quota_gestions)) * 100)}%` }}
-                  />
-                </div>
-              </div>
-              <div className="px-2 py-3">
-                <dt className="text-xs font-bold text-foreground/70">Tarif mensuel</dt>
-                <dd className="mt-0.5 text-base font-bold tabular-nums text-brand-teal sm:text-xl">
-                  {formatEuros(abonnement.tarif_mensuel)}
-                </dd>
-              </div>
-              <div className="px-2 py-3">
-                <dt className="text-xs font-bold text-foreground/70">Depuis le</dt>
-                <dd className="mt-0.5 text-base font-bold tabular-nums text-brand-teal sm:text-xl">
-                  {formatDate(abonnement.date_debut)}
-                </dd>
-              </div>
-            </dl>
+          <section
+            aria-label="Mon abonnement"
+            className={`mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border px-3 py-2 text-sm ${
+              quotaDepasse ? "border-red-300 bg-red-50" : quotaAtteint ? "border-brand-jaune bg-brand-jaune/15" : "border-brand-gray/20 bg-white"
+            }`}
+          >
+            <span className="inline-flex items-center gap-2">
+              <span className="text-foreground/70">Salariés suivis</span>
+              <strong className="tabular-nums text-brand-teal">
+                {placesUtilisees} / {abonnement.quota_gestions}
+              </strong>
+              <span className="inline-block h-1.5 w-12 overflow-hidden rounded-full bg-brand-gray/20" aria-hidden="true">
+                <span
+                  className={`block h-full rounded-full ${quotaDepasse ? "bg-red-600" : "bg-brand-violet"}`}
+                  style={{ width: `${Math.min(100, (placesUtilisees / Math.max(1, abonnement.quota_gestions)) * 100)}%` }}
+                />
+              </span>
+            </span>
+            <span className="text-foreground/70">
+              <strong className="tabular-nums text-brand-teal">{formatEuros(abonnement.tarif_mensuel)}</strong> / mois
+            </span>
+            <span className="text-foreground/60">depuis le {formatDate(abonnement.date_debut)}</span>
+            <Link href="/tableau-de-bord/abonnement" className="ml-auto text-xs font-bold text-brand-teal underline">
+              Gérer
+            </Link>
+            {(quotaAtteint || quotaDepasse) && (
+              <span className="w-full text-xs">
+                {quotaDepasse ? (
+                  <>
+                    <strong className="text-red-700">Vous dépassez votre abonnement</strong> : Aide &amp; Garde va vous
+                    contacter pour l&apos;ajuster.
+                  </>
+                ) : (
+                  <>
+                    <strong>Abonnement complet</strong> : pour un salarié de plus, terminez une gestion ou{" "}
+                    <Link href="/tableau-de-bord/abonnement" className="text-brand-teal underline">
+                      changez de formule
+                    </Link>
+                    .
+                  </>
+                )}
+              </span>
+            )}
           </section>
         )}
 

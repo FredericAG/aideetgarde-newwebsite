@@ -17,18 +17,40 @@ export type CleAction =
   | "attestation"
   | "arret"
   | "accident"
+  | "maternite"
   | "fin"
   | "courriers";
 
-const ACTIONS: { cle: CleAction; libelle: string }[] = [
-  { cle: "declarer", libelle: "Déclarer le mois" },
-  { cle: "corriger", libelle: "Corriger un bulletin" },
-  { cle: "avenant", libelle: "Demander un avenant" },
-  { cle: "attestation", libelle: "Attestation d'emploi" },
-  { cle: "arret", libelle: "Arrêt maladie" },
-  { cle: "accident", libelle: "Accident du travail" },
-  { cle: "fin", libelle: "Fin de contrat" },
-  { cle: "courriers", libelle: "Autres courriers" },
+
+/**
+ * Actions rangées par verbe (demande du 25/10) : la ligne « Déclarer » vient
+ * en premier, avec « Le mois » mis en avant (l'action de chaque mois).
+ */
+const GROUPES: { verbe: string; actions: { cle: CleAction; libelle: string; court: string }[] }[] = [
+  {
+    verbe: "Déclarer",
+    actions: [
+      { cle: "declarer", libelle: "Le mois", court: "Le mois" },
+      { cle: "arret", libelle: "Un arrêt maladie", court: "Arrêt maladie" },
+      { cle: "accident", libelle: "Un accident du travail", court: "Accident du travail" },
+      { cle: "maternite", libelle: "Un congé maternité", court: "Congé maternité" },
+    ],
+  },
+  {
+    verbe: "Demander",
+    actions: [
+      { cle: "avenant", libelle: "Un avenant", court: "Avenant" },
+      { cle: "corriger", libelle: "Une correction de bulletin", court: "Correction de bulletin" },
+    ],
+  },
+  {
+    verbe: "Rédiger",
+    actions: [
+      { cle: "attestation", libelle: "Une attestation d'emploi", court: "Attestation d'emploi" },
+      { cle: "courriers", libelle: "Un autre courrier", court: "Autre courrier" },
+    ],
+  },
+  { verbe: "Prévoir", actions: [{ cle: "fin", libelle: "Une fin de contrat", court: "Fin de contrat" }] },
 ];
 
 const MODES_FIN: { cle: Exclude<ModeFinContrat, "retraite">; libelle: string }[] = [
@@ -99,52 +121,67 @@ export function ActionsGestion({
     avenant: Boolean(avenantEnAttente),
     arret: enAttente(["arret_maladie"]),
     accident: enAttente(["accident_travail"]),
+    maternite: enAttente(["conge_maternite"]),
     fin: enAttente(["fin_contrat"]),
   };
   const garde = contexte.gestion.type_gestion === "garde_enfants";
+  // Congé maternité : masqué seulement si le salarié est un homme.
+  const groupes = GROUPES.map((g) => ({
+    ...g,
+    actions: g.actions.filter((a) => a.cle !== "maternite" || contexte.salarie.civilite !== "Monsieur"),
+  }));
   const courrier = (cle: Parameters<typeof FormulaireCourrier>[0]["cle"], replie = false) => (
     <FormulaireCourrier key={cle} gestionId={gestionId} cle={cle} contexte={contexte} replie={replie} />
   );
 
   return (
     <section id="declaration" aria-labelledby="titre-actions" className="carte mt-6 scroll-mt-24 p-4 sm:p-5">
-      <h2 id="titre-actions" className="font-bold text-brand-violet">
+      <h2 id="titre-actions" className="text-sm font-bold text-brand-violet">
         Que souhaitez-vous faire ?
       </h2>
 
-      <div role="tablist" aria-label="Actions" className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {ACTIONS.map((a) => {
-          const actif = a.cle === action;
-          return (
-            <button
-              key={a.cle}
-              type="button"
-              role="tab"
-              aria-selected={actif}
-              aria-controls="panneau-action"
-              onClick={() => setAction(a.cle)}
-              className={`relative rounded-lg border-2 px-3 py-2 text-left text-sm font-bold leading-tight transition-colors ${
-                actif
-                  ? "border-brand-violet bg-brand-violet text-white"
-                  : a.cle === "declarer"
-                    ? "border-brand-violet bg-white text-brand-violet hover:bg-brand-violet/5"
-                    : "border-brand-gray/25 bg-white text-brand-teal hover:border-brand-violet/50"
-              }`}
-            >
-              {a.libelle}
-              {pastille[a.cle] && (
-                <span
-                  className={`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ${actif ? "bg-brand-jaune" : "bg-brand-violet"}`}
-                  title="Demande en cours"
-                  aria-label="Demande en cours"
-                />
-              )}
-            </button>
-          );
-        })}
+      <div role="tablist" aria-label="Actions" className="mt-2 flex flex-col gap-2.5 sm:grid sm:grid-cols-[5.5rem_1fr] sm:items-baseline sm:gap-x-2 sm:gap-y-2">
+        {groupes.map((g) => (
+          <div key={g.verbe} className="flex flex-col gap-1 sm:contents">
+            <span className="text-xs font-bold uppercase tracking-wide text-foreground/55">{g.verbe}</span>
+            <div className="flex flex-wrap gap-1.5">
+              {g.actions.map((a) => {
+                const actif = a.cle === action;
+                const principal = a.cle === "declarer";
+                return (
+                  <button
+                    key={a.cle}
+                    type="button"
+                    role="tab"
+                    aria-selected={actif}
+                    aria-controls="panneau-action"
+                    onClick={() => setAction(a.cle)}
+                    className={`relative rounded-full border px-2.5 py-1 text-sm leading-snug sm:px-3 transition-colors ${
+                      actif
+                        ? "border-brand-violet bg-brand-violet font-bold text-white"
+                        : principal
+                          ? "border-2 border-brand-violet bg-white font-bold text-brand-violet hover:bg-brand-violet/5"
+                          : "border-brand-gray/35 bg-white text-brand-teal hover:border-brand-violet/50"
+                    } ${pastille[a.cle] ? "pr-6 sm:pr-7" : ""}`}
+                  >
+                    <span className="sm:hidden">{a.court}</span>
+                    <span className="hidden sm:inline">{a.libelle}</span>
+                    {pastille[a.cle] && (
+                      <span
+                        className={`absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${actif ? "bg-brand-jaune" : "bg-brand-violet"}`}
+                        title="Demande en cours"
+                        aria-label="Demande en cours"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div id="panneau-action" role="tabpanel" className="mt-5 border-t border-brand-gray/15 pt-5">
+      <div id="panneau-action" role="tabpanel" className="mt-4 border-t border-brand-gray/15 pt-4">
         {action === "declarer" && (
           <DeclarationMois
             key={gestionId}
@@ -172,7 +209,7 @@ export function ActionsGestion({
                   type="arret_maladie"
                   signalements={signalements}
                   titre="Arrêt maladie de votre salarié"
-                  texte="Dès réception de l'avis d'arrêt de travail. L'attestation de salaire permet à votre salarié de toucher ses indemnités journalières."
+                  texte="Dès réception de l'avis d'arrêt de travail. Nous préparons l'attestation de salaire (cerfa 11135*04, formulaire S3201) : elle permet à votre salarié de toucher ses indemnités journalières."
                   placeholder="ex. arrêt jusqu'au 15 novembre, prolongation possible"
                 />
               </Etape>
@@ -205,7 +242,7 @@ export function ActionsGestion({
                   type="accident_travail"
                   signalements={signalements}
                   titre="Accident du travail de votre salarié"
-                  texte="Nous établissons l'attestation de salaire « accident du travail », à envoyer à la CPAM de votre salarié."
+                  texte="Nous préparons l'attestation de salaire « accident du travail » (cerfa 11137*03, formulaire S6202), à envoyer à la CPAM de votre salarié."
                   placeholder="ex. chute dans l'escalier, arrêt de travail prescrit jusqu'au…"
                 />
               </Etape>
@@ -226,6 +263,38 @@ export function ActionsGestion({
               </Etape>
             </ol>
             <LienAide href="/aide/arret-de-travail#accident-du-travail">En savoir plus sur l&apos;accident du travail</LienAide>
+          </div>
+        )}
+
+        {action === "maternite" && (
+          <div className="flex flex-col gap-4">
+            <ol className="flex flex-col gap-5">
+              <Etape n={1} titre="Prévenez-nous : nous préparons l'attestation de salaire">
+                <PrevenirAideEtGarde
+                  gestionId={gestionId}
+                  type="conge_maternite"
+                  signalements={signalements}
+                  titre="Congé maternité de votre salariée"
+                  texte="Indiquez la date de début du congé. Aide & Garde prépare l'attestation de salaire (cerfa 11135*04, formulaire S3201) qui permet à votre salariée d'être indemnisée par l'Assurance Maladie."
+                  placeholder="ex. congé prénatal à partir du…, date prévue de l'accouchement"
+                />
+              </Etape>
+              <Etape n={2} titre="Pendant le congé">
+                <p className="text-foreground/70">
+                  Votre salariée est indemnisée par l&apos;Assurance Maladie : pas de salaire à verser pour cette période.
+                  Signalez simplement son absence dans votre déclaration du mois.
+                </p>
+              </Etape>
+              <Etape n={3} titre="Besoin d'un remplaçant ?">
+                <p className="text-foreground/70">
+                  Un CDD de remplacement ne prend pas de place dans votre abonnement.{" "}
+                  <Link href={`/tableau-de-bord/gestions/nouvelle?remplace=${gestionId}`} className="font-medium text-brand-teal underline">
+                    Ajouter un salarié remplaçant
+                  </Link>
+                </p>
+              </Etape>
+            </ol>
+            <LienAide href="/aide/arret-de-travail#conge-maternite">En savoir plus sur le congé maternité</LienAide>
           </div>
         )}
 

@@ -46,7 +46,28 @@ export async function updateProfileAction(
     return { status: "error", message: "Échec de l'enregistrement. Réessayez." };
   }
 
+  // Civilité et date de naissance (brique3g) : le champ date n'est présent
+  // que si les colonnes existent.
+  if (formData.has("date_naissance")) {
+    const civilite = String(formData.get("civilite") ?? "");
+    const dateNaissance = String(formData.get("date_naissance") ?? "").trim();
+    if (dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
+      return { status: "error", message: "Vérifiez la date de naissance." };
+    }
+    const { error } = await supabase.rpc("completer_profil", {
+      p_civilite: civilite === "Madame" || civilite === "Monsieur" ? civilite : "",
+      p_date_naissance: dateNaissance || null,
+    });
+    if (error && error.code !== "PGRST202" && error.code !== "42883") {
+      return {
+        status: "error",
+        message: /naissance|Civilit/.test(error.message) ? error.message : "Échec de l'enregistrement. Réessayez.",
+      };
+    }
+  }
+
   revalidatePath("/mon-compte");
+  revalidatePath("/tableau-de-bord/gestions/nouvelle");
   return { status: "success", message: "Profil mis à jour." };
 }
 

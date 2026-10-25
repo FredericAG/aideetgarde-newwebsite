@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { SaisieAdresse, SaisieVille, type ValeurAdresse } from "@/components/SaisieAdresse";
 import {
   MODELES_COURRIER,
   champsDuModele,
@@ -44,12 +45,24 @@ export function FormulaireCourrier({
   const [valeurs, setValeurs] = useState<Record<string, string>>(() =>
     Object.fromEntries(champs.map((c) => [c.nom, c.defaut?.(contexte) ?? ""])),
   );
+  // Champs déjà connus par la gestion : rangés à part, pour vérification.
+  const [connus] = useState(() => new Set(champs.filter((c) => c.connu && (c.defaut?.(contexte) ?? "").trim()).map((c) => c.nom)));
   const E = contexte.employeur;
   const S = contexte.salarie;
   const atthon = cle.startsWith("atthon");
   const coordonneesCompletes =
     atthon || (Boolean(E.civilite) && Boolean(S.civilite) && (!modele.adresseSalarie || Boolean(S.adresse && S.ville)));
+  // Seules les coordonnées manquantes sont demandées ; « Modifier » les
+  // montre toutes (demande du 25/10 : ne pas redemander ce qui est connu).
   const [modifierCoordonnees, setModifierCoordonnees] = useState(!coordonneesCompletes);
+  const [toutModifier, setToutModifier] = useState(false);
+  const [adresseS, setAdresseS] = useState<ValeurAdresse>({ adresse: S.adresse, code_postal: S.code_postal, ville: S.ville });
+  const majAdresseS = useCallback((v: ValeurAdresse) => setAdresseS(v), []);
+  const demander = {
+    civiliteE: toutModifier || !E.civilite,
+    civiliteS: toutModifier || !S.civilite,
+    adresseS: Boolean(modele.adresseSalarie) && (toutModifier || !(S.adresse && S.ville)),
+  };
   const [etat, setEtat] = useState<{ enCours: boolean; message?: string; erreur?: boolean }>({ enCours: false });
   const adresseEmployeurManquante = !atthon && !(E.adresse && E.ville);
 
@@ -77,6 +90,7 @@ export function FormulaireCourrier({
       setTimeout(() => URL.revokeObjectURL(url), 10000);
       setEtat({ enCours: false, message: `${nomFichier} est téléchargé : vérifiez-le, imprimez-le et signez-le.` });
       setModifierCoordonnees(false);
+      setToutModifier(false);
       router.refresh();
     } catch {
       setEtat({ enCours: false, erreur: true, message: "Le courrier n'a pas pu être préparé. Réessayez dans un instant." });
@@ -116,6 +130,18 @@ export function FormulaireCourrier({
       );
     }
     let saisie: React.ReactNode;
+    if (c.nom === "fait_a") {
+      // Ville de signature : celle de l'employeur, ou un code postal qui
+      // propose la commune.
+      return (
+        <div key={c.nom} className="flex flex-col gap-1 text-sm font-medium">
+          <span>{c.libelle}</span>
+          <input type="hidden" name={c.nom} value={v} />
+          <SaisieVille valeur={v} onChange={(ville) => maj(c.nom, ville)} classeChamp={classeChamp} />
+          <span className="text-xs font-normal text-foreground/60">Tapez un code postal pour choisir une autre commune.</span>
+        </div>
+      );
+    }
     if (c.type === "textarea") {
       saisie = (
         <textarea name={c.nom} rows={c.nom === "motif" ? 6 : 3} maxLength={2000} value={v} placeholder={c.placeholder} onChange={(e) => maj(c.nom, e.target.value)} className={classeChamp} />
@@ -178,51 +204,60 @@ export function FormulaireCourrier({
         <fieldset className="flex flex-col gap-3 text-sm">
           {modifierCoordonnees ? (
             <>
-              <legend className="mb-1 font-medium">Coordonnées (mémorisées pour vos prochains courriers)</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-1 font-medium">
-                  Votre civilité
-                  <select name="civilite_employeur" defaultValue={E.civilite} className={classeChamp}>
-                    {CIVILITES.map((c) => (
-                      <option key={c} value={c}>
-                        {c || "—"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 font-medium">
-                  Civilité du salarié
-                  <select name="civilite_salarie" defaultValue={S.civilite} className={classeChamp}>
-                    {CIVILITES.map((c) => (
-                      <option key={c} value={c}>
-                        {c || "—"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {modele.adresseSalarie && (
-                <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1.5fr]">
-                  <label className="flex flex-col gap-1 font-medium">
-                    Adresse du salarié
-                    <input name="adresse_salarie" defaultValue={S.adresse} autoComplete="off" className={classeChamp} />
-                  </label>
-                  <label className="flex flex-col gap-1 font-medium">
-                    Code postal
-                    <input name="code_postal_salarie" defaultValue={S.code_postal} inputMode="numeric" autoComplete="off" className={classeChamp} />
-                  </label>
-                  <label className="flex flex-col gap-1 font-medium">
-                    Ville
-                    <input name="ville_salarie" defaultValue={S.ville} autoComplete="off" className={classeChamp} />
-                  </label>
+              <legend className="mb-1 font-medium">
+                {toutModifier ? "Coordonnées" : "Il manque seulement"} (mémorisées pour vos prochains courriers)
+              </legend>
+              {(demander.civiliteE || demander.civiliteS) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {demander.civiliteE && (
+                    <label className="flex flex-col gap-1 font-medium">
+                      {contexte.details.employeur_tiers === "oui" ? "Civilité de l'employeur" : "Votre civilité"}
+                      <select name="civilite_employeur" defaultValue={E.civilite} className={classeChamp}>
+                        {CIVILITES.map((c) => (
+                          <option key={c} value={c}>
+                            {c || "—"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {demander.civiliteS && (
+                    <label className="flex flex-col gap-1 font-medium">
+                      Civilité du salarié
+                      <select name="civilite_salarie" defaultValue={S.civilite} className={classeChamp}>
+                        {CIVILITES.map((c) => (
+                          <option key={c} value={c}>
+                            {c || "—"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                 </div>
+              )}
+              {demander.adresseS && (
+                <SaisieAdresse
+                  valeur={adresseS}
+                  onChange={majAdresseS}
+                  noms={{ adresse: "adresse_salarie", code_postal: "code_postal_salarie", ville: "ville_salarie" }}
+                  libelles={{ adresse: "Adresse du salarié", code_postal: "Code postal", ville: "Ville" }}
+                  classeChamp={classeChamp}
+                  classeGrille="grid gap-3 sm:grid-cols-[2fr_1fr_1.5fr]"
+                />
               )}
             </>
           ) : (
             <p className="text-foreground/80">
               De : <strong>{nom(E)}</strong> · Pour : <strong>{nom(S)}</strong>
               {modele.adresseSalarie && S.adresse ? `, ${S.adresse}, ${S.code_postal} ${S.ville}` : ""}{" "}
-              <button type="button" onClick={() => setModifierCoordonnees(true)} className="font-medium text-brand-teal underline">
+              <button
+                type="button"
+                onClick={() => {
+                  setToutModifier(true);
+                  setModifierCoordonnees(true);
+                }}
+                className="font-medium text-brand-teal underline"
+              >
                 Modifier
               </button>
             </p>
@@ -239,7 +274,15 @@ export function FormulaireCourrier({
         </fieldset>
       )}
 
-      {champs.map(rendreChamp)}
+      {champs.filter((c) => !connus.has(c.nom)).map(rendreChamp)}
+      {connus.size > 0 && (
+        <details className="rounded-lg bg-brand-sky-tint/30 px-3 py-2 text-sm">
+          <summary className="cursor-pointer font-medium">
+            Déjà renseigné d&apos;après la gestion ({connus.size}) — vérifier
+          </summary>
+          <div className="mt-3 flex flex-col gap-4">{champs.filter((c) => connus.has(c.nom)).map(rendreChamp)}</div>
+        </details>
+      )}
 
       <p className="text-xs text-foreground/60">
         {estFormulaireOfficiel(cle)

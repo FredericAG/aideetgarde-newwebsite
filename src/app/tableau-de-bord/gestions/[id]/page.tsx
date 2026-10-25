@@ -152,8 +152,10 @@ export default async function DetailGestionPage({
     gestion,
     new Set([...bulletins.map((b) => b.periode), ...declarations.filter((d) => d.statut === "close").map((d) => d.periode)]),
   );
-  const ACTIONS_VALIDES: CleAction[] = ["declarer", "corriger", "avenant", "attestation", "arret", "accident", "fin", "courriers"];
-  const actionInitiale: CleAction = ACTIONS_VALIDES.includes(actionDemandee as CleAction) ? (actionDemandee as CleAction) : "declarer";
+  // (liste ici : une constante d'un fichier « use client » n'est pas lisible
+  // côté serveur)
+  const CLES_ACTIONS: CleAction[] = ["declarer", "corriger", "avenant", "attestation", "arret", "accident", "maternite", "fin", "courriers"];
+  const actionInitiale: CleAction = CLES_ACTIONS.includes(actionDemandee as CleAction) ? (actionDemandee as CleAction) : "declarer";
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">

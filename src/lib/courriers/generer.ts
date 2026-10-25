@@ -6,6 +6,8 @@ import { ancienneteMois } from "@/lib/data";
 import {
   MODELES_COURRIER,
   emploiEnToutesLettres,
+  deEmploi,
+  enQualiteDe,
   type CleCourrier,
   type ContexteCourrier,
 } from "./modeles";
@@ -159,7 +161,7 @@ const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" 
       expediteur: blocAdresse(E),
       titre: "ATTESTATION D'EMPLOI",
       corps: [
-        `Je soussigné${e(E.civilite)} ${nomComplet(E)}, demeurant ${adresseEnLigne(E)}, certifie que ${nomComplet(S)}, demeurant ${adresseEnLigne(S)}, est ${lien} en qualité de ${emploiEnToutesLettres(c)} depuis le ${dateLongue(c.gestion.date_debut)}${contrat}${horaires}.`,
+        `Je soussigné${e(E.civilite)} ${nomComplet(E)}, demeurant ${adresseEnLigne(E)}, certifie que ${nomComplet(S)}, demeurant ${adresseEnLigne(S)}, est ${lien} ${enQualiteDe(c)} depuis le ${dateLongue(c.gestion.date_debut)}${contrat}${horaires}.`,
         "Attestation établie pour servir et valoir ce que de droit.",
       ],
       lieuDate: lieuDate(v),
@@ -231,7 +233,7 @@ const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" 
       objet: "Impossibilité de reclassement à la suite de votre inaptitude",
       salutation: `${appel(S.civilite)},`,
       corps: [
-        `Le ${dateLongue(v.date_avis)}, le médecin du travail a conclu à votre inaptitude à l'emploi de ${emploiEnToutesLettres(c)}.`,
+        `Le ${dateLongue(v.date_avis)}, le médecin du travail a conclu à votre inaptitude à l'emploi ${deEmploi(c)}.`,
         "Sur la base de nos échanges avec le médecin du travail et des préconisations qu'il a formulées, nous avons recherché les postes disponibles pouvant être adaptés à votre état de santé :",
         postes.length ? { liste: postes } : { lignes: 3 },
         "Nous avons également envisagé les aménagements qui auraient pu nous permettre de vous proposer un emploi de reclassement, et notamment :",
@@ -255,7 +257,7 @@ const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" 
       objet: "Démission",
       salutation: `${appel(E.civilite)},`,
       corps: [
-        `Je vous informe de ma décision de démissionner de mon poste de ${emploiEnToutesLettres(c)}, que j'occupe à votre service depuis le ${dateLongue(c.gestion.date_debut)}.`,
+        `Je vous informe de ma décision de démissionner de mon poste ${deEmploi(c)}, que j'occupe à votre service depuis le ${dateLongue(c.gestion.date_debut)}.`,
         `Mon préavis, d'une durée ${preavisDemission(anciennete(c, v))}, commencera à la date de première présentation de cette lettre ou de sa remise en main propre.`,
         ...(v.dispense_demandee
           ? [`Je souhaiterais toutefois être dispensé${e(S.civilite)} d'effectuer ce préavis et quitter mon poste dès la réception de cette lettre. Je vous remercie de bien vouloir me confirmer votre accord.`]
@@ -303,7 +305,7 @@ const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" 
       objet: "Autorisation parentale de travail pour un mineur",
       salutation: `${appel(E.civilite)},`,
       corps: [
-        `Je soussigné(e) ${ou(v.parent)}, parent de ${[S.prenom, S.nom.toUpperCase()].filter(Boolean).join(" ") || BLANC}, né${e(S.civilite)} le ${dateLongue(v.date_naissance)}, et disposant du plein exercice de l'autorité parentale, autorise ${nomComplet(E)} à l'employer ${periode} en qualité de ${emploiEnToutesLettres(c)}, dans le respect des dispositions du code du travail relatives au travail des jeunes de moins de dix-huit ans (articles L. 4153-1 et suivants, D. 4153-1 et suivants).`,
+        `Je soussigné(e) ${ou(v.parent)}, parent de ${[S.prenom, S.nom.toUpperCase()].filter(Boolean).join(" ") || BLANC}, né${e(S.civilite)} le ${dateLongue(v.date_naissance)}, et disposant du plein exercice de l'autorité parentale, autorise ${nomComplet(E)} à l'employer ${periode} ${enQualiteDe(c)}, dans le respect des dispositions du code du travail relatives au travail des jeunes de moins de dix-huit ans (articles L. 4153-1 et suivants, D. 4153-1 et suivants).`,
       ],
       politesse: `Je vous prie d'agréer, ${appel(E.civilite)}, l'expression de mes salutations distinguées.`,
       signatures: ["Signature du parent"],
@@ -805,7 +807,7 @@ async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Prom
   texte(`${P2}txt_Telephone[2]`, c.details.telephone_salarie);
   texte(`${P2}txt_Courriel[2]`, c.details.email_salarie);
   texte(`${P2}dat_Embauche[0]`, dateCourte(g.date_debut));
-  texte(`${P2}txt_DescriptionEmploi[0]`, [v.emploi, c.details.taches].filter(Boolean).join(" : "));
+  texte(`${P2}txt_DescriptionEmploi[0]`, [v.emploi, (c.details.taches ?? "").split("|").filter(Boolean).join(", ")].filter(Boolean).join(" : "));
   texte(`${P2}txt_Denomination[0]`, [E.prenom, E.nom.toUpperCase(), "(particulier employeur)"].filter(Boolean).join(" "));
   texte(`${P2}txt_Adresse[2]`, c.details.lieu_travail_adresse || villeEmployeur);
   texte(`${P2}txt_CodePostal[2]`, c.details.lieu_travail_adresse ? "" : E.code_postal);

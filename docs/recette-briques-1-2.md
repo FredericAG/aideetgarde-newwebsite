@@ -636,3 +636,24 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | F.13 | iPhone avec Safari | Étapes Partager › Sur l'écran d'accueil ; la carte notifications n'est plus en double | |
 | F.14 | « Plus tard » | La carte disparaît 30 jours sur ce téléphone ; le lien reste dans Mon compte et l'aide | |
 
+
+## Nouvelle gestion par catégorie, profil, actions par verbe (25/10, lot 25)
+
+**Préparation** : exécuter `supabase/brique3g_categories_profil.sql` (après brique3f) **avant** le Commit + Push. Les suggestions d'adresses ne se testent que sur le site en ligne.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| H.1 | Tableau de bord | L'abonnement tient sur une ligne (salariés suivis, tarif, Gérer) | |
+| H.2 | Compte sans civilité ni date de naissance : « Créer une gestion » | Étape préalable « Vos coordonnées d'employeur » ; « Continuer » affiche le formulaire ; ne revient plus ensuite | |
+| H.3 | Mon compte | Civilité, date de naissance ; l'adresse propose des suggestions ; un code postal remplit la ville | |
+| H.4 | Adresse inconnue (lieu-dit) | Saisie libre acceptée et enregistrée | |
+| H.5 | Créer une gestion : étape 1 | Six tuiles de catégorie, puis CDI (conseillé) / CDD ; CDD affiche l'encadré « Pourquoi nous conseillons le CDI » | |
+| H.6 | Choisir « Garde d'enfants », étape Poste | Emplois-repères du domaine Enfant avec échelle ; tâches propres à la garde ; enfants gardés | |
+| H.7 | Choisir « Jardinage », étape Poste | Emplois Entretien A/B et Gardien A/B ; tâches d'extérieur | |
+| H.8 | « Êtes-vous vous-même l'employeur ? » → Non | Coordonnées de l'employeur demandées ; une attestation d'emploi de cette gestion est à son nom | |
+| H.9 | Étape Envoi incomplète | Liste de ce qui manque, dans l'ordre des étapes, avec liens ; « Enregistrer le brouillon » possible | |
+| H.10 | Gestion : cadre « Que souhaitez-vous faire ? » | Lignes Déclarer / Demander / Rédiger / Prévoir ; « Le mois » mis en avant ; sur téléphone, libellés courts | |
+| H.11 | Déclarer › Un congé maternité › Prévenir | Demande envoyée ; visible dans l'administration (actions à traiter) ; texte avec cerfa 11135*04 | |
+| H.12 | Déclarer le mois | Mois et heures sur la même ligne | |
+| H.13 | Rédiger › Une attestation d'emploi (coordonnées connues) | Aucune coordonnée redemandée ; « Fait à » = ville de l'employeur ; un code postal propose la commune | |
+| H.14 | Rédiger › Un autre courrier › cerfa 15186 | Emploi, niveau, ROME, n° Pajemploi, date de naissance rangés dans « Déjà renseigné d'après la gestion » | |

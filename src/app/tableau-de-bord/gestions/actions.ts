@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { TYPES_GESTION, isUuid, type TypeGestion } from "@/lib/data";
-import { champsManquants, nettoyerValeurs } from "@/lib/contrat/champs";
+import { champsManquants, nettoyerValeurs, type ContexteChamps } from "@/lib/contrat/champs";
+import { categorie, categorieDeLaGestion } from "@/lib/contrat/classification";
 import { adresseSite, emailAdmin, envoyerEmail, modeleEmail } from "@/lib/email";
 
 /**
@@ -96,11 +97,14 @@ export async function enregistrerGestion(
   } catch {
     /* rien de lisible : aucun champ complémentaire */
   }
-  const contexteChamps = {
+  const cat = categorie(String(brut.categorie ?? ""));
+  const contexteChamps: ContexteChamps = {
     type_gestion: typeGestion,
+    categorie: cat && cat.type_gestion === typeGestion ? cat.cle : categorieDeLaGestion(typeGestion).cle,
     type_contrat: typeContrat,
     remplacement,
   };
+  brut.categorie = contexteChamps.categorie;
   const { config, colonnes } = nettoyerValeurs(brut, contexteChamps);
   const { error: errDetails } = await supabase.rpc("gestion_enregistrer_details", {
     p_id: gestionId,
@@ -118,7 +122,7 @@ export async function enregistrerGestion(
   if (envoyer && detailsActifs) {
     const manquants = champsManquants({ ...config, ...colonnes } as Record<string, string>, contexteChamps);
     if (manquants.length) {
-      const message = `Brouillon enregistré. Avant d'envoyer, complétez : ${manquants.join(", ")}.`;
+      const message = `Brouillon enregistré. Avant d'envoyer, complétez : ${manquants.map((m) => m.libelle).join(", ")}.`;
       revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
       if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(message)}`);
       return { message };
