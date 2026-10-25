@@ -1,7 +1,7 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFCheckBox, PDFDocument, PDFName, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFCheckBox, PDFDocument, PDFDropdown, PDFName, PDFRadioGroup, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { ancienneteMois } from "@/lib/data";
 import {
   MODELES_COURRIER,
@@ -140,7 +140,7 @@ const DOCUMENTS_FIN =
 
 // --- Texte des courriers -------------------------------------------------------
 
-const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" | "declaration_accident">, (c: ContexteCourrier, v: Valeurs) => Lettre> = {
+const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" | "declaration_accident" | "autorisation_travail">, (c: ContexteCourrier, v: Valeurs) => Lettre> = {
   attestation_emploi: (c, v) => {
     const E = c.employeur;
     const S = c.salarie;
@@ -661,6 +661,7 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
   texte("Adresse_victime", S.adresse);
   texte("Code postal victime", chiffres(S.code_postal));
   texte("Adresse_victime 2", S.ville);
+  texte("date naissance", jjmmaaaa(c.details.date_naissance));
   texte("date embauche", jjmmaaaa(c.gestion.date_debut));
   texte("Profession", emploiEnToutesLettres(c));
   if (c.gestion.type_contrat) choisir("contrat", (e) => e === c.gestion.type_contrat);
@@ -688,6 +689,133 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
   return doc.save();
 }
 
+// --- Demande d'autorisation de travail (cerfa 15186*03) ------------------------------
+
+/**
+ * Formulaire officiel (modeles-pdf/autorisation-travail-15186-03.pdf),
+ * partie employeur préremplie pour un particulier employeur, selon la
+ * pratique d'Aide & Garde : n° Pajemploi ou CESU à la place du SIRET,
+ * convention collective 3239, emploi, niveau et code ROME ; partie « taxe
+ * employeur » laissée vide. Le salarié complète ses documents d'identité et
+ * de séjour. Le formulaire d'origine est un formulaire « XFA » : il est
+ * converti en formulaire PDF classique, lisible partout et modifiable.
+ */
+async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Promise<Uint8Array> {
+  const modele = await readFile(path.join(process.cwd(), "modeles-pdf", "autorisation-travail-15186-03.pdf"));
+  const doc = await PDFDocument.load(modele);
+  const form = doc.getForm();
+  const police = await doc.embedFont(StandardFonts.Helvetica);
+  const n = compatible(police);
+  const P1 = "topmostSubform[0].Page1[0].";
+  const P2 = "topmostSubform[0].Page2[0].";
+  const texte = (champ: string, valeur: string | undefined) => {
+    if (!valeur) return;
+    try {
+      const f = form.getTextField(champ);
+      const max = f.getMaxLength();
+      // Champs très bas sur ce formulaire : petite taille fixe, lisible.
+      if (!f.isCombed()) f.setFontSize(8);
+      f.setText(n(max ? valeur.slice(0, max) : valeur));
+    } catch {
+      /* champ absent d'une autre version du formulaire */
+    }
+  };
+  const radio = (champ: string, option: string) => {
+    try {
+      const f = form.getField(champ);
+      if (f instanceof PDFRadioGroup) f.select(option);
+    } catch {
+      /* idem */
+    }
+  };
+  const liste = (champ: string, option: string) => {
+    try {
+      const f = form.getField(champ);
+      if (f instanceof PDFDropdown) f.select(option);
+    } catch {
+      /* idem */
+    }
+  };
+  const E = c.employeur;
+  const S = c.salarie;
+  const g = c.gestion;
+  const villeEmployeur = [E.adresse, E.ville].filter(Boolean).join(", ");
+
+  // 1. Motif : première demande.
+  try {
+    form.getCheckBox(`${P1}rab_Horaire[0]`).check();
+  } catch {
+    /* idem */
+  }
+  // 2. Employeur : particulier employeur.
+  texte(`${P1}txt_IDCC[0]`, "3239");
+  texte(`${P1}txt_intitule[0]`, "Particuliers employeurs et emploi à domicile");
+  texte(`${P1}txt_employeur[0]`, [E.prenom, E.nom.toUpperCase()].filter(Boolean).join(" "));
+  texte(`${P1}txt_num[0]`, v.numero_declarant);
+  texte(`${P1}txt_adresse[0]`, villeEmployeur);
+  texte(`${P1}txt_codePostal[0]`, E.code_postal);
+  // 3. Salarié.
+  texte(`${P1}txt_nomFamille[0]`, (c.details.nom_naissance || S.nom).toUpperCase());
+  if (c.details.nom_naissance) texte(`${P1}txt_nomUsage[0]`, S.nom.toUpperCase());
+  texte(`${P1}txt_prenom[0]`, S.prenom);
+  if (S.civilite) radio(`${P1}rab_sexe[0]`, S.civilite === "Monsieur" ? "1" : "2");
+  texte(`${P1}dat_naissance[0]`, dateCourte(v.date_naissance));
+  texte(`${P1}txt_nationnalite[0]`, v.nationalite);
+  texte(`${P1}txt_codePostal[1]`, S.code_postal.replace(/\D/g, ""));
+  // 4. Contrat.
+  texte(`${P1}txt_emploiOccupe[0]`, v.emploi);
+  texte(`${P1}txt_codeROME[0]`, v.rome);
+  texte(`${P1}txt_niveau[0]`, v.niveau);
+  if (g.type_contrat) radio(`${P1}rab_typeContrat[0]`, g.type_contrat === "CDI" ? "1" : "2");
+  if (g.type_contrat === "CDD" && g.date_fin_prevue) {
+    const mois = ancienneteMois(g.date_debut, g.date_fin_prevue);
+    const debut = new Date(`${g.date_debut}T00:00:00`);
+    const apres = new Date(debut.getFullYear(), debut.getMonth() + mois, debut.getDate());
+    const jours = Math.max(0, Math.round((new Date(`${g.date_fin_prevue}T00:00:00`).getTime() - apres.getTime()) / 86400000));
+    texte(`${P1}txt_dureeMois[0]`, String(mois));
+    texte(`${P1}txt_dureeJours[0]`, String(jours));
+    if (g.remplacement || c.details.motif_cdd === "remplacement") liste(`${P1}cmb_motifRecours[0]`, "remplacement de salarié ou d'employeur");
+    else if (c.details.motif_cdd === "accroissement") liste(`${P1}cmb_motifRecours[0]`, "accroissement temporaire d'activité");
+    else if (c.details.motif_cdd === "saisonnier") liste(`${P1}cmb_motifRecours[0]`, "emploi à caractère saisonnier");
+  }
+  if (g.heures) {
+    // Temps complet chez un particulier employeur : 40 heures par semaine.
+    const hebdo = g.unite_heures === "mois" ? (g.heures * 12) / 52 : g.heures;
+    radio(`${P1}rab_typeContrat[1]`, hebdo >= 40 ? "1" : "2");
+    const entier = Math.floor(g.heures);
+    texte(`${P1}txt_dureeHeures[0]`, String(entier));
+    texte(`${P1}txt_dureeCentiemes[0]`, String(Math.round((g.heures - entier) * 100)).padStart(2, "0"));
+    radio(`${P1}rab_typeSalaire[1]`, g.unite_heures === "mois" ? "2" : "1");
+  }
+  const brut = Number((v.salaire_brut ?? "").replace(",", ".").replace(/\s/g, ""));
+  if (Number.isFinite(brut) && brut > 0) {
+    texte(`${P1}txt_salaire[0]`, brut.toFixed(2).replace(".", ","));
+    radio(`${P1}rab_typeSalaire[0]`, "3");
+  }
+  // Signature.
+  texte(`${P1}txt_signataire[0]`, [E.prenom, E.nom.toUpperCase()].filter(Boolean).join(" "));
+  texte(`${P1}txt_qualite[0]`, "Particulier employeur");
+  texte(`${P1}dat_signature[0]`, dateCourte(v.fait_le));
+  texte(`${P1}txt_lieuSignature[0]`, v.fait_a);
+
+  // Feuillet 2 (annexe) : coordonnées du salarié, embauche, lieu de travail.
+  texte(`${P2}txt_Adresse[1]`, S.adresse);
+  texte(`${P2}txt_CodePostal[1]`, S.code_postal.replace(/\D/g, ""));
+  texte(`${P2}txt_Commune[0]`, S.ville);
+  texte(`${P2}txt_Telephone[2]`, c.details.telephone_salarie);
+  texte(`${P2}txt_Courriel[2]`, c.details.email_salarie);
+  texte(`${P2}dat_Embauche[0]`, dateCourte(g.date_debut));
+  texte(`${P2}txt_DescriptionEmploi[0]`, [v.emploi, c.details.taches].filter(Boolean).join(" : "));
+  texte(`${P2}txt_Denomination[0]`, [E.prenom, E.nom.toUpperCase(), "(particulier employeur)"].filter(Boolean).join(" "));
+  texte(`${P2}txt_Adresse[2]`, c.details.lieu_travail_adresse || villeEmployeur);
+  texte(`${P2}txt_CodePostal[2]`, c.details.lieu_travail_adresse ? "" : E.code_postal);
+  texte(`${P2}txt_Signataire[0]`, [E.prenom, E.nom.toUpperCase()].filter(Boolean).join(" "));
+
+  form.updateFieldAppearances(police);
+  doc.setTitle("Demande d'autorisation de travail (cerfa 15186*03)");
+  return doc.save();
+}
+
 // --- Point d'entrée ----------------------------------------------------------------------
 
 export async function genererCourrier(
@@ -709,11 +837,15 @@ export async function genererCourrier(
     atthon_maladie: "Attestation-honneur-IJ",
     atthon_accident: "Attestation-honneur-IJ-accident",
     declaration_accident: "Declaration-accident-travail",
+    autorisation_travail: "Demande-autorisation-travail-15186",
   }[cle];
   const fichier = `${base}_${salarie}.pdf`;
 
   if (cle === "atthon_maladie" || cle === "atthon_accident") {
     return { octets: await remplirAtthon(contexte, valeurs, cle === "atthon_accident"), fichier };
+  }
+  if (cle === "autorisation_travail") {
+    return { octets: await remplirAutorisationTravail(contexte, valeurs), fichier };
   }
   if (cle === "declaration_accident") {
     return { octets: await remplirDeclarationAccident(contexte, valeurs), fichier };

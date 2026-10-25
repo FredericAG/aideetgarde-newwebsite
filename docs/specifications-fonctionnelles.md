@@ -442,6 +442,26 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **Encart recommandation** | « Vous souhaitez partager Aide & Garde ? » remplace « Satisfait d'Aide & Garde ? ». | En place |
 | **Téléphone** | Les documents gardent la couleur de leur catégorie : bandeau de titre et cadre violet, turquoise ou orange. | En place |
 
+## 4 quater. Formulaire « Créer une gestion » enrichi, version 1 — 25/10/2026
+
+| Élément | Règle | État |
+|---|---|---|
+| **Principe** (demande de Frédéric) | Reprendre les champs du contrat de l'ancien site (matrice Excel de 2014, analysée le 24/09) pour préparer le contrat et préremplir les courriers et formulaires officiels. Version 1 à ajuster avec Frédéric sur la base du visuel. | En place (script 3f) — à valider |
+| **Organisation** | Six cartes : Le salarié, L'emploi, Le contrat, Les horaires, La rémunération, Vos déclarations. En tête, le nombre d'informations encore nécessaires pour envoyer ; un astérisque marque les champs obligatoires à l'envoi. Choix à deux options en gros boutons (Oui / Non, Madame / Monsieur), conditions d'affichage (ex. pays et titre de séjour si nationalité « autre », coordonnées de l'autre famille si garde partagée, motif du CDD hors remplacement). | En place |
+| **Champs** | Salarié : civilité*, nom de naissance, date* et lieu de naissance, nationalité* (pays*, titre autorisant à travailler* si hors UE), adresse*, téléphone, email, n° de sécurité sociale. Emploi : intitulé (proposé selon l'emploi), nombre d'enfants* et âges, garde partagée* (famille*), personne aidée, tâches, lieu de travail. Contrat : motif du CDD*, période d'essai. Horaires : jours et horaires*, jour de repos*, présence responsable, nuits. Rémunération : congés payés*, mode de paiement, transports, repas, logement, véhicule. Déclarations : n° Pajemploi ou CESU. | v1, à ajuster |
+| **Où les modifier** | `src/lib/contrat/champs.ts` : ajouter, retirer, renommer un champ, le rendre obligatoire ou conditionnel, sans script de base de données. Les champs sont enregistrés dans la colonne `config` (JSON) de la gestion ; les coordonnées du salarié dans leurs colonnes (utilisées par les courriers). | En place |
+| **Contrôle** | Le brouillon accepte tout ; à l'envoi, le site liste ce qui manque. Le noyau (contrat, heures, salaire, quota) reste contrôlé par la base. Le récapitulatif (abonné et administration) affiche les champs remplis par rubrique. | En place |
+| **Préremplissage** | Date de naissance, nationalité, intitulé de l'emploi, tâches, n° Pajemploi/CESU, lieu de travail : repris dans la déclaration d'accident et la demande d'autorisation de travail. | En place |
+| **Matrice Excel** | Le fichier de 2014 n'est pas disponible dans cette session : la v1 s'appuie sur son analyse du 24/09 et sur la convention collective. À rapprocher du fichier lors de la revue. | À faire avec Frédéric |
+
+## 4 quinquies. Demande d'autorisation de travail (cerfa 15186*03) et installation sur téléphone — 25/10/2026
+
+| Élément | Règle | État |
+|---|---|---|
+| **Cerfa 15186*03** | Dans « Autres courriers » : partie employeur préremplie pour un particulier employeur (n° Pajemploi/CESU à la place du SIRET, IDCC 3239, emploi, niveau, code ROME ; pour la garde d'enfants : assistant parental, niveau 3, K1303), salarié, contrat, horaires, salaire brut saisi, feuillet 2 (coordonnées du salarié, embauche, lieu de travail). Partie « taxe employeur » laissée vide. Le formulaire d'origine (XFA) est converti en formulaire PDF classique, modifiable. | En place |
+| **Aide « situation irrégulière »** | Complétée avec la régularisation par le travail (admission exceptionnelle au séjour), la pratique des préfectures (35 h chez un même employeur) et le mode d'emploi du cerfa, d'après le texte de Frédéric. | En place |
+| **Installer l'application** | Page `/installer` (publique) : étapes en grand, une action par étape, adaptées au téléphone (Samsung Internet, Chrome Android, Firefox, iPhone Safari) avec le pictogramme du bouton ; bouton « Installer Aide & Garde » en un geste quand le téléphone le permet (Chrome, Edge sur Android) ; « Vous aidez quelqu'un ? » pour les autres téléphones. Carte « Installez Aide & Garde » sur le tableau de bord (téléphone non installé, « Plus tard » = 30 jours). Lien dans Mon compte ; question dans le centre d'aide. | En place — à tester sur un vrai téléphone |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -469,6 +489,7 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 25/10/2026 — Formulaire « Créer une gestion » enrichi (v1, champs configurables) ; cerfa 15186 prérempli et aide sur la régularisation par le travail ; page « Installer l'application » et carte sur le tableau de bord.
 - 24/10/2026 — « Mes gestions » remplace « Documents » ; cadre « Actions » dans chaque gestion (mois à déclarer depuis le début du contrat, courriers et formulaires préremplis, « Prévenir Aide & Garde ») ; couleurs des catégories de documents sur téléphone.
 - 23/10/2026 — Brique 10 : liens suivis vers les partenaires (ASC, Ircem, SPSTN), QR codes sur la fiche, onglet Administration > Partenaires.
 - 23/10/2026 — Note et avis Google sur l'accueil (API Places, côté serveur).

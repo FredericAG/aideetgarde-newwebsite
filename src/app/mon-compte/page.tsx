@@ -49,6 +49,13 @@ export default async function MonComptePage() {
 
         <NotificationsPush />
 
+        <p className="mt-6 text-sm">
+          <Link href="/installer" className="font-medium text-brand-teal underline">
+            Installer Aide &amp; Garde sur mon téléphone
+          </Link>
+          <span className="block text-xs text-foreground/60">Une icône sur l&apos;écran d&apos;accueil, comme une application.</span>
+        </p>
+
         <PreferenceEmail
           actifInitial={prefs?.notifications_email !== false}
           email={user.email ?? ""}

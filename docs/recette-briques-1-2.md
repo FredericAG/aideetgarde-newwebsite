@@ -615,3 +615,24 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | G.15 | Autres courriers : départ à la retraite, impossibilité de reclassement, avance sur salaire, autorisation parentale | Quatre PDF préremplis | |
 | G.16 | Sur téléphone : documents d'une gestion | Chaque catégorie a son bandeau de titre et son cadre colorés (violet, turquoise, orange) ; pas de défilement horizontal | |
 
+## Formulaire de gestion enrichi, cerfa 15186, installation sur téléphone (25/10)
+
+**Préparation** : exécuter `supabase/brique3f_formulaire_contrat.sql` (après brique3e) **avant** le Commit + Push. Pour l'installation, utiliser un vrai téléphone, sur le site en ligne (https).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| F.1 | Créer une gestion | Six cartes ; en tête « encore N informations » ; astérisques sur les champs obligatoires | |
+| F.2 | Nationalité « Autre », puis titre « Aucun pour le moment » | Pays et titre apparaissent ; numéro et date du titre disparaissent avec « Aucun » | |
+| F.3 | Garde partagée « Oui » | Le champ « autre famille » apparaît, obligatoire | |
+| F.4 | Changer l'emploi (garde d'enfants → aide à domicile) | « Nombre d'enfants » et « garde partagée » disparaissent ; l'intitulé devient « Assistant de vie » | |
+| F.5 | Enregistrer le brouillon incomplet, puis le rouvrir | Tout ce qui a été saisi est retrouvé | |
+| F.6 | Envoyer avec des champs manquants | Message listant ce qui manque ; brouillon conservé | |
+| F.7 | Compléter et envoyer ; admin : fiche du compte | « Informations du contrat » affiche les champs par rubrique | |
+| F.8 | Gestion en cours › Autres courriers › Demande d'autorisation de travail | PDF cerfa 15186 prérempli (employeur, n° Pajemploi/CESU, IDCC 3239, emploi, niveau, ROME, salarié, contrat, horaires) et modifiable ; partie taxe vide | |
+| F.9 | Centre d'aide › « Puis-je employer une personne en situation irrégulière ? » | Explications sur la régularisation par le travail et le cerfa 15186 | |
+| F.10 | Téléphone Samsung, site non installé : tableau de bord | Carte « Installez Aide & Garde sur votre téléphone » ; « Comment faire ? » ouvre les étapes Samsung, en grand | |
+| F.11 | Suivre les étapes (Menu ≡ › Ajouter la page à › Écran d'accueil) | Icône Aide & Garde sur l'écran d'accueil ; ouverte, plus de carte d'installation | |
+| F.12 | Téléphone Android avec Chrome | Bouton « Installer » direct (ou les étapes ⋮ › Ajouter à l'écran d'accueil) | |
+| F.13 | iPhone avec Safari | Étapes Partager › Sur l'écran d'accueil ; la carte notifications n'est plus en double | |
+| F.14 | « Plus tard » | La carte disparaît 30 jours sur ce téléphone ; le lien reste dans Mon compte et l'aide | |
+

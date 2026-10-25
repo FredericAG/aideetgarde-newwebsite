@@ -16,6 +16,8 @@ Les textes du site sont écrits **dans le code**, dans le dossier `aideetgarde-n
 | Centre d'aide (questions et réponses) | `src/lib/aide/contenu.ts` |
 | Courriers préremplis (attestation d'emploi, lettres de licenciement, démission…) | texte : `src/lib/courriers/generer.ts` ; titres, descriptions, champs du petit formulaire et textes de motif proposés : `src/lib/courriers/modeles.ts` |
 | Cadre « Que souhaitez-vous faire ? » d'une gestion (explications, étapes) | `src/app/tableau-de-bord/gestions/[id]/ActionsGestion.tsx` |
+| Champs du formulaire « Créer une gestion » (libellés, aides, obligatoires, conditions) | `src/lib/contrat/champs.ts` |
+| Étapes d'installation sur téléphone | `src/lib/installation.ts` |
 | Tableau de bord | `src/app/tableau-de-bord/page.tsx` |
 | Mon abonnement (souscription, résiliation, rétractation) | `src/app/tableau-de-bord/abonnement/page.tsx` et `Paiement.tsx` |
 | Mon compte | `src/app/mon-compte/page.tsx` |

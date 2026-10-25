@@ -147,11 +147,36 @@ export const THEMES: Theme[] = [
         slug: "situation-irreguliere",
         question: "Puis-je employer une personne en situation irrégulière ?",
         resume:
-          "Non : il est interdit d'employer une personne qui n'a pas de titre l'autorisant à travailler en France. C'est l'employeur qui en porte le risque pendant toute la durée du travail.",
-        motsCles: ["sans papiers", "titre de séjour", "autorisation de travail"],
+          "Non : il est interdit d'employer une personne qui n'a pas de titre l'autorisant à travailler en France. C'est l'employeur qui en porte le risque pendant toute la durée du travail. Votre salarié peut en revanche demander sa régularisation par le travail.",
+        motsCles: ["sans papiers", "titre de séjour", "autorisation de travail", "régularisation", "cerfa 15186", "préfecture", "admission exceptionnelle"],
         corps: [
           {
             p: "En cas de problème ou d'accident, vous risquez en outre de ne pas être couvert par les assurances.",
+          },
+          {
+            p: "Un travailleur étranger non européen peut demander à la préfecture, au titre de l'admission exceptionnelle au séjour, une carte de séjour « salarié » ou « travailleur temporaire ». C'est une régularisation au cas par cas, réservée à des situations exceptionnelles ou humanitaires ; c'est le salarié qui dépose la demande.",
+          },
+          {
+            p: "De notre expérience, les préfectures demandent un contrat d'au moins 35 heures par semaine chez un même employeur : 40 heures réparties chez dix employeurs ne répondent pas à ce critère. Ce n'est pas une science exacte : cela dépend des préfectures et de la situation familiale du salarié.",
+          },
+          {
+            etapes: [
+              {
+                titre: "Le formulaire qui vous concerne : cerfa 15186",
+                texte:
+                  "Parmi les documents du dossier, la demande d'autorisation de travail est remplie par l'employeur. Dans la gestion de votre salarié, « Autres courriers » la prépare avec vos informations.",
+              },
+              {
+                titre: "Sur papier plutôt qu'en ligne",
+                texte:
+                  "Le service en ligne reconnaît rarement le numéro Pajemploi ou CESU, ce qui bloque la validation : la version papier est plus simple.",
+              },
+              {
+                titre: "Ce qu'il faut indiquer",
+                texte:
+                  "Partie « Particulier employeur » : vos coordonnées ; le numéro SIRET / URSSAF est votre numéro Pajemploi ou CESU. Pour une garde d'enfants : emploi « assistant parental », niveau 3, code ROME K1303. Convention collective n° 3239. La partie « taxe employeur » ne vous concerne pas en tant que particulier.",
+              },
+            ],
           },
         ],
       },
@@ -809,6 +834,27 @@ export const THEMES: Theme[] = [
           { p: "Vous pouvez aussi déclarer depuis la gestion du salarié (« Mes gestions » › « Déclarer le mois ») : tous les mois sans bulletin depuis le début du contrat y sont proposés. Une erreur sur un bulletin en ligne ? Choisissez « Corriger un bulletin » : nous le corrigeons." },
         ],
         lien: { href: "/tableau-de-bord", libelle: "Aller au tableau de bord" },
+      },
+      {
+        slug: "installer",
+        question: "Comment installer Aide & Garde sur mon téléphone ?",
+        resume:
+          "Ajoutez l'espace à l'écran d'accueil : une icône Aide & Garde apparaît, comme une application. Rien à télécharger dans un magasin d'applications, c'est gratuit.",
+        motsCles: ["application", "appli", "icône", "écran d'accueil", "Samsung", "Android", "iPhone", "installer"],
+        corps: [
+          {
+            tableau: {
+              entetes: ["Téléphone", "Étapes"],
+              lignes: [
+                ["Samsung (Samsung Internet)", "Menu « ≡ » en bas à droite → « Ajouter la page à » → « Écran d'accueil » → « Ajouter »."],
+                ["Android (Chrome)", "Trois points « ⋮ » en haut à droite → « Ajouter à l'écran d'accueil » (ou « Installer l'application ») → « Installer »."],
+                ["iPhone (Safari)", "Bouton Partager (carré avec une flèche, en bas ; sinon « ⋯ » d'abord) → « Sur l'écran d'accueil » → « Ajouter »."],
+              ],
+            },
+          },
+          { p: "Ensuite, ouvrez toujours Aide & Garde depuis cette icône. Sur iPhone, c'est indispensable pour recevoir les notifications." },
+        ],
+        lien: { href: "/installer", libelle: "Les étapes pour mon téléphone" },
       },
       {
         slug: "telecharger",

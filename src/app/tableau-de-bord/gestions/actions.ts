@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { TYPES_GESTION, isUuid, type TypeGestion } from "@/lib/data";
+import { champsManquants, nettoyerValeurs } from "@/lib/contrat/champs";
 import { adresseSite, emailAdmin, envoyerEmail, modeleEmail } from "@/lib/email";
 
 /**
@@ -86,6 +87,43 @@ export async function enregistrerGestion(
   });
   if (error) return { message: traduire(error) };
   const gestionId = (nouvelId as string) ?? id;
+
+  // Champs complémentaires du contrat (brique 3f).
+  let brut: Record<string, string> = {};
+  try {
+    const lu = JSON.parse(texte(fd, "details") || "{}");
+    if (lu && typeof lu === "object" && !Array.isArray(lu)) brut = lu as Record<string, string>;
+  } catch {
+    /* rien de lisible : aucun champ complémentaire */
+  }
+  const contexteChamps = {
+    type_gestion: typeGestion,
+    type_contrat: typeContrat,
+    remplacement,
+  };
+  const { config, colonnes } = nettoyerValeurs(brut, contexteChamps);
+  const { error: errDetails } = await supabase.rpc("gestion_enregistrer_details", {
+    p_id: gestionId,
+    p_config: config,
+    p_civilite_salarie: colonnes.civilite_salarie ?? "",
+    p_adresse_salarie: colonnes.adresse_salarie ?? "",
+    p_code_postal_salarie: colonnes.code_postal_salarie ?? "",
+    p_ville_salarie: colonnes.ville_salarie ?? "",
+  });
+  // Sans le script brique3f, les champs complémentaires ne sont pas
+  // enregistrés, mais le brouillon et l'envoi fonctionnent comme avant.
+  const detailsActifs = !errDetails || !(errDetails.code === "PGRST202" || errDetails.code === "42883");
+  if (errDetails && detailsActifs) return { message: traduire(errDetails) };
+
+  if (envoyer && detailsActifs) {
+    const manquants = champsManquants({ ...config, ...colonnes } as Record<string, string>, contexteChamps);
+    if (manquants.length) {
+      const message = `Brouillon enregistré. Avant d'envoyer, complétez : ${manquants.join(", ")}.`;
+      revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
+      if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(message)}`);
+      return { message };
+    }
+  }
 
   if (envoyer) {
     const { error: errEnvoi } = await supabase.rpc("gestion_envoyer", { p_id: gestionId });

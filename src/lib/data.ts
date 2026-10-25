@@ -76,6 +76,11 @@ export interface Gestion {
    * en cours de contrat (brique 3e). null : depuis le début du contrat.
    */
   declarations_depuis?: string | null;
+  /**
+   * Champs complémentaires du contrat (brique 3f), décrits dans
+   * src/lib/contrat/champs.ts.
+   */
+  config?: Record<string, string> | null;
 }
 
 export type Civilite = "" | "Madame" | "Monsieur";

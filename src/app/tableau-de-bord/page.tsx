@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CarteInstallation } from "@/components/Installation";
 import { redirect } from "next/navigation";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { EncartRecommander } from "@/components/EncartRecommander";
@@ -380,6 +381,8 @@ export default async function TableauDeBordPage({
             </Link>
           </p>
         </section>
+
+        <CarteInstallation />
 
         <EncartRecommander className="mt-8" />
 

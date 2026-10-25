@@ -153,7 +153,9 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
   }
 
   if (etat === "chargement") return null;
-  if (compact && (refusMemorise || etat === "actif" || etat === "non-supporte" || etat === "refuse")) {
+  // iPhone pas encore installé : sur le tableau de bord, la carte
+  // « Installez Aide & Garde » (src/components/Installation.tsx) suffit.
+  if (compact && (refusMemorise || etat === "actif" || etat === "non-supporte" || etat === "refuse" || etat === "iphone-a-installer")) {
     return null;
   }
 
@@ -165,8 +167,11 @@ export function NotificationsPush({ compact = false }: { compact?: boolean }) {
           Pour être prévenu sur votre iPhone dès qu&apos;un document est mis en
           ligne, installez d&apos;abord l&apos;espace sur votre écran
           d&apos;accueil : bouton Partager, puis « Sur l&apos;écran
-          d&apos;accueil ». Ouvrez-le ensuite depuis l&apos;icône Aide &amp;
-          Garde pour activer les notifications.
+          d&apos;accueil » (
+          <a href="/installer" className="font-medium text-brand-teal underline">
+            les étapes en images
+          </a>
+          ). Ouvrez-le ensuite depuis l&apos;icône Aide &amp; Garde pour activer les notifications.
           {compact && (
             <button type="button" onClick={refuser} className="ml-2 underline">
               Non merci

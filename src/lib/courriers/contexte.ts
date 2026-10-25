@@ -44,6 +44,11 @@ export async function contexteCourrier(
       date_debut: gestion.date_debut,
       heures: gestion.heures ?? null,
       unite_heures: gestion.unite_heures ?? null,
+      date_fin_prevue: gestion.date_fin_prevue ?? null,
+      remplacement: Boolean(gestion.remplace_gestion_id),
     },
+    details: Object.fromEntries(
+      Object.entries(gestion.config ?? {}).filter(([, v]) => typeof v === "string"),
+    ) as Record<string, string>,
   };
 }

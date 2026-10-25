@@ -341,6 +341,14 @@ export function ActionsGestion({
             {courrier("inaptitude_reclassement", true)}
             {courrier("avance_salaire", true)}
             {courrier("autorisation_parentale", true)}
+            {courrier("autorisation_travail", true)}
+            <p className="pt-3 text-xs text-foreground/60">
+              Régularisation d&apos;un salarié étranger par le travail :{" "}
+              <Link href="/aide/contrat#situation-irreguliere" className="font-medium text-brand-teal underline">
+                ce qu&apos;il faut savoir
+              </Link>
+              .
+            </p>
           </div>
         )}
       </div>

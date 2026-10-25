@@ -8,6 +8,7 @@
  * Pour ajouter un modèle : une entrée ici, une fonction dans generer.ts.
  */
 import type { Civilite, TypeGestion } from "@/lib/data";
+import { EMPLOIS_REPERES } from "@/lib/contrat/champs";
 
 export type CleCourrier =
   | "attestation_emploi"
@@ -20,7 +21,8 @@ export type CleCourrier =
   | "avance_salaire"
   | "atthon_maladie"
   | "atthon_accident"
-  | "declaration_accident";
+  | "declaration_accident"
+  | "autorisation_travail";
 
 /** Données connues, transmises au formulaire et au générateur. */
 export interface ContexteCourrier {
@@ -48,7 +50,11 @@ export interface ContexteCourrier {
     date_debut: string;
     heures: number | null;
     unite_heures: "semaine" | "mois" | null;
+    date_fin_prevue: string | null;
+    remplacement: boolean;
   };
+  /** Champs complémentaires du contrat (src/lib/contrat/champs.ts). */
+  details: Record<string, string>;
 }
 
 export interface ChampCourrier {
@@ -346,6 +352,46 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
       },
     ],
   },
+  autorisation_travail: {
+    cle: "autorisation_travail",
+    titre: "Demande d'autorisation de travail (cerfa 15186*03)",
+    description:
+      "Pour un salarié étranger qui demande sa régularisation par le travail : la partie employeur, à joindre à son dossier en préfecture.",
+    auteur: "employeur",
+    adresseSalarie: true,
+    avertissement:
+      "À remplir sur papier de préférence : le service en ligne reconnaît rarement les numéros Pajemploi et CESU. La partie « taxe employeur » ne vous concerne pas en tant que particulier : laissez-la vide.",
+    champs: [
+      {
+        nom: "numero_declarant",
+        libelle: "Votre numéro Pajemploi ou CESU",
+        type: "text",
+        aide: "Il remplace le numéro SIRET / URSSAF demandé par le formulaire.",
+        defaut: (c) => c.details.numero_declarant ?? "",
+      },
+      { nom: "date_naissance", libelle: "Date de naissance du salarié", type: "date", defaut: (c) => c.details.date_naissance ?? "" },
+      {
+        nom: "nationalite",
+        libelle: "Nationalité du salarié",
+        type: "text",
+        defaut: (c) => c.details.nationalite_pays ?? "",
+      },
+      {
+        nom: "emploi",
+        libelle: "Emploi occupé",
+        type: "text",
+        defaut: (c) => c.details.emploi_repere || EMPLOIS_REPERES[c.gestion.type_gestion].emploi,
+      },
+      { nom: "niveau", libelle: "Niveau (convention collective)", type: "text", defaut: (c) => EMPLOIS_REPERES[c.gestion.type_gestion].niveau },
+      { nom: "rome", libelle: "Code ROME", type: "text", defaut: (c) => EMPLOIS_REPERES[c.gestion.type_gestion].rome },
+      {
+        nom: "salaire_brut",
+        libelle: "Salaire horaire brut (€)",
+        type: "montant",
+        aide: "Il figure sur le bulletin de salaire (avant cotisations).",
+      },
+    ],
+  },
 };
 
 /** Champs communs : date et lieu de signature. */
@@ -361,7 +407,7 @@ export function champsDuModele(m: ModeleCourrier): ChampCourrier[] {
 
 /** Formulaires officiels (pas de mise en page de lettre). */
 export function estFormulaireOfficiel(cle: CleCourrier): boolean {
-  return cle.startsWith("atthon") || cle === "declaration_accident";
+  return cle.startsWith("atthon") || cle === "declaration_accident" || cle === "autorisation_travail";
 }
 
 export function estCleCourrier(v: string): v is CleCourrier {
