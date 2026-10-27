@@ -144,6 +144,26 @@ export const THEMES: Theme[] = [
         ],
       },
       {
+        slug: "classification",
+        question: "Comment savoir quel emploi (et quel niveau) correspond à mon salarié ?",
+        source: "Convention collective IDCC 3239, classification en vigueur au 1er janvier 2026 et annexes",
+        resume:
+          "Depuis le 1er janvier 2026, chaque salarié est rattaché à un « emploi-repère » de la convention collective. Il dépend de l'activité qui lui prend le plus de temps, et son échelle fixe le salaire minimum.",
+        motsCles: ["classification", "emploi-repère", "niveau", "échelle", "salaire minimum", "domaine", "assistant de vie", "employé familial", "garde d'enfants"],
+        corps: [
+          {
+            etapes: [
+              { titre: "Le domaine", texte: "Choisissez celui de l'activité qui occupe le plus de temps : enfant, adulte (personne âgée ou en situation de handicap), espaces de vie (ménage, linge, repas), environnement technique (secrétariat, cours, informatique) ou environnement externe (jardin, petits travaux, gardiennage)." },
+              { titre: "L'emploi-repère", texte: "Dans ce domaine, celui qui ressemble le plus aux situations de travail réelles : par exemple garde d'enfant(s) A ou B selon les tâches confiées (suivi des devoirs, linge, repas), assistant(e) de vie A à D selon l'autonomie de la personne aidée." },
+              { titre: "L'information du salarié", texte: "L'emploi-repère figure au contrat de travail ; pour un contrat déjà en cours au 1er janvier 2026, il se communique au salarié par écrit. Contactez-nous si ce n'est pas encore fait." },
+            ],
+          },
+          {
+            note: "En créant une gestion, le site vous propose les emplois-repères de l'activité choisie. Dans le doute, gardez celui proposé : nous le vérifions avec vous.",
+          },
+        ],
+      },
+      {
         slug: "situation-irreguliere",
         question: "Puis-je employer une personne en situation irrégulière ?",
         resume:
@@ -176,6 +196,22 @@ export const THEMES: Theme[] = [
                 texte:
                   "Partie « Particulier employeur » : vos coordonnées ; le numéro SIRET / URSSAF est votre numéro Pajemploi ou CESU. Pour une garde d'enfants : emploi « assistant parental », niveau 3, code ROME K1303. Convention collective n° 3239. La partie « taxe employeur » ne vous concerne pas en tant que particulier.",
               },
+            ],
+          },
+        ],
+      },
+      {
+        slug: "sans-numero-securite-sociale",
+        question: "Mon salarié n'a pas de numéro de sécurité sociale : que faire ?",
+        resume:
+          "Ce n'est pas bloquant pour l'embaucher et le déclarer : il est déclaré avec son état civil (nom, date et lieu de naissance) et l'Urssaf lui attribue un numéro provisoire en attendant son immatriculation.",
+        motsCles: ["NIR", "numéro de sécurité sociale", "immatriculation", "numéro provisoire", "carte Vitale", "AME", "salarié étranger"],
+        corps: [
+          {
+            liste: [
+              "Laissez le champ vide en créant la gestion : nous faisons la déclaration avec son état civil.",
+              "Le numéro de la carte AME (aide médicale de l'État) n'est pas un numéro de sécurité sociale : ne l'utilisez pas.",
+              "Votre salarié demande ensuite son immatriculation à la CPAM de son domicile ; dès qu'il a son numéro, transmettez-le-nous.",
             ],
           },
         ],
@@ -605,7 +641,7 @@ export const THEMES: Theme[] = [
     slug: "conges",
     titre: "Les congés",
     porte: "employer",
-    intro: "Congés payés, repos hebdomadaire et jours pris en plus.",
+    intro: "Congés payés, repos hebdomadaire, jours pris en plus et congés pour événements familiaux.",
     questions: [
       {
         slug: "dix-pour-cent",
@@ -656,6 +692,43 @@ export const THEMES: Theme[] = [
               "Au-delà de 5 semaines demandées par le salarié, vous pouvez accepter en « congés pour convenance personnelle non rémunérés ».",
               "Des jours que vous prenez en dehors des 5 semaines prévues sont des « congés supplémentaires imposés par l'employeur », rémunérés.",
             ],
+          },
+        ],
+      },
+      {
+        slug: "evenements-familiaux",
+        question: "Mariage, naissance, décès : quels congés exceptionnels ?",
+        source: "Convention collective IDCC 3239, art. 48.1.3 ; code du travail, art. L3142-1 à L3142-5",
+        resume:
+          "Votre salarié a droit à des jours d'absence payés pour certains événements familiaux, sans condition d'ancienneté. Ils ne diminuent pas son salaire et ne réduisent pas ses congés payés.",
+        motsCles: ["congés exceptionnels", "événements familiaux", "mariage", "pacs", "naissance", "adoption", "décès", "deuil", "handicap", "absence autorisée"],
+        corps: [
+          {
+            tableau: {
+              entetes: ["Événement", "Durée"],
+              lignes: [
+                ["Mariage ou Pacs du salarié", "4 jours"],
+                ["Mariage ou Pacs d'un enfant", "1 jour"],
+                ["Naissance ou arrivée d'un enfant adopté", "3 jours"],
+                ["Décès d'un enfant", "12 jours ; 14 jours si l'enfant avait moins de 25 ans ou était lui-même parent"],
+                ["Décès du conjoint, partenaire de Pacs ou concubin, d'un parent, beau-parent, frère ou sœur", "3 jours"],
+                ["Décès d'un grand-parent, arrière-grand-parent, petit-enfant ou arrière-petit-enfant", "1 jour"],
+                ["Annonce d'un handicap, d'une maladie chronique ou d'un cancer chez un enfant", "5 jours"],
+              ],
+              legende: "Congés pour événements familiaux, en jours ouvrables",
+            },
+          },
+          {
+            liste: [
+              "Durées en jours ouvrables. Déplacement de plus de 600 km aller-retour pour l'événement : 1 jour de plus, non payé, si le salarié le demande.",
+              "Le salarié vous prévient et justifie l'événement (acte de mariage, de naissance, de décès…).",
+              "Les jours se prennent au moment de l'événement, dans une période raisonnable. Pour une naissance : le jour même ou le premier jour ouvrable qui suit, au choix du salarié.",
+              "Décès d'un enfant de moins de 25 ans : 8 jours de congé de deuil s'ajoutent, à prendre dans l'année (en une ou deux fois).",
+              "Ces jours ne se remplacent pas par de l'argent : non pris, ils sont perdus.",
+            ],
+          },
+          {
+            note: "Indiquez ces absences dans votre déclaration du mois (commentaire) : nous les reportons sur le bulletin, sans perte de salaire.",
           },
         ],
       },

@@ -74,8 +74,11 @@ export function SaisieAdresse({
   obligatoire = false,
   classeChamp = classeDefaut,
   etoile,
-  classeGrille = "grid gap-4 sm:col-span-2 sm:grid-cols-[2fr_1fr_1.5fr]",
+    classeGrille = "grid gap-4 sm:col-span-2 sm:grid-cols-[2fr_1fr_1.5fr]",
+  classeEtiquette = "flex flex-col gap-1 text-sm font-medium",
 }: {
+  /** Style des intitulés (adresse, code postal, ville). */
+  classeEtiquette?: string;
   /** Disposition des trois champs (par défaut : sur une ligne sur ordinateur). */
   classeGrille?: string;
   valeur: ValeurAdresse;
@@ -141,7 +144,7 @@ export function SaisieAdresse({
 
   return (
     <div className={classeGrille}>
-      <div className="relative flex flex-col gap-1 text-sm font-medium">
+            <div className={`relative ${classeEtiquette}`}>
         <label htmlFor={`${id}-a`}>
           {libelles.adresse}
           {obligatoire && etoile}
@@ -193,7 +196,7 @@ export function SaisieAdresse({
                   e.preventDefault();
                   choisir(s);
                 }}
-                className={`cursor-pointer px-3 py-2 text-sm font-normal ${i === actif ? "bg-brand-sky-tint/50" : "hover:bg-brand-sky-tint/30"}`}
+                className={`cursor-pointer px-3 py-2 text-sm font-normal text-foreground ${i === actif ? "bg-brand-sky-tint/50" : "hover:bg-brand-sky-tint/30"}`}
               >
                 {s.label}
               </li>
@@ -204,7 +207,7 @@ export function SaisieAdresse({
           </ul>
         )}
       </div>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className={classeEtiquette}>
         <span>
           {libelles.code_postal}
           {obligatoire && etoile}
@@ -219,7 +222,7 @@ export function SaisieAdresse({
           className={classeChamp}
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className={classeEtiquette}>
         <span>
           {libelles.ville}
           {obligatoire && etoile}

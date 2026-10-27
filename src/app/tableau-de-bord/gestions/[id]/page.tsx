@@ -38,8 +38,8 @@ import {
 /**
  * Détail d'une gestion : informations et documents associés.
  * Les documents sont classés du plus récent au plus ancien ; l'abonné peut
- * changer de tri (ancien, alphabétique, par type) via les liens au-dessus
- * de la liste. Le tri choisi est dans l'adresse (?tri=...), ce qui
+ * changer de tri par les flèches des en-têtes de colonnes (liens courts sur
+ * téléphone). Le tri choisi est dans l'adresse (?tri=...), ce qui
  * fonctionne sans JavaScript et se partage/rafraîchit sans le perdre.
  */
 export default async function DetailGestionPage({
@@ -56,6 +56,7 @@ export default async function DetailGestionPage({
   const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
   const messageErreur = Array.isArray(sp.erreur) ? sp.erreur[0] : sp.erreur;
   const actionDemandee = Array.isArray(sp.action) ? sp.action[0] : sp.action;
+  const etapeDemandee = Number(Array.isArray(sp.etape) ? sp.etape[0] : sp.etape) || 0;
   const tri: TriDocuments =
     triDemande && triDemande in LIBELLES_TRI ? (triDemande as TriDocuments) : "recent";
 
@@ -229,6 +230,7 @@ export default async function DetailGestionPage({
             )}
             <FormulaireGestion
               gestion={gestion}
+              etapeInitiale={etapeDemandee}
               quota={(await placesAbonnement(supabase, user.id)) ?? undefined}
               salariesEnCours={await salariesRemplacables(supabase, user.id)}
             />
@@ -336,23 +338,24 @@ export default async function DetailGestionPage({
             <p className="mt-1 text-xs text-foreground/60">
               Vos documents sont classés en trois catégories. Cliquez sur
               un titre ou sur « Télécharger » pour l&apos;enregistrer ; ils
-              restent disponibles en permanence dans votre espace.
+              restent disponibles en permanence dans votre espace. Les
+              flèches des colonnes changent l&apos;ordre.
             </p>
 
-            <nav
-              aria-label="Trier les documents"
-              className="mt-4 flex flex-wrap items-center gap-2 text-sm"
-            >
+            {/* Tri : flèches dans les en-têtes de colonnes (retour du
+                27/10) ; sur téléphone, où les en-têtes sont masqués, trois
+                liens discrets. */}
+            <nav aria-label="Trier les documents" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:hidden">
               <span className="text-foreground/60">Trier :</span>
-              {(Object.keys(LIBELLES_TRI) as TriDocuments[]).map((cle) => (
+              {(["recent", "ancien", "alpha"] as TriDocuments[]).map((cle) => (
                 <Link
                   key={cle}
-                  href={cle === "recent" ? `?` : `?tri=${cle}`}
+                  href={cle === "recent" ? "?" : `?tri=${cle}`}
                   scroll={false}
                   aria-current={cle === tri ? "true" : undefined}
-                  className={`btn btn-sm ${cle === tri ? "btn-primaire" : "btn-secondaire"}`}
+                  className={cle === tri ? "font-bold text-brand-violet" : "text-brand-teal underline"}
                 >
-                  {LIBELLES_TRI[cle]}
+                  {cle === "recent" ? "plus récents" : cle === "ancien" ? "plus anciens" : "de A à Z"}
                 </Link>
               ))}
             </nav>
@@ -360,6 +363,8 @@ export default async function DetailGestionPage({
             <DocumentsParCategorie
               documents={documents}
               vue="abonne"
+              tri={tri}
+              lienTri={(t) => (t === "recent" ? "?" : `?tri=${t}`)}
               action={(d) =>
                 d.storage_path ? (
                   <BoutonTelechargement documentId={d.id} titre={intituleDocument(d)} />

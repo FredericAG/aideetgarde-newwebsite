@@ -8,9 +8,46 @@ import {
   formatDate,
   formatPeriode,
   type DocumentRow,
+  type TriDocuments,
 } from "@/lib/data";
 
 const th = "px-3 py-2";
+
+/**
+ * En-tête de colonne cliquable (retour du 27/10) : la flèche indique le tri
+ * en cours ; un clic inverse le sens, ou trie par cette colonne.
+ */
+function EnteteTri({
+  libelle,
+  tri,
+  sens,
+  lienTri,
+}: {
+  libelle: string;
+  tri: TriDocuments;
+  /** [tri par défaut au premier clic, tri inverse]. */
+  sens: [TriDocuments, TriDocuments];
+  lienTri: (t: TriDocuments) => string;
+}) {
+  const actif = tri === sens[0] || tri === sens[1];
+  const suivant = tri === sens[0] ? sens[1] : sens[0];
+  // ↓ : du plus récent au plus ancien, ou de A à Z ; ↑ : l'inverse.
+  const fleche = !actif ? "↕" : tri === sens[0] ? "↓" : "↑";
+  return (
+    <Link
+      href={lienTri(suivant)}
+      scroll={false}
+      className="inline-flex items-center gap-1 hover:underline"
+      title={`Trier par ${libelle.toLowerCase()}`}
+      aria-label={`${libelle} : trier${actif ? " dans l'autre sens" : ""}`}
+    >
+      {libelle}
+      <span aria-hidden="true" className={actif ? "" : "opacity-50"}>
+        {fleche}
+      </span>
+    </Link>
+  );
+}
 const tdBase = "px-3 py-2 align-middle";
 
 /**
@@ -36,7 +73,12 @@ export function DocumentsParCategorie({
   vue,
   action,
   notes,
+  tri,
+  lienTri,
 }: {
+  /** Tri en cours et adresse de chaque tri : en-têtes cliquables. */
+  tri?: TriDocuments;
+  lienTri?: (t: TriDocuments) => string;
   /** Documents de la gestion, déjà triés. */
   documents: DocumentRow[];
   vue: "admin" | "abonne";
@@ -85,13 +127,21 @@ export function DocumentsParCategorie({
             }
             entete={
               <tr>
-                <th className={th}>Document</th>
-                <th className={th}>Période</th>
+                <th className={th} aria-sort={tri === "alpha" ? "ascending" : tri === "alpha_inverse" ? "descending" : undefined}>
+                  {tri && lienTri ? <EnteteTri libelle="Document" tri={tri} sens={["alpha", "alpha_inverse"]} lienTri={lienTri} /> : "Document"}
+                </th>
+                <th className={th} aria-sort={tri === "recent" ? "descending" : tri === "ancien" ? "ascending" : undefined}>
+                  {tri && lienTri ? <EnteteTri libelle="Période" tri={tri} sens={["recent", "ancien"]} lienTri={lienTri} /> : "Période"}
+                </th>
                 <th
                   className={th}
                   title={admin ? "Premier téléchargement par l'abonné" : undefined}
                 >
-                  {admin ? "Téléchargé le" : "Mis en ligne le"}
+                  {admin || !tri || !lienTri ? (
+                    admin ? "Téléchargé le" : "Mis en ligne le"
+                  ) : (
+                    <EnteteTri libelle="Mis en ligne le" tri={tri} sens={["depot_recent", "depot_ancien"]} lienTri={lienTri} />
+                  )}
                 </th>
                 <th className={th}>
                   <span className="sr-only">Actions</span>

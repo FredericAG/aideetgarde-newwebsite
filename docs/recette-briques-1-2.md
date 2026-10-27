@@ -657,3 +657,32 @@ Testé ici avant livraison : fonctions SQL sur une base locale (souscription, re
 | H.12 | Déclarer le mois | Mois et heures sur la même ligne | |
 | H.13 | Rédiger › Une attestation d'emploi (coordonnées connues) | Aucune coordonnée redemandée ; « Fait à » = ville de l'employeur ; un code postal propose la commune | |
 | H.14 | Rédiger › Un autre courrier › cerfa 15186 | Emploi, niveau, ROME, n° Pajemploi, date de naissance rangés dans « Déjà renseigné d'après la gestion » | |
+
+## Retours du 27/10 (lot 26)
+
+Aucun script SQL. Mettre à jour le site (Commit + Push).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| I.1 | Mes gestions (au moins une gestion) | Bouton « + Ajouter un salarié » sous les pastilles des salariés | |
+| I.2 | Gestion d'un salarié de nationalité « Autre » : modifier, étape Salarié | Champs facultatifs « Pièce d'identité », puis numéro, dates, autorité | |
+| I.3 | Rédiger › Un autre courrier › cerfa 15186 | Page 1 seule remplie ; cadre 1 vide ; NAF 9700Z ; document de séjour, n° étranger et pièce d'identité repris ; feuillets suivants vierges | |
+| I.4 | Ouvrir le PDF dans un lecteur et changer la date de signature | La case est modifiable | |
+| I.5 | Champ « Numéro de sécurité sociale » | Aide : pas bloquant, numéro provisoire, carte AME exclue | |
+| I.6 | Recommander : envoyer un message | Message de confirmation, bouton « Envoyer » masqué ; « Recommander à quelqu'un d'autre » le fait revenir | |
+| I.7 | Centre d'aide › Les congés › « Mariage, naissance, décès » | Tableau des durées et règles | |
+| I.8 | Centre d'aide › Le contrat › classification ; création d'une gestion, étapes Emploi et Poste | Règle « activité qui prend le plus de temps » ; aucun lien vers un site extérieur | |
+
+## Formulaire et documents, retours du 27/10 (lot 27)
+
+Aucun script SQL.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| J.1 | Gestion avec documents, sur ordinateur | Plus de boutons de tri ; flèches dans les en-têtes Document, Période, Mis en ligne le ; un clic trie, un second inverse | |
+| J.2 | Même page sur téléphone | Liens « plus récents · plus anciens · de A à Z » au-dessus des documents | |
+| J.3 | Créer une gestion › Contrat (CDI) | Période d'essai : Sans / Convention collective (conseillé) / Plus courte : 15 jours ; aide « 1 mois renouvelable une fois, 2 mois au plus » ; plus de case de durée | |
+| J.4 | Même étape en CDD | Pas de choix « 15 jours » ; aide propre au CDD | |
+| J.5 | Taper Entrée dans une case | Rien ne se passe : on reste sur l'étape | |
+| J.6 | « Enregistrer le brouillon » à l'étape Contrat | Message « Brouillon enregistré » et retour sur l'étape Contrat | |
+| J.7 | Parcourir les étapes | Intitulés en gras couleur ; une question sous l'autre ; dates et numéros dans des cases courtes | |

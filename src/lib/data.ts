@@ -226,7 +226,7 @@ export const TYPES_GESTION: Record<TypeGestion, string> = {
 };
 
 /**
- * Types de documents, dans l'ordre utilisé pour le tri « Par type ».
+ * Types de documents (ordre d'affichage des listes de choix).
  * Les clés sont enregistrées en base (voir les scripts supabase/) : ne pas
  * les renommer, seulement les libellés.
  */
@@ -366,13 +366,19 @@ export function isUuid(value: string): boolean {
   );
 }
 
-export type TriDocuments = "recent" | "ancien" | "alpha" | "type";
+/**
+ * Tris proposés par les flèches des en-têtes de colonnes (retour du 27/10) :
+ * Document (A→Z / Z→A), Période (récent / ancien), Mis en ligne le.
+ */
+export type TriDocuments = "recent" | "ancien" | "alpha" | "alpha_inverse" | "depot_recent" | "depot_ancien";
 
 export const LIBELLES_TRI: Record<TriDocuments, string> = {
-  recent: "Plus récents",
-  ancien: "Plus anciens",
-  alpha: "Ordre alphabétique",
-  type: "Par type",
+  recent: "Période, plus récents d'abord",
+  ancien: "Période, plus anciens d'abord",
+  alpha: "Document, de A à Z",
+  alpha_inverse: "Document, de Z à A",
+  depot_recent: "Mise en ligne, plus récents d'abord",
+  depot_ancien: "Mise en ligne, plus anciens d'abord",
 };
 
 /** Clé de date d'un document : sa période AAMM si elle existe, sinon sa date de dépôt. */
@@ -382,7 +388,6 @@ function cleDate(d: Pick<DocumentRow, "periode" | "created_at">): string {
 
 /** Trie une liste de documents (copie) selon le critère choisi par l'utilisateur. */
 export function trierDocuments<T extends DocumentRow>(docs: T[], tri: TriDocuments): T[] {
-  const ordreTypes = Object.keys(TYPES_DOCUMENT);
   const recent = (a: T, b: T) =>
     cleDate(b).localeCompare(cleDate(a)) || b.created_at.localeCompare(a.created_at);
   const copie = [...docs];
@@ -390,12 +395,17 @@ export function trierDocuments<T extends DocumentRow>(docs: T[], tri: TriDocumen
     case "ancien":
       return copie.sort((a, b) => -recent(a, b));
     case "alpha":
-      return copie.sort((a, b) => a.titre.localeCompare(b.titre, "fr", { sensitivity: "base" }));
-    case "type":
+    case "alpha_inverse": {
+      // Ordre de l'intitulé affiché (type et précision), puis le plus récent.
+      const sens = tri === "alpha" ? 1 : -1;
       return copie.sort(
-        (a, b) =>
-          ordreTypes.indexOf(a.type_document) - ordreTypes.indexOf(b.type_document) || recent(a, b),
+        (a, b) => sens * libelleDocument(a).localeCompare(libelleDocument(b), "fr", { sensitivity: "base" }) || recent(a, b),
       );
+    }
+    case "depot_recent":
+      return copie.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    case "depot_ancien":
+      return copie.sort((a, b) => a.created_at.localeCompare(b.created_at));
     default:
       return copie.sort(recent);
   }

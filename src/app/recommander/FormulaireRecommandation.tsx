@@ -26,6 +26,9 @@ export function FormulaireRecommandation({ signature }: { signature: string }) {
   const [email, setEmail] = useState("");
   const [prenom, setPrenom] = useState("");
   const [message, setMessage] = useState(() => messageParDefaut(signature));
+  // Après un envoi réussi, le bouton disparaît jusqu'à une nouvelle
+  // recommandation (demande du 27/10) : plus de doute sur l'envoi.
+  const [envoye, setEnvoye] = useState(false);
   const [etat, action] = useActionState<EtatRecommandation, FormData>(async (avant, fd) => {
     const res = await envoyerRecommandation(avant, fd);
     // Après un envoi réussi : formulaire vidé pour un autre contact, le
@@ -33,6 +36,7 @@ export function FormulaireRecommandation({ signature }: { signature: string }) {
     if (res.ok) {
       setEmail("");
       setPrenom("");
+      setEnvoye(true);
     }
     return res;
   }, {});
@@ -50,7 +54,10 @@ export function FormulaireRecommandation({ signature }: { signature: string }) {
             required
             autoComplete="off"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEnvoye(false);
+            }}
             className="rounded-md border border-brand-gray/40 px-3 py-2 text-base font-normal"
             placeholder="prenom.nom@exemple.fr"
           />
@@ -101,18 +108,25 @@ export function FormulaireRecommandation({ signature }: { signature: string }) {
           {etat.erreur}
         </p>
       )}
-      {etat.ok && (
+      {etat.ok && envoye ? (
         <p role="status" className="rounded-md border border-brand-teal/30 bg-brand-sky-tint/40 p-3 text-sm text-brand-teal">
           {etat.ok}{" "}
-          <button type="button" className="underline" onClick={() => champEmail.current?.focus()}>
+          <button
+            type="button"
+            className="underline"
+            onClick={() => {
+              setEnvoye(false);
+              champEmail.current?.focus();
+            }}
+          >
             Recommander à quelqu&apos;un d&apos;autre
           </button>
         </p>
+      ) : (
+        <div>
+          <BoutonEnvoyer />
+        </div>
       )}
-
-      <div>
-        <BoutonEnvoyer />
-      </div>
       <p className="text-xs text-foreground/60">
         Le message part de la part de vous, avec votre nom ; votre contact peut vous répondre directement. Son adresse
         sert uniquement à cet envoi : Aide &amp; Garde ne la conserve pas.

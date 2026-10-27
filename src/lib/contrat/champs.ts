@@ -60,7 +60,7 @@ export interface ChampContrat {
   etape: CleEtape;
   libelle: string;
   type: TypeChamp;
-  aide?: string;
+  aide?: string | ((c: ContexteChamps) => string);
   placeholder?: string | ((c: ContexteChamps) => string);
   options?: Option[] | ((c: ContexteChamps) => Option[]);
   obligatoire?: boolean | ((c: ContexteChamps, v: Valeurs) => boolean);
@@ -179,6 +179,24 @@ export const CHAMPS: ChampContrat[] = [
   },
   { cle: "titre_sejour_numero", etape: "salarie", libelle: "Numéro du titre", type: "texte", si: (v) => v.nationalite === "autre" && v.titre_sejour_type !== "aucun" },
   { cle: "titre_sejour_expiration", etape: "salarie", libelle: "Valable jusqu'au", type: "date", si: (v) => v.nationalite === "autre" && v.titre_sejour_type !== "aucun" },
+  // Pièce d'identité d'un salarié étranger (hors UE) : facultative, reprise
+  // dans la demande d'autorisation de travail (cerfa 15186, cadre 3.1).
+  {
+    cle: "piece_identite_type",
+    etape: "salarie",
+    libelle: "Pièce d'identité",
+    type: "choix",
+    options: [
+      { valeur: "passeport", libelle: "Passeport" },
+      { valeur: "cni", libelle: "Carte d'identité" },
+    ],
+    si: (v) => v.nationalite === "autre",
+    aide: "Facultatif. Utile pour une demande d'autorisation de travail : elle sera alors préremplie.",
+  },
+  { cle: "piece_identite_numero", etape: "salarie", libelle: "Numéro de la pièce", type: "texte", si: (v) => v.nationalite === "autre" && Boolean(v.piece_identite_type) },
+  { cle: "piece_identite_delivrance", etape: "salarie", libelle: "Délivrée le", type: "date", si: (v) => v.nationalite === "autre" && Boolean(v.piece_identite_type) },
+  { cle: "piece_identite_expiration", etape: "salarie", libelle: "Expire le", type: "date", si: (v) => v.nationalite === "autre" && Boolean(v.piece_identite_type) },
+  { cle: "piece_identite_autorite", etape: "salarie", libelle: "Délivrée par", type: "texte", placeholder: "ex. République du Sénégal", si: (v) => v.nationalite === "autre" && Boolean(v.piece_identite_type) },
   { cle: "adresse_salarie", colonne: "adresse_salarie", etape: "salarie", libelle: "Adresse", type: "texte", obligatoire: true, largeur: "entier", adresse: "rue" },
   { cle: "code_postal_salarie", colonne: "code_postal_salarie", etape: "salarie", libelle: "Code postal", type: "texte", obligatoire: true, adresse: "code_postal" },
   { cle: "ville_salarie", colonne: "ville_salarie", etape: "salarie", libelle: "Ville", type: "texte", obligatoire: true, adresse: "ville" },
@@ -190,7 +208,8 @@ export const CHAMPS: ChampContrat[] = [
     libelle: "Numéro de sécurité sociale",
     type: "texte",
     placeholder: "15 chiffres",
-    aide: "Sur sa carte Vitale. Pas de numéro ? Laissez vide : la date et le lieu de naissance suffisent pour commencer.",
+    aide:
+      "Sur sa carte Vitale. Pas encore de numéro (salarié arrivé de l'étranger, par exemple) ? Ce n'est pas bloquant : laissez vide. Il est déclaré avec son état civil et l'Urssaf lui attribue un numéro provisoire. Le numéro de la carte AME n'est pas un numéro de sécurité sociale.",
   },
 
   // --- Étape 3 : le poste ------------------------------------------------------
@@ -264,15 +283,19 @@ export const CHAMPS: ChampContrat[] = [
     etape: "contrat",
     libelle: "Période d'essai",
     type: "choix",
-    options: [
-      { valeur: "convention", libelle: "Celle de la convention collective" },
-      { valeur: "autre", libelle: "Autre durée (plus courte)" },
-      { valeur: "aucune", libelle: "Pas de période d'essai" },
+    // Trois choix seulement (retour du 27/10) ; en CDD, pas de durée « plus
+    // courte » : celle du CDD est déjà très brève.
+    options: (c) => [
+      { valeur: "aucune", libelle: "Sans période d'essai" },
+      { valeur: "convention", libelle: "Convention collective (conseillé)" },
+      ...(c.type_contrat === "CDD" ? [] : [{ valeur: "courte", libelle: "Plus courte : 15 jours" }]),
     ],
     defaut: () => "convention",
-    aide: "En CDI, elle est d'un mois au plus, renouvelable une fois avec l'accord écrit du salarié. Aide & Garde applique la bonne durée.",
+    aide: (c) =>
+      c.type_contrat === "CDD"
+        ? "Convention collective, en CDD : 1 jour par semaine de contrat, 2 semaines au plus pour un contrat de 6 mois ou moins, 1 mois au-delà. Nous vous conseillons de la garder."
+        : "Convention collective, en CDI : 1 mois, renouvelable une fois (prévu au contrat et annoncé par écrit au salarié), soit 2 mois au plus. Nous vous conseillons de la garder : elle laisse le temps de vérifier que tout se passe bien.",
   },
-  { cle: "periode_essai_duree", etape: "contrat", libelle: "Durée de la période d'essai", type: "texte", si: (v) => v.periode_essai === "autre" },
   {
     cle: "periode_adaptation",
     etape: "contrat",
@@ -373,6 +396,10 @@ export const CHAMPS: ChampContrat[] = [
 
 export function optionsDe(champ: ChampContrat, c: ContexteChamps): Option[] {
   return typeof champ.options === "function" ? champ.options(c) : (champ.options ?? []);
+}
+
+export function aideDe(champ: ChampContrat, c: ContexteChamps): string | undefined {
+  return typeof champ.aide === "function" ? champ.aide(c) : champ.aide;
 }
 
 export function placeholderDe(champ: ChampContrat, c: ContexteChamps): string | undefined {

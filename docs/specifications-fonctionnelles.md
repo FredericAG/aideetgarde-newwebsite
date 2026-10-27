@@ -481,6 +481,28 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **Abonnement sur le tableau de bord** | Une ligne compacte (salariés suivis, tarif, depuis, Gérer). | En place |
 | **Lecture du dernier bulletin** | Idée de Frédéric : reprendre emploi, niveau, adresses, n° Urssaf et NIR du dernier bulletin. Faisable à l'import des PDF (texte du bulletin) si les bulletins du logiciel actuel ont une mise en page stable : 2 ou 3 bulletins anonymisés nécessaires. | À étudier |
 
+## 4 septies. Retours du 27/10/2026
+
+| Élément | Règle | État |
+|---|---|---|
+| **Ajouter un salarié** | Bouton sous les pastilles des salariés dans « Mes gestions ». | En place |
+| **Cerfa 15186*03** | Page 1 seulement (les autres feuillets restent vierges) ; cadre 1 (motif) non rempli ; code NAF 9700Z ajouté ; cadre 3.1 prérempli si la gestion les connaît : document de séjour et n° étranger, pièce d'identité (passeport ou carte, numéro, dates, autorité). Le PDF reste un formulaire modifiable : toute case préremplie peut être corrigée après coup (date de signature, etc.), ce que précise le site. | En place |
+| **Pièce d'identité du salarié** | Nouveaux champs facultatifs dans la gestion pour un salarié hors UE (type, numéro, délivrée le, expire le, par). | En place |
+| **Sans numéro de sécurité sociale** | Aide du champ et question du centre d'aide : pas bloquant, déclaration avec l'état civil, numéro provisoire attribué par l'Urssaf, carte AME non utilisable, immatriculation à la CPAM. | En place — à relire |
+| **Recommandation** | Après l'envoi, le bouton disparaît ; « Recommander à quelqu'un d'autre » (ou un nouvel email) le fait revenir. | En place |
+| **Congés pour événements familiaux** | Nouvelle question dans « Les congés » : tableau des durées (CCN art. 48.1.3), justificatif, moment de prise, congé de deuil, déplacement de plus de 600 km. | En place — à relire |
+| **Classification** | Activité principale = celle qui prend le plus de temps (tuiles et choix de l'emploi) ; question du centre d'aide (domaine, emploi-repère, information du salarié pour un contrat en cours). Pas de lien vers le simulateur de la branche (Frédéric, 27/10 : tout doit être sur le site) ; Frédéric fournit les tableaux de classification pour enrichir les descriptions. | En place — tableaux attendus |
+| **Données des bulletins** | Décision de Frédéric : un second PDF déposé avec chaque bulletin portera les données à reprendre (emploi, niveau, adresses, n° Urssaf, NIR…), à la place de la lecture du bulletin. Format à fixer ensemble avant le codage. | À cadrer |
+
+## 4 octies. Formulaire de gestion et documents, retours du 27/10/2026 (2)
+
+| Élément | Règle | État |
+|---|---|---|
+| **Tri des documents** | Les boutons de tri sont remplacés par des flèches dans les en-têtes de colonnes : Document (A→Z / Z→A), Période (récent / ancien), Mis en ligne le. Sur téléphone, où les en-têtes sont masqués, trois liens discrets (plus récents, plus anciens, de A à Z). Le tri « par type » disparaît : les documents sont déjà rangés par catégorie. | En place |
+| **Période d'essai** | Trois choix : sans / convention collective (conseillé) / plus courte (15 jours, CDI seulement). Aide : en CDI, 1 mois renouvelable une fois, soit 2 mois au plus ; en CDD, 1 jour par semaine (2 semaines au plus jusqu'à 6 mois, 1 mois au-delà). Le champ de durée libre est supprimé. | En place |
+| **Touche Entrée** | N'enregistre plus le brouillon (ce qui ramenait à la première étape). Après « Enregistrer le brouillon », l'abonné revient sur l'étape où il était. | En place |
+| **Lisibilité** | Intitulés des questions en gras et en couleur, distincts des boutons ; une question sous l'autre ; largeur des cases selon l'information (date, heure, montant, numéro). | En place |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -508,6 +530,8 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 27/10/2026 (2) — Tri des documents par flèches dans les colonnes ; période d'essai en trois choix ; touche Entrée corrigée et retour à l'étape après un brouillon ; formulaire plus lisible (intitulés, une question par ligne, cases à la bonne largeur) ; lien vers le simulateur retiré.
+- 27/10/2026 — Bouton « Ajouter un salarié » dans Mes gestions ; cerfa 15186 limité à la page 1 (cadre 1 vide, NAF 9700Z, pièces d'identité) ; aide « sans numéro de sécurité sociale » ; bouton de recommandation masqué après envoi ; congés pour événements familiaux et classification dans le centre d'aide.
 - 25/10/2026 — Nouvelle gestion en 7 étapes, catégorie d'abord, CDI/CDD en haut, classification de la convention collective ; profil complété une fois avant la première gestion ; suggestions d'adresses (IGN) ; courriers sans questions inutiles ; cadre des actions rangé par verbe avec congé maternité ; déclaration du mois plus compacte ; abonnement compact sur le tableau de bord (script 3g).
 - 25/10/2026 — Formulaire « Créer une gestion » enrichi (v1, champs configurables) ; cerfa 15186 prérempli et aide sur la régularisation par le travail ; page « Installer l'application » et carte sur le tableau de bord.
 - 24/10/2026 — « Mes gestions » remplace « Documents » ; cadre « Actions » dans chaque gestion (mois à déclarer depuis le début du contrat, courriers et formulaires préremplis, « Prévenir Aide & Garde ») ; couleurs des catégories de documents sur téléphone.

@@ -385,11 +385,11 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
     cle: "autorisation_travail",
     titre: "Demande d'autorisation de travail (cerfa 15186*03)",
     description:
-      "Pour un salarié étranger qui demande sa régularisation par le travail : la partie employeur, à joindre à son dossier en préfecture.",
+      "Pour un salarié étranger qui demande sa régularisation par le travail : la page 1 (employeur, salarié, contrat), à joindre à son dossier en préfecture.",
     auteur: "employeur",
     adresseSalarie: true,
     avertissement:
-      "À remplir sur papier de préférence : le service en ligne reconnaît rarement les numéros Pajemploi et CESU. La partie « taxe employeur » ne vous concerne pas en tant que particulier : laissez-la vide.",
+      "À remettre sur papier de préférence : le service en ligne reconnaît rarement les numéros Pajemploi et CESU. Seule la page 1 est remplie ; le cadre 1 (motif de la demande) est laissé au salarié. La case « taxe employeur » ne vous concerne pas en tant que particulier : laissez-la vide.",
     champs: [
       {
         nom: "numero_declarant",

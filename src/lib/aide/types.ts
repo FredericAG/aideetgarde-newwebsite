@@ -56,7 +56,7 @@ export const PORTES: { cle: PorteEntree; titre: string; texte: string }[] = [
 ];
 
 /** Date de la dernière relecture du contenu, affichée sur chaque page. */
-export const MIS_A_JOUR = "24/10/2026";
+export const MIS_A_JOUR = "27/10/2026";
 
 /**
  * Contenu en relecture par Aide & Garde : bandeau d'avertissement sur les

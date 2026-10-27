@@ -286,8 +286,8 @@ export function FormulaireCourrier({
 
       <p className="text-xs text-foreground/60">
         {estFormulaireOfficiel(cle)
-          ? "Formulaire officiel : ce qui reste vide se complète à l'écran ou à la main."
-          : "Un champ laissé vide devient des pointillés, à compléter à la main."}
+          ? "Formulaire officiel modifiable : dans le PDF, chaque case préremplie peut encore être corrigée (la date de signature, par exemple) et ce qui reste vide se complète à l'écran ou à la main."
+          : "Un champ laissé vide devient des pointillés, à compléter à la main. Pour changer autre chose, modifiez ici et téléchargez de nouveau."}
       </p>
       <button type="submit" disabled={etat.enCours} className="btn btn-primaire w-full sm:w-auto sm:self-start">
         {etat.enCours ? "Préparation…" : "⬇ Télécharger le PDF prérempli"}

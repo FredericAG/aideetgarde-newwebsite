@@ -12,6 +12,7 @@ import {
   champsManquants,
   lireEnfants,
   optionsDe,
+  aideDe,
   placeholderDe,
   type ChampContrat,
   type CleEtape,
@@ -30,8 +31,32 @@ import { SaisieAdresse } from "@/components/SaisieAdresse";
 import { enregistrerGestion, type EtatFormulaireGestion } from "./actions";
 
 const champ =
-  "w-full rounded-lg border border-brand-gray/40 bg-white px-3 py-2.5 text-base outline-none focus:border-brand-teal sm:text-sm";
-const etiquette = "flex flex-col gap-1 text-sm font-medium";
+  "w-full rounded-lg border border-brand-gray/40 bg-white px-3 py-2.5 text-base font-normal text-foreground outline-none focus:border-brand-teal sm:text-sm";
+/**
+ * Intitulé de chaque question : en gras et en couleur, pour se distinguer
+ * nettement des boutons de choix (retour du 27/10).
+ */
+const etiquette = "flex flex-col gap-1.5 text-sm font-bold text-brand-teal";
+/** Largeur de saisie ajustée à l'information attendue (retour du 27/10). */
+const LARGEUR: Partial<Record<ChampContrat["type"], string>> = {
+  date: "sm:w-48",
+  heure: "w-36",
+  nombre: "w-32",
+  montant: "w-36",
+  telephone: "sm:w-60",
+  email: "sm:max-w-sm",
+  texte: "sm:max-w-sm",
+  choix: "sm:max-w-md",
+  textarea: "sm:max-w-2xl",
+};
+/** Numéros et codes : la largeur de l'information elle-même. */
+const LARGEUR_PAR_CLE: Record<string, string> = {
+  numero_securite_sociale: "sm:w-60",
+  numero_declarant: "sm:w-60",
+  titre_sejour_numero: "sm:w-60",
+  piece_identite_numero: "sm:w-60",
+  repartition_salaire: "w-32",
+};
 const aide = "text-xs font-normal text-foreground/60";
 const etoile = <span className="text-brand-violet" aria-label="nécessaire pour l'envoi"> *</span>;
 
@@ -102,15 +127,17 @@ function ChampSaisie({
   contexte: ContexteChamps;
   onChange: (v: string) => void;
 }) {
-  const largeur =
-    c.largeur === "entier" || c.type === "textarea" || c.type === "multi" || c.type === "enfants" ? "sm:col-span-2" : "";
+  const largeur = "";
+  const tailleSaisie =
+    LARGEUR_PAR_CLE[c.cle] ?? (c.type === "texte" && c.largeur === "entier" ? "sm:max-w-2xl" : (LARGEUR[c.type] ?? ""));
   const titre = (
     <span>
       {c.libelle}
       {obligatoire && etoile}
     </span>
   );
-  const aideTexte = c.aide ? <span className={aide}>{c.aide}</span> : null;
+  const texteAide = aideDe(c, contexte);
+  const aideTexte = texteAide ? <span className={aide}>{texteAide}</span> : null;
   const options = optionsDe(c, contexte);
 
   if (c.type === "oui_non" || (c.type === "choix" && options.length <= 3 && options.every((o) => o.libelle.length < 60))) {
@@ -137,7 +164,7 @@ function ChampSaisie({
         </legend>
         <div className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
           {options.map((o) => (
-            <label key={o.valeur} className="flex items-start gap-2 font-normal">
+                        <label key={o.valeur} className="flex items-start gap-2 font-normal text-foreground">
               <input
                 type="checkbox"
                 checked={choisis.has(o.valeur)}
@@ -202,7 +229,7 @@ function ChampSaisie({
   let saisie: React.ReactNode;
   if (c.type === "choix") {
     saisie = (
-      <select value={valeur} onChange={(e) => onChange(e.target.value)} className={champ}>
+      <select value={valeur} onChange={(e) => onChange(e.target.value)} className={`${champ} ${tailleSaisie}`}>
         <option value="">Choisir…</option>
         {options.map((o) => (
           <option key={o.valeur} value={o.valeur}>
@@ -213,7 +240,7 @@ function ChampSaisie({
     );
   } else if (c.type === "textarea") {
     saisie = (
-      <textarea rows={2} maxLength={2000} value={valeur} placeholder={placeholderDe(c, contexte)} onChange={(e) => onChange(e.target.value)} className={champ} />
+      <textarea rows={2} maxLength={2000} value={valeur} placeholder={placeholderDe(c, contexte)} onChange={(e) => onChange(e.target.value)} className={`${champ} ${tailleSaisie}`} />
     );
   } else {
     saisie = (
@@ -224,7 +251,7 @@ function ChampSaisie({
         placeholder={placeholderDe(c, contexte)}
         autoComplete="off"
         onChange={(e) => onChange(e.target.value)}
-        className={champ}
+        className={`${champ} ${tailleSaisie}`}
       />
     );
   }
@@ -237,7 +264,7 @@ function ChampSaisie({
   );
 }
 
-/** Champs d'une étape, deux par ligne sur ordinateur. */
+/** Champs d'une étape, l'un sous l'autre (retour du 27/10). */
 function ChampsEtape({
   etape,
   valeurs,
@@ -252,7 +279,7 @@ function ChampsEtape({
   const visibles = CHAMPS.filter((c) => c.etape === etape && champVisible(c, valeurs, contexte));
   if (!visibles.length) return null;
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="flex flex-col gap-5">
       {visibles.map((c) => {
         if (c.adresse === "code_postal" || c.adresse === "ville") return null;
         if (c.adresse === "rue") {
@@ -265,6 +292,8 @@ function ChampsEtape({
               obligatoire={champObligatoire(c, valeurs, contexte)}
               etoile={etoile}
               classeChamp={champ}
+              classeEtiquette={etiquette}
+              classeGrille="grid gap-4 sm:max-w-2xl sm:grid-cols-[2fr_7rem_1.4fr]"
               libelles={{ adresse: c.libelle, code_postal: "Code postal", ville: "Ville" }}
             />
           );
@@ -301,7 +330,10 @@ export function FormulaireGestion({
   quota,
   salariesEnCours = [],
   remplacementInitial,
+  etapeInitiale = 0,
 }: {
+  /** Étape affichée en arrivant (après « Enregistrer le brouillon »). */
+  etapeInitiale?: number;
   gestion?: Gestion;
   dateParDefaut?: string;
   quota?: { utilisees: number; total: number };
@@ -352,7 +384,7 @@ export function FormulaireGestion({
   });
   const cat = trouverCategorie(details.categorie);
   const contexte: ContexteChamps = { type_gestion: v.type_gestion, categorie: cat?.cle ?? "", type_contrat: v.type_contrat, remplacement };
-  const [etape, setEtape] = useState(0);
+    const [etape, setEtape] = useState(Math.min(Math.max(0, Math.trunc(etapeInitiale) || 0), ETAPES.length - 1));
   const cleEtape = ETAPES[etape].cle;
 
   const maj =
@@ -391,8 +423,18 @@ export function FormulaireGestion({
   const complet = quota && quota.utilisees >= quota.total;
 
   return (
-    <form action={action} className="mt-6 flex flex-col gap-5">
+    <form
+      action={action}
+      // Entrée dans un champ : ne pas enregistrer le brouillon (ce qui
+      // ramenait à la première étape, retour du 27/10).
+      onKeyDown={(e) => {
+        const cible = e.target as HTMLElement;
+        if (e.key === "Enter" && cible instanceof HTMLInputElement && cible.type !== "submit") e.preventDefault();
+      }}
+      className="mt-6 flex flex-col gap-5"
+    >
       {gestion && <input type="hidden" name="gestion_id" value={gestion.id} />}
+      <input type="hidden" name="etape" value={etape} />
       <input type="hidden" name="details" value={JSON.stringify(details)} />
       <input type="hidden" name="type_gestion" value={v.type_gestion} />
       <input type="hidden" name="type_contrat" value={v.type_contrat} />
@@ -442,6 +484,10 @@ export function FormulaireGestion({
         <p className="-mt-3 rounded-lg bg-brand-sky-tint/30 p-3 text-sm">
           Remplissez ce que vous savez, sans vous inquiéter des blancs : <strong>Aide &amp; Garde relit tout</strong>,
           adapte et corrige si besoin, et vous contacte pour finaliser le contrat avec vous.
+        </p>
+        <p className="-mb-2 text-sm font-bold text-brand-teal">
+          Quelle est l&apos;activité principale de votre salarié ?
+          <span className={`block ${aide}`}>Celle qui lui prend le plus de temps.</span>
         </p>
         <div role="radiogroup" aria-label="Type d'emploi" className="grid gap-2 sm:grid-cols-2">
           {CATEGORIES.map((c) => {
@@ -509,10 +555,10 @@ export function FormulaireGestion({
           </label>
         )}
         {remplacement && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-5">
             <label className={etiquette}>
               Salarié remplacé
-              <select value={v.remplace_gestion_id} onChange={maj("remplace_gestion_id")} className={champ}>
+              <select value={v.remplace_gestion_id} onChange={maj("remplace_gestion_id")} className={`${champ} sm:max-w-md`}>
                 <option value="">Choisir…</option>
                 {salariesEnCours.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -523,7 +569,7 @@ export function FormulaireGestion({
             </label>
             <label className={etiquette}>
               Motif de son absence
-              <select value={v.motif_remplacement} onChange={maj("motif_remplacement")} className={champ}>
+                            <select value={v.motif_remplacement} onChange={maj("motif_remplacement")} className={`${champ} sm:max-w-md`}>
                 <option value="">Choisir…</option>
                 {Object.entries(MOTIFS_REMPLACEMENT).map(([cle, libelle]) => (
                   <option key={cle} value={cle}>
@@ -546,16 +592,14 @@ export function FormulaireGestion({
       {/* ---------- 2. Le salarié ---------- */}
       <section hidden={cleEtape !== "salarie"} className="carte flex flex-col gap-4 p-4 sm:p-5">
         <h2 className="font-bold text-brand-teal">{ETAPES[1].titre}</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className={etiquette}>
-            <span>Prénom{etoile}</span>
-            <input name="prenom_salarie" value={v.prenom_salarie} onChange={maj("prenom_salarie")} autoComplete="off" className={champ} />
-          </label>
-          <label className={etiquette}>
-            <span>Nom{etoile}</span>
-            <input name="nom_salarie" value={v.nom_salarie} onChange={maj("nom_salarie")} autoComplete="off" className={champ} />
-          </label>
-        </div>
+        <label className={etiquette}>
+          <span>Prénom{etoile}</span>
+          <input name="prenom_salarie" value={v.prenom_salarie} onChange={maj("prenom_salarie")} autoComplete="off" className={`${champ} sm:max-w-sm`} />
+        </label>
+        <label className={etiquette}>
+          <span>Nom{etoile}</span>
+          <input name="nom_salarie" value={v.nom_salarie} onChange={maj("nom_salarie")} autoComplete="off" className={`${champ} sm:max-w-sm`} />
+        </label>
         <ChampsEtape etape="salarie" valeurs={details} contexte={contexte} maj={majDetails} />
         <aside className="rounded-lg border-l-4 border-brand-teal bg-brand-sky-tint/30 p-3 text-sm">
           <strong className="text-brand-teal">Nouveau salarié : pensez à son suivi médical.</strong> À l&apos;embauche,
@@ -576,11 +620,11 @@ export function FormulaireGestion({
         {cat ? (
           <>
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium">
+              <legend className="mb-1 text-sm font-bold text-brand-teal">
                 Quel emploi de la convention collective correspond le mieux ?
                 <span className={`block ${aide}`}>
-                  Il fixe le niveau (échelle) et le salaire minimum. Dans le doute, gardez celui proposé : nous le vérifions
-                  avec vous.
+                  Il fixe le niveau (échelle) et le salaire minimum. Plusieurs activités ? Retenez celle qui prend le plus de
+                  temps. Dans le doute, gardez l&apos;emploi proposé : nous le vérifions avec vous.
                 </span>
               </legend>
               {emploisDeLaCategorie(cat).map((e) => {
@@ -624,10 +668,10 @@ export function FormulaireGestion({
           {v.type_contrat === "CDD" ? "Contrat à durée déterminée" : "Contrat à durée indéterminée"} (modifiable à
           l&apos;étape 1).
         </p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-5">
           <label className={etiquette}>
             Date de début
-            <input type="date" name="date_debut" value={v.date_debut} onChange={maj("date_debut")} className={champ} />
+            <input type="date" name="date_debut" value={v.date_debut} onChange={maj("date_debut")} className={`${champ} sm:w-48`} />
           </label>
           {v.type_contrat === "CDD" && (
             <label className={etiquette}>
@@ -635,7 +679,7 @@ export function FormulaireGestion({
                 {remplacement ? "Date de fin (facultative)" : "Date de fin du CDD"}
                 {!remplacement && etoile}
               </span>
-              <input type="date" name="date_fin_prevue" value={v.date_fin_prevue} onChange={maj("date_fin_prevue")} className={champ} />
+                            <input type="date" name="date_fin_prevue" value={v.date_fin_prevue} onChange={maj("date_fin_prevue")} className={`${champ} sm:w-48`} />
               {remplacement && <span className={aide}>Laissez vide si le contrat prend fin au retour du salarié absent.</span>}
             </label>
           )}
@@ -648,9 +692,9 @@ export function FormulaireGestion({
         <h2 className="font-bold text-brand-teal">{ETAPES[4].titre}</h2>
         <div className={etiquette}>
           <span>Nombre d&apos;heures de travail{etoile}</span>
-          <div className="flex gap-2 sm:w-1/2">
-            <input name="heures" inputMode="decimal" value={v.heures} onChange={maj("heures")} placeholder="ex. 20" aria-label="Nombre d'heures" className={`${champ} w-28`} />
-            <select name="unite_heures" value={v.unite_heures} onChange={maj("unite_heures")} aria-label="Unité" className={champ}>
+          <div className="flex gap-2">
+            <input name="heures" inputMode="decimal" value={v.heures} onChange={maj("heures")} placeholder="ex. 20" aria-label="Nombre d'heures" className={`${champ} !w-28`} />
+            <select name="unite_heures" value={v.unite_heures} onChange={maj("unite_heures")} aria-label="Unité" className={`${champ} !w-auto`}>
               <option value="semaine">par semaine</option>
               <option value="mois">par mois</option>
             </select>
@@ -663,9 +707,9 @@ export function FormulaireGestion({
       {/* ---------- 6. Salaire et congés ---------- */}
       <section hidden={cleEtape !== "remuneration"} className="carte flex flex-col gap-4 p-4 sm:p-5">
         <h2 className="font-bold text-brand-teal">{ETAPES[5].titre}</h2>
-        <label className={`${etiquette} sm:w-1/2`}>
+        <label className={etiquette}>
           <span>Salaire horaire net (€){etoile}</span>
-          <input name="salaire_horaire_net" inputMode="decimal" value={v.salaire_horaire_net} onChange={maj("salaire_horaire_net")} placeholder="ex. 12,50" className={champ} />
+          <input name="salaire_horaire_net" inputMode="decimal" value={v.salaire_horaire_net} onChange={maj("salaire_horaire_net")} placeholder="ex. 12,50" className={`${champ} !w-36`} />
           <span className={aide}>Avant prélèvement à la source. Au moins le minimum de l&apos;emploi choisi : nous le vérifions.</span>
         </label>
         <ChampsEtape etape="remuneration" valeurs={details} contexte={contexte} maj={majDetails} />

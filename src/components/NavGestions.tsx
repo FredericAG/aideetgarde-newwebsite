@@ -46,16 +46,23 @@ export function NavGestions({ gestions, courante }: { gestions: GestionNav[]; co
   const actives = gestions.filter((g) => g.statut !== "terminee");
   const terminees = gestions.filter((g) => g.statut === "terminee");
   return (
-    <nav aria-label="Mes gestions" className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-      <div className="flex w-max items-center gap-2 sm:w-auto sm:flex-wrap">
-        {actives.map(pastille)}
-        {terminees.length > 0 && (
-          <>
-            <span className="ml-1 shrink-0 text-xs font-bold uppercase tracking-wide text-foreground/50">Terminées</span>
-            {terminees.map(pastille)}
-          </>
-        )}
-      </div>
-    </nav>
+    <div>
+      <nav aria-label="Mes gestions" className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+        <div className="flex w-max items-center gap-2 sm:w-auto sm:flex-wrap">
+          {actives.map(pastille)}
+          {terminees.length > 0 && (
+            <>
+              <span className="ml-1 shrink-0 text-xs font-bold uppercase tracking-wide text-foreground/50">Terminées</span>
+              {terminees.map(pastille)}
+            </>
+          )}
+        </div>
+      </nav>
+      {/* Juste sous la liste (demande du 27/10) ; sans abonnement, la page
+          de création l'explique. */}
+      <Link href="/tableau-de-bord/gestions/nouvelle" className="btn btn-secondaire btn-sm mt-3">
+        + Ajouter un salarié
+      </Link>
+    </div>
   );
 }

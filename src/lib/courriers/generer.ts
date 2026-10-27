@@ -697,9 +697,9 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
  * Formulaire officiel (modeles-pdf/autorisation-travail-15186-03.pdf),
  * partie employeur préremplie pour un particulier employeur, selon la
  * pratique d'Aide & Garde : n° Pajemploi ou CESU à la place du SIRET,
- * convention collective 3239, emploi, niveau et code ROME ; partie « taxe
- * employeur » laissée vide. Le salarié complète ses documents d'identité et
- * de séjour. Le formulaire d'origine est un formulaire « XFA » : il est
+ * convention collective 3239, code NAF 9700Z, emploi, niveau et code ROME ;
+ * documents de séjour et d'identité s'ils sont connus. Page 1 seulement ;
+ * cadre 1 (motif) et case « taxe employeur » laissés vides. Le formulaire d'origine est un formulaire « XFA » : il est
  * converti en formulaire PDF classique, lisible partout et modifiable.
  */
 async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Promise<Uint8Array> {
@@ -709,14 +709,13 @@ async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Prom
   const police = await doc.embedFont(StandardFonts.Helvetica);
   const n = compatible(police);
   const P1 = "topmostSubform[0].Page1[0].";
-  const P2 = "topmostSubform[0].Page2[0].";
-  const texte = (champ: string, valeur: string | undefined) => {
+  const texte = (champ: string, valeur: string | undefined, taille = 8) => {
     if (!valeur) return;
     try {
       const f = form.getTextField(champ);
       const max = f.getMaxLength();
       // Champs très bas sur ce formulaire : petite taille fixe, lisible.
-      if (!f.isCombed()) f.setFontSize(8);
+      if (!f.isCombed()) f.setFontSize(taille);
       f.setText(n(max ? valeur.slice(0, max) : valeur));
     } catch {
       /* champ absent d'une autre version du formulaire */
@@ -730,10 +729,13 @@ async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Prom
       /* idem */
     }
   };
-  const liste = (champ: string, option: string) => {
+  const liste = (champ: string, option: string, taille?: number) => {
     try {
       const f = form.getField(champ);
-      if (f instanceof PDFDropdown) f.select(option);
+      if (f instanceof PDFDropdown) {
+        f.select(option);
+        if (taille) f.setFontSize(taille);
+      }
     } catch {
       /* idem */
     }
@@ -743,13 +745,10 @@ async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Prom
   const g = c.gestion;
   const villeEmployeur = [E.adresse, E.ville].filter(Boolean).join(", ");
 
-  // 1. Motif : première demande.
-  try {
-    form.getCheckBox(`${P1}rab_Horaire[0]`).check();
-  } catch {
-    /* idem */
-  }
+  // Cadre 1 (motif de la demande) : laissé vide, à la demande d'Aide & Garde
+  // (c'est le salarié qui le précise selon sa situation).
   // 2. Employeur : particulier employeur.
+  texte(`${P1}txt_activite[0]`, "9700Z"); // NAF : activités des ménages en tant qu'employeurs
   texte(`${P1}txt_IDCC[0]`, "3239");
   texte(`${P1}txt_intitule[0]`, "Particuliers employeurs et emploi à domicile");
   texte(`${P1}txt_employeur[0]`, [E.prenom, E.nom.toUpperCase()].filter(Boolean).join(" "));
@@ -764,6 +763,25 @@ async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Prom
   texte(`${P1}dat_naissance[0]`, dateCourte(v.date_naissance));
   texte(`${P1}txt_nationnalite[0]`, v.nationalite);
   texte(`${P1}txt_codePostal[1]`, S.code_postal.replace(/\D/g, ""));
+  // 3.1 Documents de séjour et d'identité, s'ils sont connus de la gestion.
+  const d = c.details;
+  const docSejour: Record<string, string> = {
+    carte_sejour: "carte de séjour temporaire",
+    recepisse: "récépissé de carte de séjour",
+    autorisation_provisoire: "autorisation provisoire de séjour",
+  };
+  if (d.titre_sejour_type && docSejour[d.titre_sejour_type]) {
+    // Cases très étroites sur le formulaire officiel : petits caractères.
+    liste(`${P1}cmb_docSejour[0]`, docSejour[d.titre_sejour_type], 5);
+    texte(`${P1}txt_numSejour[0]`, d.titre_sejour_numero, 5);
+  }
+  if (d.piece_identite_type === "passeport" || d.piece_identite_type === "cni") {
+    radio(`${P1}rab_docIdentite[0]`, d.piece_identite_type === "passeport" ? "1" : "2");
+    texte(`${P1}txt_numDoc[0]`, d.piece_identite_numero);
+    texte(`${P1}dat_delivrement[0]`, dateCourte(d.piece_identite_delivrance));
+    texte(`${P1}dat_expiration[0]`, dateCourte(d.piece_identite_expiration));
+    texte(`${P1}txt_organisme[0]`, d.piece_identite_autorite);
+  }
   // 4. Contrat.
   texte(`${P1}txt_emploiOccupe[0]`, v.emploi);
   texte(`${P1}txt_codeROME[0]`, v.rome);
@@ -800,18 +818,8 @@ async function remplirAutorisationTravail(c: ContexteCourrier, v: Valeurs): Prom
   texte(`${P1}dat_signature[0]`, dateCourte(v.fait_le));
   texte(`${P1}txt_lieuSignature[0]`, v.fait_a);
 
-  // Feuillet 2 (annexe) : coordonnées du salarié, embauche, lieu de travail.
-  texte(`${P2}txt_Adresse[1]`, S.adresse);
-  texte(`${P2}txt_CodePostal[1]`, S.code_postal.replace(/\D/g, ""));
-  texte(`${P2}txt_Commune[0]`, S.ville);
-  texte(`${P2}txt_Telephone[2]`, c.details.telephone_salarie);
-  texte(`${P2}txt_Courriel[2]`, c.details.email_salarie);
-  texte(`${P2}dat_Embauche[0]`, dateCourte(g.date_debut));
-  texte(`${P2}txt_DescriptionEmploi[0]`, [v.emploi, (c.details.taches ?? "").split("|").filter(Boolean).join(", ")].filter(Boolean).join(" : "));
-  texte(`${P2}txt_Denomination[0]`, [E.prenom, E.nom.toUpperCase(), "(particulier employeur)"].filter(Boolean).join(" "));
-  texte(`${P2}txt_Adresse[2]`, c.details.lieu_travail_adresse || villeEmployeur);
-  texte(`${P2}txt_CodePostal[2]`, c.details.lieu_travail_adresse ? "" : E.code_postal);
-  texte(`${P2}txt_Signataire[0]`, [E.prenom, E.nom.toUpperCase()].filter(Boolean).join(" "));
+  // Les autres feuillets ne sont pas remplis (demande du 27/10) : seule la
+  // page 1 concerne l'employeur particulier.
 
   form.updateFieldAppearances(police);
   doc.setTitle("Demande d'autorisation de travail (cerfa 15186*03)");

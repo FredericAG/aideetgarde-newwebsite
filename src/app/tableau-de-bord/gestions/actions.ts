@@ -88,6 +88,9 @@ export async function enregistrerGestion(
   });
   if (error) return { message: traduire(error) };
   const gestionId = (nouvelId as string) ?? id;
+  // Retour sur l'étape où était l'abonné (retour du 27/10).
+  const numeroEtape = Number(texte(fd, "etape"));
+  const suiteEtape = Number.isInteger(numeroEtape) && numeroEtape > 0 && numeroEtape < 7 ? `&etape=${numeroEtape}` : "";
 
   // Champs complémentaires du contrat (brique 3f).
   let brut: Record<string, string> = {};
@@ -124,7 +127,7 @@ export async function enregistrerGestion(
     if (manquants.length) {
       const message = `Brouillon enregistré. Avant d'envoyer, complétez : ${manquants.map((m) => m.libelle).join(", ")}.`;
       revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
-      if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(message)}`);
+      if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(message)}${suiteEtape}`);
       return { message };
     }
   }
@@ -135,7 +138,7 @@ export async function enregistrerGestion(
       // Le brouillon est enregistré ; on reste sur le formulaire avec le
       // message (ex. champ manquant, quota atteint).
       revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
-      if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(`Brouillon enregistré, mais pas encore envoyé : ${traduire(errEnvoi)}`)}`);
+      if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(`Brouillon enregistré, mais pas encore envoyé : ${traduire(errEnvoi)}`)}${suiteEtape}`);
       return { message: `Brouillon enregistré, mais pas encore envoyé : ${traduire(errEnvoi)}` };
     }
 
@@ -164,7 +167,7 @@ export async function enregistrerGestion(
 
   revalidatePath("/tableau-de-bord");
   redirect(
-    `/tableau-de-bord/gestions/${gestionId}?ok=${encodeURIComponent("Brouillon enregistré. Vous pourrez le compléter et l'envoyer quand vous voulez.")}`,
+    `/tableau-de-bord/gestions/${gestionId}?ok=${encodeURIComponent("Brouillon enregistré. Vous pourrez le compléter et l'envoyer quand vous voulez.")}${suiteEtape}`,
   );
 }
 
