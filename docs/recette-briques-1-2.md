@@ -356,7 +356,7 @@ Pour voir l'espace abonné d'un compte de test : se connecter avec son adresse `
 1. Exécuter `supabase/brique5a_paiements.sql` dans le SQL Editor (après 2g). Les abonnements existants, dont ceux des données fictives, passent en « hors site » : **ils ne seront jamais prélevés**.
 2. Dans Vercel > Settings > Environment Variables (environnements Production et Preview) :
    - `SUPABASE_SECRET_KEY` (Supabase > Project Settings > API Keys > Secret keys), type **Secret** ;
-   - `SYSTEMPAY_BOUTIQUE`, `SYSTEMPAY_MOT_DE_PASSE` (**Secret**), `NEXT_PUBLIC_SYSTEMPAY_CLE_PUBLIQUE` : les clés de **TEST** de la boutique Aide & Garde, ou en attendant celles de la boutique de démonstration indiquées dans `.env.example` ;
+   - `SYSTEMPAY_BOUTIQUE` = 36374049, `SYSTEMPAY_MOT_DE_PASSE` = le mot de passe de **test** (`testpassword_…`, type **Sensitive**), `NEXT_PUBLIC_SYSTEMPAY_CLE_PUBLIQUE` = la clé publique de **test** (`36374049:testpublickey_…`) : Back Office > Paramétrage > Boutique > onglet « Clés d'API REST ». Jamais les clés de production pendant la recette ;
    - `CRON_SECRET` : une longue chaîne aléatoire, **Secret**.
 3. Redéployer. **Rien à modifier dans le Back Office Systempay** : le site donne lui-même son adresse de notification à chaque paiement ; la règle de notification qui sert à l'ancien site reste intacte.
 

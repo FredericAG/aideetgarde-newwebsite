@@ -56,6 +56,17 @@ Deux façons de faire un abonnement mensuel avec Systempay :
 
 À confirmer auprès de la BRED : le contrat doit inclure le paiement par alias (« 0 clic ») et l'API REST du formulaire embarqué. Les abonnements de l'ancien site (gérés par Systempay) pourront être convertis à la reprise (brique 13) avec leur alias existant, sans que l'abonné ressaisisse sa carte.
 
+### 3.2 Recette avec la vraie boutique et bascule (28/10/2026)
+
+| Point | Décision / réponse | État |
+|---|---|---|
+| **Recette** | Clés de TEST de la boutique Aide & Garde (36374049) dans Vercel : identifiant, mot de passe de test (Sensitive), clé publique de test. La clé HMAC n'est pas utilisée. Rien à changer dans le Back Office. | À faire (Frédéric) |
+| **Notifications** | Chaque paiement du nouveau site, premier mois et désormais aussi les échéances mensuelles (corrigé le 28/10), donne son adresse de notification à Systempay : la règle du Back Office, qui pointe vers l'ancien site, ne reçoit rien du nouveau site. | En place |
+| **Deux sites en parallèle** | Possible : même boutique, mêmes clés ; l'ancien site garde ses abonnements Systempay et ses notifications, le nouveau ses débits par alias. Point bloquant le jour de la bascule DNS : les adresses de notification de l'ancien site sont sur www.aideetgarde.fr ; si le domaine pointe vers le nouveau site, l'ancien ne reçoit plus rien. Il faut alors soit garder l'ancien site sur une autre adresse (ex. ancien.aideetgarde.fr) et changer ce jour-là les adresses de production de la règle, soit avoir migré les abonnements avant. | À décider |
+| **Migration des abonnements** | Les cartes enregistrées (alias) appartiennent à la boutique, pas au site : le nouveau site peut reprendre les prélèvements sans nouvelle saisie de carte. Étapes : export des abonnements du Back Office (alias, email, montant, prochaine date), import rattaché aux comptes par email, prise en charge par le nouveau site, résiliation de l'abonnement Systempay correspondant juste avant sa prochaine échéance (jamais deux débits). Information des abonnés. À faire confirmer par Systempay : utilisation par l'API REST des alias créés par l'ancien formulaire. | À préparer |
+| **Clés de production** | Les mêmes qu'aujourd'hui : le compte et les clés sont ceux de la boutique, indépendants du site et du domaine. Rien à régénérer ; à saisir dans Vercel le jour de la bascule. | Décidé |
+| **Montant variable** | Le nouveau site n'utilise pas d'abonnement Systempay : il débite chaque mois, par l'alias, le montant de la formule en cours. Hausse comme baisse sans nouvelle saisie de carte, à condition que l'abonné ait accepté le changement (choix de formule en ligne, CGV) et en soit informé avant le débit. Pour les anciens abonnements Systempay, le montant se modifie dans le Back Office ou par l'API (Subscription/Update, à confirmer). | Décidé ; changement de formule en ligne à construire (brique 12) |
+
 ## 4. Gestions
 
 | Règle | Statut |
@@ -541,6 +552,7 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 28/10/2026 — Paiement : recette avec la vraie boutique, notifications des échéances adressées au nouveau site, parallèle et bascule, migration des abonnements, montants variables (§ 3.2).
 - 27/10/2026 (3) — Étape Horaires : alertes 40 / 48 / 50 heures, envoi refusé au-delà de 50 heures, détail par jour en tableau, heures de nuit précisées, cases ajustées.
 - 27/10/2026 (2) — Tri des documents par flèches dans les colonnes ; période d'essai en trois choix ; touche Entrée corrigée et retour à l'étape après un brouillon ; formulaire plus lisible (intitulés, une question par ligne, cases à la bonne largeur) ; lien vers le simulateur retiré.
 - 27/10/2026 — Bouton « Ajouter un salarié » dans Mes gestions ; cerfa 15186 limité à la page 1 (cadre 1 vide, NAF 9700Z, pièces d'identité) ; aide « sans numéro de sécurité sociale » ; bouton de recommandation masqué après envoi ; congés pour événements familiaux et classification dans le centre d'aide.

@@ -164,6 +164,12 @@ export async function debiterAlias(o: {
   token: string;
   email: string | null;
   reference: string;
+  /**
+   * Adresse de notification de CE site. Indispensable : sans elle,
+   * Systempay appliquerait la règle du Back Office, qui pointe vers l'ancien
+   * site, et lui enverrait les notifications de nos échéances.
+   */
+  urlNotification: string;
 }): Promise<ResultatApi> {
   return appelSystempay("Charge/CreatePayment", {
     amount: enCentimes(o.montant),
@@ -171,6 +177,7 @@ export async function debiterAlias(o: {
     orderId: o.orderId,
     formAction: "SILENT",
     paymentMethodToken: o.token,
+    ipnTargetUrl: o.urlNotification,
     // Email facultatif pour un débit : omis s'il serait refusé.
     customer: { reference: o.reference, ...(emailAccepteParSystempay(o.email) ? { email: o.email } : {}) },
     transactionInitiator: "MERCHANT",

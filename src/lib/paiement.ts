@@ -189,6 +189,8 @@ export async function encaisserEcheances(db: SupabaseClient): Promise<Record<str
   const liste = (data ?? []) as EcheanceATraiter[];
   const bilan: Record<string, number> = {};
   const compter = (k: string) => (bilan[k] = (bilan[k] ?? 0) + 1);
+  // Notifications de nos débits vers ce site, jamais vers l'ancien.
+  const urlNotification = `${await adresseSite()}/api/systempay/ipn`;
 
   async function une(e: EcheanceATraiter) {
     // Résultat inconnu au passage précédent : on vérifie chez Systempay
@@ -215,6 +217,7 @@ export async function encaisserEcheances(db: SupabaseClient): Promise<Record<str
       token: e.token,
       email: e.email,
       reference: e.reference,
+      urlNotification,
     });
     if (!res.ok) {
       // Erreur certaine (alias invalide…) = refus ; sinon résultat inconnu.
