@@ -36,7 +36,9 @@ export type TypeChamp =
   | "multi"
   | "enfants"
   | "telephone"
-  | "email";
+  | "email"
+  /** Tableau des horaires par jour (JSON, voir lirePlanning). */
+  | "planning";
 
 export type Valeurs = Record<string, string>;
 
@@ -308,8 +310,12 @@ export const CHAMPS: ChampContrat[] = [
 
   // --- Étape 5 : les horaires (nombre d'heures : formulaire) ---------------------
   { cle: "jours_presence", etape: "horaires", libelle: "Jours de travail", type: "multi", options: JOURS, obligatoire: true, largeur: "entier" },
-  { cle: "heure_arrivee", etape: "horaires", libelle: "Heure d'arrivée habituelle", type: "heure" },
-  { cle: "heure_depart", etape: "horaires", libelle: "Heure de départ habituelle", type: "heure" },
+  // Détail par jour : affiché quand l'abonné coche « Je veux préciser le
+  // détail par jour » à côté du nombre d'heures (retour du 27/10). Il
+  // remplace alors les heures habituelles et la présence responsable.
+  { cle: "planning_jours", etape: "horaires", libelle: "Détail par jour", type: "planning", si: (v) => v.detail_par_jour === "oui" },
+  { cle: "heure_arrivee", etape: "horaires", libelle: "Heure d'arrivée habituelle", type: "heure", si: (v) => v.detail_par_jour !== "oui" },
+  { cle: "heure_depart", etape: "horaires", libelle: "Heure de départ habituelle", type: "heure", si: (v) => v.detail_par_jour !== "oui" },
   {
     cle: "organisation",
     etape: "horaires",
@@ -317,6 +323,7 @@ export const CHAMPS: ChampContrat[] = [
     type: "textarea",
     placeholder: "ex. lundi et jeudi de 16 h 30 à 19 h 30, mercredi de 8 h 30 à 18 h",
     largeur: "entier",
+    si: (v) => v.detail_par_jour !== "oui",
   },
   {
     cle: "heures_presence_responsable",
@@ -324,15 +331,17 @@ export const CHAMPS: ChampContrat[] = [
     libelle: "Dont heures de présence responsable (par semaine)",
     type: "nombre",
     categories: ["garde", "garde_partagee", "assistance"],
+    si: (v) => v.detail_par_jour !== "oui",
     aide: "Temps où le salarié peut vaquer à ses occupations tout en restant vigilant (ex. sieste des enfants) : rémunéré aux deux tiers.",
   },
   {
     cle: "heures_nuit",
     etape: "horaires",
-    libelle: "Dont heures de nuit, dimanches ou jours fériés (par semaine)",
+    libelle: "Dont heures de garde la nuit, le dimanche ou un jour férié (par semaine)",
     type: "nombre",
     categories: GARDE,
-    aide: "Garde entre 22 h et 6 h, le dimanche ou un jour férié parce que vous travaillez : elles augmentent l'aide de la CAF.",
+    aide:
+      "Garde entre 22 h et 6 h, le dimanche ou un jour férié parce que vous-même travaillez à ces horaires (obligation professionnelle) : la CAF augmente alors son aide (« horaires spécifiques »). À ne pas confondre avec la « présence de nuit » de la convention collective, où le salarié dort sur place dans une pièce séparée pour pouvoir intervenir : indiquez-la dans les précisions, nous la prévoyons au contrat.",
   },
   { cle: "heures_garde_simple", etape: "horaires", libelle: "Heures en garde simple (vos enfants seuls) par semaine", type: "nombre", categories: ["garde_partagee"] },
   { cle: "heures_garde_partagee", etape: "horaires", libelle: "Heures en garde partagée par semaine", type: "nombre", categories: ["garde_partagee"], obligatoire: true },
@@ -438,8 +447,48 @@ export function lireEnfants(valeur: string | undefined): Enfant[] {
   }
 }
 
+/** Horaires d'un jour : arrivée, départ (hh:mm), travail effectif et présence responsable (heures). */
+export interface HorairesJour {
+  a: string;
+  d: string;
+  e: string;
+  r: string;
+}
+
+export function lirePlanning(valeur: string | undefined): Record<string, HorairesJour> {
+  const sortie: Record<string, HorairesJour> = {};
+  if (!valeur) return sortie;
+  try {
+    const brut = JSON.parse(valeur) as Record<string, Partial<HorairesJour>>;
+    for (const { valeur: jour } of JOURS) {
+      const j = brut?.[jour];
+      if (!j || typeof j !== "object") continue;
+      const heure = (x: unknown) => (typeof x === "string" && /^\d{2}:\d{2}$/.test(x) ? x : "");
+      const duree = (x: unknown) => (typeof x === "string" && /^\d{1,2}([,.]\d{1,2})?$/.test(x.trim()) ? x.trim() : "");
+      const h = { a: heure(j.a), d: heure(j.d), e: duree(j.e), r: duree(j.r) };
+      if (h.a || h.d || h.e || h.r) sortie[jour] = h;
+    }
+  } catch {
+    /* illisible : vide */
+  }
+  return sortie;
+}
+
+/** Durée en heures entre deux horaires hh:mm (passage de minuit compris). */
+export function dureeEntre(a: string, d: string): number | null {
+  if (!a || !d) return null;
+  const [ha, ma] = a.split(":").map(Number);
+  const [hd, md] = d.split(":").map(Number);
+  let min = hd * 60 + md - (ha * 60 + ma);
+  if (min <= 0) min += 24 * 60;
+  return min / 60;
+}
+
+export const JOURS_SEMAINE = JOURS;
+
 function rempli(ch: ChampContrat, valeur: string | undefined): boolean {
   if (ch.type === "enfants") return lireEnfants(valeur).some((e) => e.prenom.trim());
+  if (ch.type === "planning") return Object.keys(lirePlanning(valeur)).length > 0;
   return Boolean((valeur ?? "").trim());
 }
 
@@ -467,7 +516,7 @@ export function nettoyerValeurs(
 ): { config: Valeurs; colonnes: Partial<Record<NonNullable<ChampContrat["colonne"]>, string>> } {
   const config: Valeurs = {};
   const colonnes: Partial<Record<NonNullable<ChampContrat["colonne"]>, string>> = {};
-  for (const cle of ["categorie", "emploi_repere"]) {
+    for (const cle of ["categorie", "emploi_repere", "detail_par_jour"]) {
     const v = String(brut[cle] ?? "").trim().slice(0, 40);
     if (/^[a-z_]*$/.test(v) && v) config[cle] = v;
   }
@@ -489,6 +538,10 @@ export function nettoyerValeurs(
       const liste = lireEnfants(String(brut[ch.cle] ?? "")).filter((e) => e.prenom.trim() || e.nom.trim());
       val = liste.length ? JSON.stringify(liste) : "";
     }
+    if (ch.type === "planning") {
+      const planning = lirePlanning(String(brut[ch.cle] ?? ""));
+      val = Object.keys(planning).length ? JSON.stringify(planning) : "";
+    }
     if (ch.colonne) colonnes[ch.colonne] = val;
     else if (val) config[ch.cle] = val;
   }
@@ -506,6 +559,13 @@ export function valeurLisible(ch: ChampContrat, valeur: string, c: ContexteChamp
     return lireEnfants(valeur)
       .map((e) => [e.prenom, e.nom].filter(Boolean).join(" ") + (e.naissance ? ` (${formatDate(e.naissance)})` : ""))
       .join(", ");
+  if (ch.type === "planning")
+    return Object.entries(lirePlanning(valeur))
+      .map(([jour, h]) => {
+        const parts = [h.a && h.d ? `${h.a.replace(":", " h ")} – ${h.d.replace(":", " h ")}` : "", h.e ? `${h.e} h de travail effectif` : "", h.r ? `${h.r} h de présence responsable` : ""].filter(Boolean);
+        return `${jour} : ${parts.join(", ")}`;
+      })
+      .join(" ; ");
   if (ch.type === "choix") return optionsDe(ch, c).find((o) => o.valeur === valeur)?.libelle ?? valeur;
   return valeur;
 }

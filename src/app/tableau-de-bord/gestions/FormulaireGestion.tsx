@@ -28,6 +28,7 @@ import {
   type Categorie,
 } from "@/lib/contrat/classification";
 import { SaisieAdresse } from "@/components/SaisieAdresse";
+import { PlanningJours, heuresEnTexte, totauxPlanning } from "./PlanningJours";
 import { enregistrerGestion, type EtatFormulaireGestion } from "./actions";
 
 const champ =
@@ -39,14 +40,15 @@ const champ =
 const etiquette = "flex flex-col gap-1.5 text-sm font-bold text-brand-teal";
 /** Largeur de saisie ajustée à l'information attendue (retour du 27/10). */
 const LARGEUR: Partial<Record<ChampContrat["type"], string>> = {
+  // « ! » : prime sur le w-full de la case (sinon la case resterait étirée).
   date: "sm:w-48",
-  heure: "w-36",
-  nombre: "w-32",
-  montant: "w-36",
+  heure: "!w-36",
+  nombre: "!w-32",
+  montant: "!w-36",
   telephone: "sm:w-60",
   email: "sm:max-w-sm",
   texte: "sm:max-w-sm",
-  choix: "sm:max-w-md",
+  choix: "sm:!w-56",
   textarea: "sm:max-w-2xl",
 };
 /** Numéros et codes : la largeur de l'information elle-même. */
@@ -55,7 +57,7 @@ const LARGEUR_PAR_CLE: Record<string, string> = {
   numero_declarant: "sm:w-60",
   titre_sejour_numero: "sm:w-60",
   piece_identite_numero: "sm:w-60",
-  repartition_salaire: "w-32",
+  repartition_salaire: "!w-32",
 };
 const aide = "text-xs font-normal text-foreground/60";
 const etoile = <span className="text-brand-violet" aria-label="nécessaire pour l'envoi"> *</span>;
@@ -113,6 +115,41 @@ function Choix({
   );
 }
 
+/**
+ * Durée de travail au-delà de 40 heures par semaine (retour du 27/10) :
+ * heures majorées de 25 % de la 41e à la 48e ; au-delà de 48 heures,
+ * majoration de 50 % sous forme de repos (1 h travaillée = 1 h 30 à
+ * récupérer, compteur tenu sur le bulletin) ; 50 heures au plus.
+ */
+function AlerteDuree({ heuresHebdo, parMois }: { heuresHebdo: number | null; parMois: boolean }) {
+  if (heuresHebdo == null || heuresHebdo <= 40) return null;
+  const soit = parMois ? ` (soit environ ${heuresEnTexte(Math.round(heuresHebdo * 10) / 10)} h par semaine)` : "";
+  if (heuresHebdo > 50) {
+    return (
+      <p role="alert" className="rounded-lg border-l-4 border-red-500 bg-red-50 p-3 text-sm font-normal text-red-800">
+        <strong>Plus de 50 heures par semaine{soit} : ce n&apos;est pas possible.</strong> La durée de travail d&apos;un
+        salarié à domicile ne peut pas dépasser 50 heures par semaine. Réduisez le nombre d&apos;heures ; en cas de doute,
+        contactez-nous.
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-lg border-l-4 border-brand-jaune bg-brand-jaune/15 p-3 text-sm font-normal text-foreground">
+      <p>
+        <strong>Plus de 40 heures par semaine{soit}.</strong> De la 41e à la 48e heure, les heures sont majorées de 25 % :
+        elles sont payées avec le salaire du mois.
+      </p>
+      {heuresHebdo > 48 && (
+        <p className="mt-2">
+          <strong>Au-delà de 48 heures : des jours de récupération sont à prévoir.</strong> Ces heures sont majorées de 50 %
+          et compensées en repos : 1 heure travaillée = 1 h 30 à récupérer. Le bulletin Aide &amp; Garde tient le
+          compteur des heures à récupérer.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Saisie d'un champ du fichier src/lib/contrat/champs.ts. */
 function ChampSaisie({
   champ: c,
@@ -120,7 +157,10 @@ function ChampSaisie({
   obligatoire,
   contexte,
   onChange,
+  valeurs = {},
 }: {
+  /** Toutes les valeurs (le tableau par jour lit les jours cochés). */
+  valeurs?: Valeurs;
   champ: ChampContrat;
   valeur: string;
   obligatoire: boolean;
@@ -154,15 +194,30 @@ function ChampSaisie({
       </div>
     );
   }
+  if (c.type === "planning") {
+    return (
+      <div className={etiquette}>
+        {titre}
+        <PlanningJours
+          valeur={valeur}
+          onChange={onChange}
+          jours={valeurs.jours_presence ?? ""}
+          presenceResponsable={["garde", "garde_partagee", "assistance"].includes(contexte.categorie)}
+        />
+        {aideTexte}
+      </div>
+    );
+  }
   if (c.type === "multi") {
     const choisis = new Set(valeur ? valeur.split("|") : []);
+    const courts = options.every((o) => o.libelle.length <= 12);
     return (
       <fieldset className={`${etiquette} ${largeur}`}>
         <legend className="mb-1">
           {c.libelle}
           {obligatoire && etoile}
         </legend>
-        <div className="grid gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        <div className={courts ? "flex flex-wrap gap-x-5 gap-y-2" : "grid gap-x-4 gap-y-1.5 sm:max-w-3xl sm:grid-cols-2"}>
           {options.map((o) => (
                         <label key={o.valeur} className="flex items-start gap-2 font-normal text-foreground">
               <input
@@ -305,6 +360,7 @@ function ChampsEtape({
             valeur={valeurs[c.cle] ?? ""}
             obligatoire={champObligatoire(c, valeurs, contexte)}
             contexte={contexte}
+            valeurs={valeurs}
             onChange={(val) => maj({ [c.cle]: val })}
           />
         );
@@ -407,6 +463,15 @@ export function FormulaireGestion({
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Durée hebdomadaire (les heures par mois sont ramenées à la semaine).
+  const heuresSaisies = Number(v.heures.replace(",", ".").replace(/\s/g, ""));
+  const heuresHebdo =
+    v.heures.trim() && Number.isFinite(heuresSaisies) && heuresSaisies > 0
+      ? v.unite_heures === "mois"
+        ? (heuresSaisies * 12) / 52
+        : heuresSaisies
+      : null;
+  const totalPlanning = totauxPlanning(details.planning_jours);
   // Ce qu'il reste à remplir pour envoyer, par étape.
   const manquants: { libelle: string; etape: CleEtape }[] = [
     ...(!cat ? [{ libelle: "le type d'emploi", etape: "categorie" as CleEtape }] : []),
@@ -416,6 +481,9 @@ export function FormulaireGestion({
       ? [{ libelle: "la date de fin du CDD", etape: "contrat" as CleEtape }]
       : []),
     ...(!v.heures.trim() ? [{ libelle: "le nombre d'heures", etape: "horaires" as CleEtape }] : []),
+    ...(heuresHebdo != null && heuresHebdo > 50
+      ? [{ libelle: "un nombre d'heures de 50 par semaine au plus", etape: "horaires" as CleEtape }]
+      : []),
     ...(!v.salaire_horaire_net.trim() ? [{ libelle: "le salaire horaire", etape: "remuneration" as CleEtape }] : []),
     ...champsManquants(details, contexte),
   ].sort((a, b) => ETAPES.findIndex((e) => e.cle === a.etape) - ETAPES.findIndex((e) => e.cle === b.etape));
@@ -691,15 +759,39 @@ export function FormulaireGestion({
       <section hidden={cleEtape !== "horaires"} className="carte flex flex-col gap-4 p-4 sm:p-5">
         <h2 className="font-bold text-brand-teal">{ETAPES[4].titre}</h2>
         <div className={etiquette}>
-          <span>Nombre d&apos;heures de travail{etoile}</span>
-          <div className="flex gap-2">
-            <input name="heures" inputMode="decimal" value={v.heures} onChange={maj("heures")} placeholder="ex. 20" aria-label="Nombre d'heures" className={`${champ} !w-28`} />
-            <select name="unite_heures" value={v.unite_heures} onChange={maj("unite_heures")} aria-label="Unité" className={`${champ} !w-auto`}>
-              <option value="semaine">par semaine</option>
-              <option value="mois">par mois</option>
-            </select>
+          <span>Nombre d&apos;heures de travail effectif{etoile}</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex gap-2">
+              <input name="heures" inputMode="decimal" value={v.heures} onChange={maj("heures")} placeholder="ex. 20" aria-label="Nombre d'heures" className={`${champ} !w-28`} />
+              <select name="unite_heures" value={v.unite_heures} onChange={maj("unite_heures")} aria-label="Unité" className={`${champ} !w-auto`}>
+                <option value="semaine">par semaine</option>
+                <option value="mois">par mois</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-normal text-foreground">
+              <input
+                type="checkbox"
+                checked={details.detail_par_jour === "oui"}
+                onChange={(e) => majDetails({ detail_par_jour: e.target.checked ? "oui" : "" })}
+                className="h-5 w-5 accent-[var(--brand-violet)]"
+              />
+              Je veux préciser le détail par jour
+            </label>
           </div>
-          <span className={aide}>Par mois si les horaires varient d&apos;une semaine à l&apos;autre. En général, 50 heures par semaine au plus.</span>
+          <span className={aide}>Par mois si les horaires varient d&apos;une semaine à l&apos;autre.</span>
+          <AlerteDuree heuresHebdo={heuresHebdo} parMois={v.unite_heures === "mois"} />
+          {details.detail_par_jour === "oui" && totalPlanning.effectif > 0 && Math.abs(totalPlanning.effectif - (heuresHebdo ?? -1)) > 0.01 && (
+            <p className="text-sm font-normal text-foreground">
+              Le détail par jour donne {heuresEnTexte(totalPlanning.effectif)} h de travail effectif par semaine.{" "}
+              <button
+                type="button"
+                onClick={() => setV((x) => ({ ...x, heures: heuresEnTexte(totalPlanning.effectif), unite_heures: "semaine" }))}
+                className="font-medium text-brand-teal underline"
+              >
+                Reporter ce total
+              </button>
+            </p>
+          )}
         </div>
         <ChampsEtape etape="horaires" valeurs={details} contexte={contexte} maj={majDetails} />
       </section>

@@ -503,6 +503,17 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **Touche Entrée** | N'enregistre plus le brouillon (ce qui ramenait à la première étape). Après « Enregistrer le brouillon », l'abonné revient sur l'étape où il était. | En place |
 | **Lisibilité** | Intitulés des questions en gras et en couleur, distincts des boutons ; une question sous l'autre ; largeur des cases selon l'information (date, heure, montant, numéro). | En place |
 
+## 4 nonies. Étape « Horaires », retours du 27/10/2026 (3)
+
+| Élément | Règle | État |
+|---|---|---|
+| **Durée maximale** | Au-delà de 50 heures par semaine (heures par mois ramenées à la semaine) : alerte rouge, et envoi refusé (contrôle aussi côté serveur) ; le brouillon reste possible. | En place |
+| **De 41 à 48 heures** | Message : heures majorées de 25 %, payées avec le salaire du mois. | En place |
+| **Au-delà de 48 heures** | Message : jours de récupération à prévoir ; majoration de 50 % en repos (1 h travaillée = 1 h 30 à récupérer) ; le bulletin Aide & Garde tient le compteur. | En place |
+| **Détail par jour** | Case « Je veux préciser le détail par jour » à côté des heures. Tableau inspiré du contrat : jours en colonnes (jours cochés), heure d'arrivée, heure de départ, durée de présence calculée, dont travail effectif, et présence responsable (garde d'enfants, aide à la personne). Sur téléphone, un bloc par jour. Total de la semaine, avec « Reporter ce total » dans le nombre d'heures. Le tableau remplace alors les heures habituelles, le texte libre et le total de présence responsable. Enregistré dans la configuration de la gestion (`planning_jours`). | En place |
+| **Heures de nuit, dimanche, férié** | Précisé : garde à ces horaires parce que l'employeur lui-même travaille (obligation professionnelle), ce qui augmente l'aide de la CAF ; à distinguer de la « présence de nuit » de la convention collective (salarié qui dort sur place), à indiquer dans les précisions. | En place — à valider |
+| **Largeur des cases** | Heures, nombres et montants en cases courtes ; listes déroulantes courtes ; jours de travail sur une ou deux lignes. | En place |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -530,6 +541,7 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 27/10/2026 (3) — Étape Horaires : alertes 40 / 48 / 50 heures, envoi refusé au-delà de 50 heures, détail par jour en tableau, heures de nuit précisées, cases ajustées.
 - 27/10/2026 (2) — Tri des documents par flèches dans les colonnes ; période d'essai en trois choix ; touche Entrée corrigée et retour à l'étape après un brouillon ; formulaire plus lisible (intitulés, une question par ligne, cases à la bonne largeur) ; lien vers le simulateur retiré.
 - 27/10/2026 — Bouton « Ajouter un salarié » dans Mes gestions ; cerfa 15186 limité à la page 1 (cadre 1 vide, NAF 9700Z, pièces d'identité) ; aide « sans numéro de sécurité sociale » ; bouton de recommandation masqué après envoi ; congés pour événements familiaux et classification dans le centre d'aide.
 - 25/10/2026 — Nouvelle gestion en 7 étapes, catégorie d'abord, CDI/CDD en haut, classification de la convention collective ; profil complété une fois avant la première gestion ; suggestions d'adresses (IGN) ; courriers sans questions inutiles ; cadre des actions rangé par verbe avec congé maternité ; déclaration du mois plus compacte ; abonnement compact sur le tableau de bord (script 3g).

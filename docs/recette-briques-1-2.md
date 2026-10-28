@@ -686,3 +686,18 @@ Aucun script SQL.
 | J.5 | Taper Entrée dans une case | Rien ne se passe : on reste sur l'étape | |
 | J.6 | « Enregistrer le brouillon » à l'étape Contrat | Message « Brouillon enregistré » et retour sur l'étape Contrat | |
 | J.7 | Parcourir les étapes | Intitulés en gras couleur ; une question sous l'autre ; dates et numéros dans des cases courtes | |
+
+## Étape « Horaires » (lot 28)
+
+Aucun script SQL.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| K.1 | Créer une gestion › Horaires : 42 h par semaine | Message jaune « majorées de 25 % » | |
+| K.2 | 49 h par semaine | Message jaune avec « jours de récupération à prévoir », 1 h = 1 h 30, compteur sur le bulletin | |
+| K.3 | 52 h par semaine (ou 230 h par mois) | Alerte rouge ; à l'étape Envoi, « 50 par semaine au plus » dans ce qui manque ; envoi refusé | |
+| K.4 | Cocher « Je veux préciser le détail par jour » | Tableau des jours cochés ; durée de présence calculée ; total de la semaine ; « Reporter ce total » remplit le nombre d'heures | |
+| K.5 | Même chose sur téléphone | Un bloc par jour, lisible | |
+| K.6 | Enregistrer le brouillon puis le rouvrir | Le détail par jour est retrouvé ; récapitulatif lisible | |
+| K.7 | Heures de nuit (garde d'enfants) | Aide sur la CAF et la différence avec la présence de nuit | |
+| K.8 | Largeur des cases | Heures, nombres, jour de repos : cases courtes | |

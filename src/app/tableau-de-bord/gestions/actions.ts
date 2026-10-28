@@ -122,6 +122,15 @@ export async function enregistrerGestion(
   const detailsActifs = !errDetails || !(errDetails.code === "PGRST202" || errDetails.code === "42883");
   if (errDetails && detailsActifs) return { message: traduire(errDetails) };
 
+  // 50 heures par semaine au plus (heures par mois ramenées à la semaine).
+  const hebdo = heures == null ? null : unite === "mois" ? (heures * 12) / 52 : heures;
+  if (envoyer && hebdo != null && hebdo > 50) {
+    const message = "Brouillon enregistré. Avant d'envoyer : la durée de travail ne peut pas dépasser 50 heures par semaine.";
+    revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
+    if (!id) redirect(`/tableau-de-bord/gestions/${gestionId}?erreur=${encodeURIComponent(message)}${suiteEtape}`);
+    return { message };
+  }
+
   if (envoyer && detailsActifs) {
     const manquants = champsManquants({ ...config, ...colonnes } as Record<string, string>, contexteChamps);
     if (manquants.length) {
