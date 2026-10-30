@@ -165,9 +165,11 @@ export async function debiterAlias(o: {
   email: string | null;
   reference: string;
   /**
-   * Adresse de notification de CE site. Indispensable : sans elle,
-   * Systempay appliquerait la règle du Back Office, qui pointe vers l'ancien
-   * site, et lui enverrait les notifications de nos échéances.
+   * Adresse de notification de CE site. D'après la documentation « Paiement
+   * 0 clic » (lue le 30/10), un débit SILENT n'envoie pas de notification :
+   * le résultat arrive dans la réponse. L'adresse est transmise par
+   * précaution, pour que rien ne parte jamais vers l'ancien site (Systempay :
+   * l'adresse de la requête prime sur la règle du Back Office).
    */
   urlNotification: string;
 }): Promise<ResultatApi> {

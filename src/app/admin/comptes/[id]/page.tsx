@@ -85,6 +85,8 @@ export default async function FicheComptePage({
   const sp = await searchParams;
   const ok = one(sp.ok);
   const erreur = one(sp.erreur);
+  // Message d'une action sur une gestion : affiché dans sa carte.
+  const gestionDuMessage = one(sp.gestion);
   // Arrivée depuis « Déclarations à traiter » : gestion et mois du dépôt
   // attendu (?depot=<id gestion>&periode=AAMM).
   const depotCible = one(sp.depot);
@@ -247,7 +249,7 @@ export default async function FicheComptePage({
             .join(" · ") || "Coordonnées non renseignées"}
         </p>
 
-        {ok && (
+        {ok && !gestionDuMessage && (
           <p
             role="status"
             className="mt-6 rounded-md border border-brand-teal/40 bg-brand-teal/10 p-3 text-sm text-brand-teal"
@@ -255,7 +257,7 @@ export default async function FicheComptePage({
             {ok}
           </p>
         )}
-        {erreur && (
+        {erreur && !gestionDuMessage && (
           <p
             role="alert"
             className="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700"
@@ -583,6 +585,16 @@ Ajouter la gestion
                     id={`gestion-${g.id}`}
                     className="scroll-mt-4 rounded-lg border border-brand-gray/20 bg-[var(--carte)] p-4 transition-shadow has-[>details[open]]:border-brand-violet has-[>details[open]]:bg-white has-[>details[open]]:ring-2 has-[>details[open]]:ring-brand-violet/30"
                   >
+                    {gestionDuMessage === g.id && (ok || erreur) && (
+                      <p
+                        role={erreur ? "alert" : "status"}
+                        className={`mb-3 rounded-md border p-2 text-sm ${
+                          erreur ? "border-red-300 bg-red-50 text-red-700" : "border-brand-teal/40 bg-brand-teal/10 text-brand-teal"
+                        }`}
+                      >
+                        {erreur || ok}
+                      </p>
+                    )}
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="text-sm">
                         <span className="mr-2 rounded bg-brand-sky-tint/40 px-1.5 py-0.5 font-mono text-xs text-brand-black">

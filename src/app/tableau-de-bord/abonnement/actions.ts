@@ -212,7 +212,10 @@ export async function confirmerPaiement(orderId: string): Promise<string> {
   const res = await lireCommande(orderId);
   if (!res.ok) return "en_attente";
   try {
-    return await traiterReponseCommande(db, { ...res.answer, orderDetails: { orderId } }, "retour");
+    const resultat = await traiterReponseCommande(db, { ...res.answer, orderDetails: { orderId } }, "retour");
+    // Abonnement activé : tableau de bord et page Abonnement recalculés.
+    revalidatePath("/tableau-de-bord", "layout");
+    return resultat;
   } catch (e) {
     console.error("Confirmation du paiement :", e);
     return "en_attente";

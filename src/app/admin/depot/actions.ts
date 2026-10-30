@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { libelleDocument, libelleMois, type TypeDocument } from "@/lib/data";
 import { prevenirAbonne } from "@/lib/prevenir";
@@ -104,6 +105,9 @@ export interface DepotReussi {
  */
 export async function notifierDepotGroupe(depots: DepotReussi[]): Promise<string[]> {
   const { supabase } = await requireAdmin("/admin/depot");
+  // Fiches de l'administration recalculées : les documents déposés y
+  // apparaissent tout de suite (pas de version gardée en mémoire).
+  revalidatePath("/admin", "layout");
   const parCompte = new Map<string, DepotReussi[]>();
   for (const d of depots) {
     if (!parCompte.has(d.compteId)) parCompte.set(d.compteId, []);

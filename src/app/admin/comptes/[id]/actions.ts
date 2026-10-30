@@ -29,8 +29,14 @@ import { cheminStockage, titreDocument } from "@/lib/nom-fichier";
  * (?ok=... ou ?erreur=...) : pas de JavaScript côté navigateur nécessaire.
  */
 
-function retour(compteId: string, type: "ok" | "erreur", message: string): never {
-  redirect(`/admin/comptes/${compteId}?${type}=${encodeURIComponent(message)}`);
+function retour(compteId: string, type: "ok" | "erreur", message: string, gestionId?: string): never {
+  // Fiche recalculée (sinon le navigateur peut réafficher une version gardée
+  // en mémoire quelques secondes : l'action semblait « ne rien faire »,
+  // retour du 28/10). Avec une gestion : message affiché dans sa carte, et
+  // la page revient sur elle.
+  revalidatePath(`/admin/comptes/${compteId}`);
+  const suite = gestionId ? `&gestion=${gestionId}#gestion-${gestionId}` : "";
+  redirect(`/admin/comptes/${compteId}?${type}=${encodeURIComponent(message)}${suite}`);
 }
 
 function texte(fd: FormData, nom: string): string {
@@ -155,27 +161,34 @@ export async function creerGestion(fd: FormData) {
 /** Terminer une gestion : libère une place du quota, l'abonnement continue. */
 export async function terminerGestion(fd: FormData) {
   const { supabase, compteId } = await contexte(fd);
-  const { error } = await supabase
+  const gestionId = texte(fd, "gestion_id");
+  const { data, error } = await supabase
     .from("gestions")
     .update({
       statut: "terminee",
       date_fin: dateOuAujourdhui(texte(fd, "date_fin")),
     })
-    .eq("id", texte(fd, "gestion_id"))
-    .eq("employeur_id", compteId);
-  if (error) retour(compteId, "erreur", messageErreur(error));
-  retour(compteId, "ok", "Gestion terminée (l'abonnement continue).");
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId)
+    .select("id");
+  if (error) retour(compteId, "erreur", messageErreur(error), gestionId);
+  // Aucune ligne modifiée : jamais de faux « c'est fait ».
+  if (!data?.length) retour(compteId, "erreur", "La gestion n'a pas pu être terminée (introuvable ou déjà modifiée). Rechargez la page.", gestionId);
+  retour(compteId, "ok", "Gestion terminée (l'abonnement continue).", gestionId);
 }
 
 export async function rouvrirGestion(fd: FormData) {
   const { supabase, compteId } = await contexte(fd);
-  const { error } = await supabase
+  const gestionId = texte(fd, "gestion_id");
+  const { data, error } = await supabase
     .from("gestions")
     .update({ statut: "en_cours", date_fin: null })
-    .eq("id", texte(fd, "gestion_id"))
-    .eq("employeur_id", compteId);
-  if (error) retour(compteId, "erreur", messageErreur(error));
-  retour(compteId, "ok", "Gestion rouverte.");
+    .eq("id", gestionId)
+    .eq("employeur_id", compteId)
+    .select("id");
+  if (error) retour(compteId, "erreur", messageErreur(error), gestionId);
+  if (!data?.length) retour(compteId, "erreur", "La gestion n'a pas pu être rouverte (introuvable ou déjà modifiée). Rechargez la page.", gestionId);
+  retour(compteId, "ok", "Gestion rouverte.", gestionId);
 }
 
 /** Retire des fichiers du stockage ; renvoie un message d'erreur ou null. */
