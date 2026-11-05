@@ -22,6 +22,7 @@ export type CleCourrier =
   | "atthon_maladie"
   | "atthon_accident"
   | "declaration_accident"
+  | "feuille_accident"
   | "autorisation_travail";
 
 /** Données connues, transmises au formulaire et au générateur. */
@@ -381,6 +382,39 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
       },
     ],
   },
+  feuille_accident: {
+    cle: "feuille_accident",
+    titre: "Feuille d'accident du travail (cerfa 11383*02)",
+    description:
+      "À remettre à votre salarié le jour de la déclaration : il est soigné sans avancer les frais (tiers payant) et la présente à chaque professionnel de santé.",
+    auteur: "employeur",
+    adresseSalarie: true,
+    avertissement:
+      "Le cadre « organisme » se remplit avec la CPAM de votre salarié (sur son attestation de droits ou son compte ameli). La page 2 est remplie par les professionnels de santé.",
+    champs: [
+      { nom: "date_accident", libelle: "Date de l'accident", type: "date" },
+      { nom: "nature_lesions", libelle: "Nature de la blessure", type: "text", placeholder: "ex. entorse" },
+      { nom: "siege_lesions", libelle: "Partie du corps touchée", type: "text", placeholder: "ex. cheville gauche" },
+      { nom: "cpam_nom", libelle: "CPAM de votre salarié (facultatif)", type: "text", placeholder: "ex. CPAM de Paris" },
+      { nom: "cpam_adresse", libelle: "Adresse de la CPAM (facultatif)", type: "text" },
+      {
+        nom: "numero_securite_sociale",
+        connu: true,
+        libelle: "Numéro de sécurité sociale du salarié",
+        type: "text",
+        defaut: (c) => c.details.numero_securite_sociale ?? "",
+      },
+      {
+        nom: "numero_declarant",
+        connu: true,
+        libelle: "Votre numéro Pajemploi ou CESU",
+        type: "text",
+        aide: "Il remplace le numéro SIRET demandé par le formulaire.",
+        defaut: (c) => c.details.numero_declarant ?? "",
+      },
+      { nom: "date_naissance", connu: true, libelle: "Date de naissance du salarié", type: "date", defaut: (c) => c.details.date_naissance ?? "" },
+    ],
+  },
   autorisation_travail: {
     cle: "autorisation_travail",
     titre: "Demande d'autorisation de travail (cerfa 15186*03)",
@@ -434,12 +468,13 @@ export const CHAMPS_SIGNATURE: ChampCourrier[] = [
 
 /** Les modèles ATTHON n'ont pas de date ni de lieu de signature à saisir. */
 export function champsDuModele(m: ModeleCourrier): ChampCourrier[] {
-  return m.cle.startsWith("atthon") ? m.champs : [...m.champs, ...CHAMPS_SIGNATURE];
+  // ATTHON et feuille d'accident : pas de date ni de lieu de signature.
+  return m.cle.startsWith("atthon") || m.cle === "feuille_accident" ? m.champs : [...m.champs, ...CHAMPS_SIGNATURE];
 }
 
 /** Formulaires officiels (pas de mise en page de lettre). */
 export function estFormulaireOfficiel(cle: CleCourrier): boolean {
-  return cle.startsWith("atthon") || cle === "declaration_accident" || cle === "autorisation_travail";
+  return cle.startsWith("atthon") || cle === "declaration_accident" || cle === "feuille_accident" || cle === "autorisation_travail";
 }
 
 export function estCleCourrier(v: string): v is CleCourrier {

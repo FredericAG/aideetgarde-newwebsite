@@ -701,3 +701,13 @@ Aucun script SQL.
 | K.6 | Enregistrer le brouillon puis le rouvrir | Le détail par jour est retrouvé ; récapitulatif lisible | |
 | K.7 | Heures de nuit (garde d'enfants) | Aide sur la CAF et la différence avec la présence de nuit | |
 | K.8 | Largeur des cases | Heures, nombres, jour de repos : cases courtes | |
+
+## Feuille d'accident du travail (05/11, lot 35)
+
+Aucun script SQL.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| L.1 | Gestion › Déclarer › Un accident du travail | 4 étapes ; l'étape 3 « Remettez à votre salarié la feuille d'accident » propose le formulaire | |
+| L.2 | Préparer la feuille (date, blessure, partie du corps) | PDF cerfa 11383*02 sans mention « spécimen » : victime (nom, prénom, date de naissance, adresse, n° de sécurité sociale et clé), employeur (nom, adresse, n° Pajemploi/CESU), « autorisé à gérer le risque AT/MP » : non, date et lésions | |
+| L.3 | Ouvrir le PDF dans un lecteur | Les cases restent modifiables (CPAM à compléter si besoin) | |

@@ -142,7 +142,7 @@ const DOCUMENTS_FIN =
 
 // --- Texte des courriers -------------------------------------------------------
 
-const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" | "declaration_accident" | "autorisation_travail">, (c: ContexteCourrier, v: Valeurs) => Lettre> = {
+const LETTRES: Record<Exclude<CleCourrier, "atthon_maladie" | "atthon_accident" | "declaration_accident" | "feuille_accident" | "autorisation_travail">, (c: ContexteCourrier, v: Valeurs) => Lettre> = {
   attestation_emploi: (c, v) => {
     const E = c.employeur;
     const S = c.salarie;
@@ -691,6 +691,93 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
   return doc.save();
 }
 
+// --- Feuille d'accident du travail (cerfa 11383*02) ----------------------------------
+
+/**
+ * Formulaire officiel (modeles-pdf/feuille-accident-travail-11383-02.pdf,
+ * version sans mention « spécimen » fournie par Frédéric le 05/11) : page 1
+ * préremplie (victime, employeur particulier, accident). Le numéro
+ * Pajemploi ou CESU remplace le SIRET ; « autorisé à gérer le risque AT/MP »
+ * : non (un particulier employeur ne l'est jamais). La page 2 est pour les
+ * professionnels de santé. Le formulaire reste modifiable.
+ */
+async function remplirFeuilleAccident(c: ContexteCourrier, v: Valeurs): Promise<Uint8Array> {
+  const modele = await readFile(path.join(process.cwd(), "modeles-pdf", "feuille-accident-travail-11383-02.pdf"));
+  const doc = await PDFDocument.load(modele);
+  const form = doc.getForm();
+  const police = await doc.embedFont(StandardFonts.Helvetica);
+  const n = compatible(police);
+  const texte = (champ: string, valeur: string | undefined) => {
+    if (!valeur) return;
+    try {
+      const f = form.getTextField(champ);
+      const max = f.getMaxLength();
+      f.setText(n(max ? valeur.slice(0, max) : valeur));
+    } catch {
+      /* champ absent d'une autre version du formulaire */
+    }
+  };
+  const chiffres = (t: string) => t.replace(/\D/g, "");
+  const jjmmaaaa = (iso?: string) => chiffres(dateCourte(iso));
+  const E = c.employeur;
+  const S = c.salarie;
+
+  // Organisme (CPAM du salarié), si l'employeur l'a indiqué.
+  texte("nom organisme", v.cpam_nom);
+  texte("adresse", v.cpam_adresse);
+
+  // La victime : nom de naissance, suivi du nom d'usage s'il diffère.
+  const naissance = (c.details.nom_naissance ?? "").trim();
+  const nom = naissance && naissance.toUpperCase() !== S.nom.toUpperCase() ? `${naissance.toUpperCase()} ${S.nom.toUpperCase()}` : S.nom.toUpperCase();
+  texte("nom", nom);
+  texte("prénom", S.prenom);
+  texte("date naissance", jjmmaaaa(v.date_naissance || c.details.date_naissance));
+  texte("adresse victime", S.adresse);
+  texte("code postal", chiffres(S.code_postal));
+  texte("commune", S.ville);
+  const nir = chiffres((v.numero_securite_sociale ?? "").toUpperCase().replace(/2A/g, "20").replace(/2B/g, "20"));
+  const nirBrut = (v.numero_securite_sociale ?? "").replace(/\s/g, "").toUpperCase();
+  if (nirBrut.length >= 13) {
+    // 13 caractères + clé de 2 chiffres (la Corse garde « 2A » ou « 2B »).
+    texte("num immat", nirBrut.slice(0, 13));
+    texte("clé immat", nirBrut.slice(13, 15));
+  } else if (nir) {
+    texte("num immat", nir);
+  }
+
+  // L'employeur.
+  texte("ident employeur", nomComplet(E, false).replace(BLANC, ""));
+  texte("adresse employeur", E.adresse);
+  texte("code postal 2", chiffres(E.code_postal));
+  texte("commune 2", E.ville);
+  texte("num SIRET", (v.numero_declarant ?? "").replace(/\s/g, ""));
+  try {
+    const f = form.getField("gestion AT MP");
+    if (f instanceof PDFCheckBox) {
+      for (const w of f.acroField.getWidgets()) {
+        const etat = w.getOnValue();
+        if (etat && etat.decodeText() === "Non") {
+          w.setAppearanceState(etat);
+          f.acroField.dict.set(PDFName.of("V"), etat);
+        } else {
+          w.setAppearanceState(PDFName.of("Off"));
+        }
+      }
+    }
+  } catch {
+    /* idem */
+  }
+
+  // L'accident.
+  texte("date AT", jjmmaaaa(v.date_accident));
+  texte("lésion", v.nature_lesions);
+  texte("siège lésion", v.siege_lesions);
+
+  form.updateFieldAppearances(police);
+  doc.setTitle("Feuille d'accident du travail (cerfa 11383*02)");
+  return doc.save();
+}
+
 // --- Demande d'autorisation de travail (cerfa 15186*03) ------------------------------
 
 /**
@@ -847,6 +934,7 @@ export async function genererCourrier(
     atthon_maladie: "Attestation-honneur-IJ",
     atthon_accident: "Attestation-honneur-IJ-accident",
     declaration_accident: "Declaration-accident-travail",
+    feuille_accident: "Feuille-accident-travail",
     autorisation_travail: "Demande-autorisation-travail-15186",
   }[cle];
   const fichier = `${base}_${salarie}.pdf`;
@@ -859,6 +947,9 @@ export async function genererCourrier(
   }
   if (cle === "declaration_accident") {
     return { octets: await remplirDeclarationAccident(contexte, valeurs), fichier };
+  }
+  if (cle === "feuille_accident") {
+    return { octets: await remplirFeuilleAccident(contexte, valeurs), fichier };
   }
   const lettre = LETTRES[cle](contexte, valeurs);
   return { octets: await mettreEnPage(lettre, modele.titre), fichier };

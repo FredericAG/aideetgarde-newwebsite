@@ -252,13 +252,15 @@ export function ActionsGestion({
                   tard 48 heures après avoir appris l&apos;accident (dimanches et jours fériés non compris).
                 </p>
                 {courrier("declaration_accident", true)}
-                <p className="text-xs text-foreground/60">
-                  Feuille d&apos;accident (cerfa 11383) : elle donne à votre salarié la gratuité des soins. Le modèle en
-                  ligne n&apos;est qu&apos;un spécimen : l&apos;original se demande à la CPAM, qui peut aussi le remettre
-                  directement à votre salarié.
-                </p>
               </Etape>
-              <Etape n={3} titre="Remettez à votre salarié l'attestation sur l'honneur">
+              <Etape n={3} titre="Remettez à votre salarié la feuille d'accident">
+                <p className="text-foreground/70">
+                  Elle lui permet d&apos;être soigné sans avancer les frais. Il la garde et la présente à chaque médecin,
+                  pharmacien ou kinésithérapeute.
+                </p>
+                {courrier("feuille_accident", true)}
+              </Etape>
+              <Etape n={4} titre="Remettez-lui aussi l'attestation sur l'honneur">
                 {courrier("atthon_accident", true)}
               </Etape>
             </ol>
