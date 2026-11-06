@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request, { params }: { params: Promise<{ partenaire: string }> }) {
   const { partenaire } = await params;
   const cible = PARTENAIRES[partenaire as ClePartenaire];
-  if (!cible) return NextResponse.redirect(new URL("/aide/avantages-du-salarie", request.url), 302);
+  if (!cible) return NextResponse.redirect(new URL("/", request.url), 302);
 
   const url = new URL(request.url);
   const depuisDemande = url.searchParams.get("depuis") ?? "";

@@ -1,14 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { THEMES, themeParSlug } from "@/lib/aide/contenu";
+import { themeParSlug } from "@/lib/aide/contenu";
 import { EN_RELECTURE, MIS_A_JOUR, type Bloc } from "@/lib/aide/types";
 import { BlocContact } from "../BlocContact";
+import { requireUser } from "@/lib/auth";
 import { OuvrirAncre } from "./OuvrirAncre";
-
-export function generateStaticParams() {
-  return THEMES.map((t) => ({ theme: t.slug }));
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ theme: string }> }): Promise<Metadata> {
   const t = themeParSlug((await params).theme);
@@ -16,7 +13,8 @@ export async function generateMetadata({ params }: { params: Promise<{ theme: st
   return {
     title: `${t.titre} — Centre d'aide Aide & Garde`,
     description: t.intro,
-    ...(EN_RELECTURE ? { robots: { index: false, follow: false } } : {}),
+    // Réservé aux clients : jamais dans les moteurs de recherche.
+    robots: { index: false, follow: false },
   };
 }
 
@@ -104,7 +102,9 @@ function Contenu({ bloc }: { bloc: Bloc }) {
  * lien d'aide contextuelle.
  */
 export default async function ThemeAidePage({ params }: { params: Promise<{ theme: string }> }) {
-  const theme = themeParSlug((await params).theme);
+  const slug = (await params).theme;
+  await requireUser(`/aide/${slug}`);
+  const theme = themeParSlug(slug);
   if (!theme) notFound();
 
   return (

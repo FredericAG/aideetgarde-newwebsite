@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { THEMES, indexRecherche } from "@/lib/aide/contenu";
-import { EN_RELECTURE, PORTES } from "@/lib/aide/types";
+import { PORTES } from "@/lib/aide/types";
+import { requireUser } from "@/lib/auth";
 import { RechercheAide } from "./RechercheAide";
 import { BlocContact } from "./BlocContact";
 
@@ -9,15 +10,19 @@ export const metadata: Metadata = {
   title: "Centre d'aide — Aide & Garde",
   description:
     "Bulletin de paie, contrat, aides de la CAF, congés, arrêt de travail, fin du contrat : les réponses d'Aide & Garde aux questions des particuliers employeurs.",
-  ...(EN_RELECTURE ? { robots: { index: false, follow: false } } : {}),
+  // Réservé aux clients : jamais dans les moteurs de recherche.
+  robots: { index: false, follow: false },
 };
 
 /**
  * Centre d'aide (onglet « Aide », spécifications § 6 bis) : recherche, puis
  * trois portes d'entrée (comprendre mes documents, employer un salarié,
- * utiliser mon espace), les outils et le contact. Page publique.
+ * utiliser mon espace), les outils et le contact. Réservé aux clients
+ * inscrits (décision du 07/11/2026, Cadre stratégique) : le référencement
+ * passe par les pages Guides publiques.
  */
-export default function AidePage() {
+export default async function AidePage() {
+  await requireUser("/aide");
   return (
     <div className="flex flex-1 justify-center px-4 py-8 sm:px-6 sm:py-12">
       <div className="w-full max-w-3xl">

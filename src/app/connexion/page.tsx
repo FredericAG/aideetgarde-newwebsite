@@ -13,6 +13,7 @@ function ConnexionForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/tableau-de-bord";
   const lienInvalide = searchParams.get("erreur") === "lien_invalide";
+  const versAide = next.startsWith("/aide");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +55,20 @@ function ConnexionForm() {
         <p className="mt-2 text-sm text-foreground/70">
           Espace employeur Aide &amp; Garde.
         </p>
+
+        {versAide && (
+          <p className="mt-6 rounded-md border border-brand-gray/30 p-3 text-sm text-foreground/80">
+            Le centre d&apos;aide est réservé aux clients Aide &amp; Garde. Connectez-vous, ou{" "}
+            <Link href="/inscription" className="font-medium text-brand-teal underline">
+              créez votre compte
+            </Link>{" "}
+            pour y accéder. Une question avant ? Appelez gratuitement un conseiller au{" "}
+            <a href="tel:+33188320118" className="font-medium text-brand-teal underline">
+              01 88 320 118
+            </a>
+            .
+          </p>
+        )}
 
         {lienInvalide && (
           <p className="mt-6 rounded-md border border-brand-gray/30 p-3 text-sm text-foreground/80">

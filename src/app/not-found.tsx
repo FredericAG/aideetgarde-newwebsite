@@ -15,8 +15,8 @@ export default function PageIntrouvable() {
           <Link href="/tableau-de-bord" className="btn btn-primaire">
             Mon tableau de bord
           </Link>
-          <Link href="/aide" className="btn btn-secondaire">
-            Aide et contact
+          <Link href="/contact" className="btn btn-secondaire">
+            Contact
           </Link>
         </div>
       </div>

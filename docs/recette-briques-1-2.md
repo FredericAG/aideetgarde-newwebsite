@@ -711,3 +711,29 @@ Aucun script SQL.
 | L.1 | Gestion › Déclarer › Un accident du travail | 4 étapes ; l'étape 3 « Remettez à votre salarié la feuille d'accident » propose le formulaire | |
 | L.2 | Préparer la feuille (date, blessure, partie du corps) | PDF cerfa 11383*02 sans mention « spécimen » : victime (nom, prénom, date de naissance, adresse, n° de sécurité sociale et clé), employeur (nom, adresse, n° Pajemploi/CESU), « autorisé à gérer le risque AT/MP » : non, date et lésions | |
 | L.3 | Ouvrir le PDF dans un lecteur | Les cases restent modifiables (CPAM à compléter si besoin) | |
+
+## Centre d'aide réservé aux clients (07/11, lot 36)
+
+Aucun script SQL. Tester déconnecté (fenêtre de navigation privée), puis connecté.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| M.1 | Déconnecté, ouvrir /aide puis /aide/conges | Page « Se connecter » avec le message « Le centre d'aide est réservé aux clients… » ; après connexion, retour sur la page demandée | |
+| M.2 | Connecté, onglet Aide (ordinateur et téléphone) | Centre d'aide affiché comme avant, recherche comprise | |
+| M.3 | Déconnecté, accueil : bloc « Une question sur votre situation ? » et lien sous les questions fréquentes | Plus de lien vers le centre d'aide ; « Nous écrire » et « Parlez gratuitement à un conseiller » mènent à /contact | |
+| M.4 | Pied de page › Contact ; page introuvable (/xyz) › Contact | Page /contact : bouton d'appel, email, mention du centre d'aide pour les clients | |
+| M.5 | /robots.txt (une fois l'indexation ouverte) | /aide figure dans les pages interdites | |
+
+## « Mes gestions » avant le premier salarié (07/11, lot 37)
+
+Aucun script SQL. Compte de test sans abonnement ni gestion, puis avec abonnement sans gestion.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| N.1 | Sans abonnement : onglet Mes gestions (ordinateur et téléphone) | Texte d'explication, bouton « + Ajouter un salarié », 3 étapes, aperçu « Exemple, avec des données fictives », numéro du conseiller | |
+| N.2 | Cliquer « + Ajouter un salarié » (Mes gestions, puis Tableau de bord › Mes salariés) | Page Abonnement (choix de la formule) | |
+| N.3 | Ouvrir directement /tableau-de-bord/gestions/nouvelle sans abonnement | Message « choisissez d'abord votre formule » et bouton « Choisir ma formule » vers Abonnement | |
+| N.4 | Payer le premier mois (mode test) | Message « Paiement accepté » suivi du bouton « + Ajouter mon salarié », qui ouvre le formulaire de gestion | |
+| N.5 | Abonné sans gestion : onglet Mes gestions | Étape 1 cochée ; « + Ajouter un salarié » ouvre directement le formulaire | |
+| N.6 | Page Abonnement en mode test | Cartes de test affichées : 4970 1150 0000 0228 (acceptée, 3-D Secure), 4970 1000 0000 0071 (refusée), 4970 1000 0000 0667 (refusée aux échéances suivantes) | |
+

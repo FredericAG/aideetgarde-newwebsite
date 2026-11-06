@@ -70,11 +70,11 @@ export default async function NouvelleGestionPage({
         ) : (
           <div className="carte mt-6 p-5 text-sm">
             <p>
-              Il faut un abonnement actif pour créer une gestion. Contactez-nous
-              pour le mettre en place.
+              Pour ajouter un salarié, choisissez d&apos;abord votre formule : elle couvre ses bulletins, son contrat
+              et toutes les démarches. Sans engagement, résiliable en ligne.
             </p>
-            <Link href="/aide" className="btn btn-primaire mt-4">
-              Nous contacter
+            <Link href="/tableau-de-bord/abonnement" className="btn btn-primaire mt-4">
+              Choisir ma formule
             </Link>
           </div>
         )}

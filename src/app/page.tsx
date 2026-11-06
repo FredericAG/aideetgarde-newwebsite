@@ -280,8 +280,7 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
           <div>
             <h2 className="font-display font-black text-2xl">Une question sur votre situation ?</h2>
             <p className="mt-2 max-w-xl text-white/85">
-              Coût de l&apos;emploi, aides, contrat, fin de contrat : parlez gratuitement à un conseiller, ou trouvez
-              la réponse dans notre centre d&apos;aide.
+              Coût de l&apos;emploi, aides, contrat, fin de contrat : parlez gratuitement à un conseiller.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -291,8 +290,8 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
             >
               {ENTREPRISE.telephone}
             </a>
-            <Link href="/aide" className="btn btn-lg whitespace-nowrap border-2 border-white/70 bg-transparent text-white">
-              Centre d&apos;aide
+            <Link href="/contact" className="btn btn-lg whitespace-nowrap border-2 border-white/70 bg-transparent text-white">
+              Nous écrire
             </Link>
           </div>
         </div>
@@ -316,8 +315,8 @@ export default async function Accueil({ searchParams }: { searchParams: Promise<
             ))}
           </div>
           <p className="mt-4 text-sm">
-            <Link href="/aide" className="font-medium text-brand-teal underline">
-              Toutes les réponses dans le centre d&apos;aide ›
+            <Link href="/contact" className="font-medium text-brand-teal underline">
+              Une autre question ? Parlez gratuitement à un conseiller ›
             </Link>
           </p>
         </div>

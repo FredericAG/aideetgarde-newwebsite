@@ -34,7 +34,7 @@ export function PiedDePage() {
       <Link href="/tableau-de-bord/abonnement#resilier" className={lien}>
         Résilier votre contrat
       </Link>
-      <Link href="/aide#contact" className={lien}>
+      <Link href="/contact" className={lien}>
         Contact
       </Link>
     </>

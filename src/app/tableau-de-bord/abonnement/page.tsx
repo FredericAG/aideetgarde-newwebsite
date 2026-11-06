@@ -146,8 +146,8 @@ export default async function AbonnementPage({
           <div className="mt-6 rounded-lg border-2 border-dashed border-brand-violet bg-white p-3 text-sm">
             <strong className="text-brand-violet">Mode test</strong> : aucune carte réelle n&apos;est
             débitée. Cartes de test (date d&apos;expiration future et code quelconques) :{" "}
-            <code>4970 1000 0000 0055</code> acceptée, <code>4970 1000 0000 0113</code> refusée,{" "}
-            <code>4970 1000 0000 0675</code> acceptée maintenant mais refusée aux échéances suivantes.
+            <code>4970 1150 0000 0228</code> acceptée avec 3-D Secure, <code>4970 1000 0000 0071</code> refusée,{" "}
+            <code>4970 1000 0000 0667</code> acceptée maintenant mais refusée aux échéances suivantes.
           </div>
         )}
 
@@ -161,6 +161,12 @@ export default async function AbonnementPage({
             }`}
           >
             {message.texte}
+            {/* Premier abonnement : on enchaîne sur l'ajout du salarié (07/11). */}
+            {commandeRes.data?.statut === "payee" && placesUtilisees === 0 && (
+              <Link href="/tableau-de-bord/gestions/nouvelle" className="btn btn-primaire btn-sm mt-3 flex w-fit">
+                + Ajouter mon salarié
+              </Link>
+            )}
           </p>
         )}
 

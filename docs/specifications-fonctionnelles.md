@@ -380,10 +380,14 @@ Lecture du nom par le site : premier élément = référence ; puis, depuis la f
 - Une **recherche** en tête du centre d'aide (questions et mots clés, sans tenir compte des accents).
 - Pages **courtes**, une question par page, réponse en une phrase puis le détail ; **exemples chiffrés** et **tableaux en texte** (délais de prévenance, préavis, indemnités) plutôt qu'en images, pour la lecture sur téléphone, l'accessibilité et le référencement.
 - **Aide contextuelle** : liens depuis l'endroit où la question se pose (« Comprendre mon bulletin » à côté d'un bulletin, « Les heures » dans la déclaration du mois, « Documents de fin de contrat » sur un certificat de travail).
-- Pages **publiques** (sauf « Utiliser mon espace » si on préfère) : elles servent aussi au référencement et aux réponses générées par IA (§ 8). Chaque page porte une date de mise à jour.
+- ~~Pages publiques~~ **Réservé aux clients inscrits** (décision de Frédéric du 07/11/2026, conforme au Cadre stratégique) : il faut être connecté pour ouvrir le centre d'aide, qui n'est jamais indexé. Le référencement passe par les pages **Guides** publiques (§ 8). Chaque page porte une date de mise à jour.
 - Contenu rédigé dans le site (fichiers de contenu), modifiable sans toucher au code ; une version par loi en vigueur, revue chaque année (comme la table des valeurs légales datées).
 
 **En place (21/10)** : `/aide` (recherche instantanée, trois portes d'entrée, outils, contact) et une page par thème (`/aide/<thème>`, questions dépliables avec réponse courte puis détail, adresse propre à chaque question, ouverte automatiquement depuis la recherche). Contenu dans `src/lib/aide/contenu.ts` (10 thèmes, 40 questions). Aide contextuelle : liens « Comprendre mon bulletin » et « Les documents de fin de contrat » au-dessus des catégories de documents de l'abonné. Tant que le contenu est en relecture (`EN_RELECTURE`), bandeau d'avertissement et pages non indexées. Liste de contrôle : `docs/centre-aide-relecture.md`. Simulateur affiché « Bientôt ».
+
+**Accès réservé (07/11/2026, lot 36)** : `/aide` et ses pages exigent la connexion (Proxy et contrôle dans la page) ; un visiteur est envoyé vers « Se connecter » avec un message (« réservé aux clients… créez votre compte… appelez un conseiller ») puis ramené sur la page demandée. Pages non indexées, `/aide` interdit aux robots. Les liens publics vers le centre d'aide (accueil, pied de page, page introuvable) mènent désormais à une page publique **`/contact`** (version minimale : téléphone, email ; horaires et contact presse à fournir par le chat « Site »).
+
+**Simulateur de coût** (décision du 07/11/2026) : conservé, **réservé aux clients inscrits**, dans les outils du centre d'aide. Pas de simulateur public : la simulation pour les prospects est faite par le conseiller (Cadre stratégique). Mise en ligne après vérification des règles CMG 2025 et des 6 cas de test (`Simulateur_cout_reprise.md`).
 
 **Texte de référence** (transmis par Frédéric le 22/10) : convention collective de la branche du secteur des particuliers employeurs et de l'emploi à domicile (IDCC 3239), https://www.legifrance.gouv.fr/conv_coll/id/KALIARTI000043941784/?idConteneur=KALICONT000044594539. Chaque réponse du centre d'aide qui en découle cite l'article (« Référence : … ») ; le pied de chaque page renvoie au texte sur Légifrance.
 
@@ -413,7 +417,8 @@ Lecture du nom par le site : premier élément = référence ; puis, depuis la f
 | Règle | Statut |
 |---|---|
 | Pages publiques « Conseils » qui répondent directement aux questions fréquentes (déclarer une garde d'enfants ou une aide à domicile, Cesu / Pajemploi, coût réel et crédit d'impôt, contrat, congés payés, rupture conventionnelle, licenciement, fin de contrat…) : réponse claire en tête de page, puis détail, date de mise à jour, auteur identifié, renvois vers les sources officielles. | À faire (brique 10, priorité relevée) |
-| Le simulateur de coûts est la page de référence sur la question du coût. | À faire (brique 11) |
+| ~~Le simulateur de coûts est la page de référence sur la question du coût.~~ Simulateur réservé aux clients (07/11) ; la question du coût est traitée par un Guide public avec exemples chiffrés datés. | À faire (brique 11, Guides) |
+| **Pages en anglais et en espagnol** (décision du 07/11/2026) : une page de présentation par langue (`/en`, `/es`), pour les familles expatriées recommandées, bouton principal « appeler un conseiller » ; le reste du site reste en français. Textes à fournir par le chat « Site ». À vérifier : un conseiller peut-il répondre en espagnol ? | À faire |
 | Pages rapides et rendues côté serveur (le texte est lisible par les robots sans exécuter de JavaScript), adresses propres et stables, titres et descriptions travaillés, données structurées (organisation, service, FAQ, article), plan du site `sitemap.xml`. | Socle technique en place ; à appliquer à chaque page publique |
 | Robots des moteurs et des IA autorisés sur les pages publiques, interdits sur les espaces privés (administration, tableau de bord, compte, documents). | Prêt (s'active avec l'indexation) |
 | **Site de test non indexé** : tant que le site est sur son adresse provisoire, aucune page ne doit apparaître dans les moteurs (concurrence avec le vrai site, pages inachevées). L'indexation s'ouvre uniquement sur le domaine définitif (`NEXT_PUBLIC_INDEXATION=oui` dans Vercel). | En place (19/10) |
@@ -538,6 +543,14 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **Heures de nuit, dimanche, férié** | Précisé : garde à ces horaires parce que l'employeur lui-même travaille (obligation professionnelle), ce qui augmente l'aide de la CAF ; à distinguer de la « présence de nuit » de la convention collective (salarié qui dort sur place), à indiquer dans les précisions. | En place — à valider |
 | **Largeur des cases** | Heures, nombres et montants en cases courtes ; listes déroulantes courtes ; jours de travail sur une ou deux lignes. | En place |
 
+## 4 decies. « Mes gestions » avant le premier salarié — 07/11/2026
+
+| Élément | Règle | État |
+|---|---|---|
+| **Page d'accueil de « Mes gestions »** sans aucune gestion | Explique ce que contiendra la page (bulletins, contrat, attestations, courriers prêts à envoyer ; signalement des heures, absences, fin de contrat), bouton habituel « + Ajouter un salarié », 3 étapes (formule — cochée si l'abonnement est actif —, salarié, documents), **aperçu de l'espace** avec des données fictives (mention « Exemple »), numéro du conseiller. | En place (lot 37) |
+| **« Ajouter un salarié » sans abonnement actif** | Mène à la page Abonnement (choix de la formule), depuis Mes gestions et le tableau de bord ; la page « Créer une gestion » ouverte sans abonnement propose « Choisir ma formule » (au lieu de « Nous contacter »). Après le premier paiement accepté, sans gestion, la page Abonnement propose « + Ajouter mon salarié ». | En place (lot 37) |
+| Écart avec le Cadre stratégique | Le Cadre (décision de Natalia, étape 1 du site) prévoit « inscription directe : brouillon possible avant paiement, aucun envoi sans paiement ». Le site actuel demande la formule avant le brouillon (demande de Frédéric du 07/11). | À arbitrer (Frédéric, Natalia) |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -565,6 +578,8 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 07/11/2026 (2) — « Mes gestions » sans salarié : page explicative avec aperçu de l'espace ; « Ajouter un salarié » mène au choix de la formule sans abonnement ; cartes de test Systempay corrigées sur la page Abonnement.
+- 07/11/2026 — Centre d'aide et simulateur réservés aux clients inscrits ; page publique Contact ; pages de présentation en anglais et en espagnol décidées.
 - 06/11/2026 — Migration des abonnements : vérifié en mode TEST que résilier un abonnement Systempay conserve la carte enregistrée (débit 0 clic accepté après résiliation) ; date anniversaire inchangée après un encaissement tardif.
 - 05/11/2026 — Feuille d'accident du travail (cerfa 11383*02) préremplie, à partir de la version sans spécimen fournie par Frédéric.
 - 29/10/2026 — Réponses de Systempay consignées (§ 3.2) : alias réutilisables sans migration, montant variable possible, clés de production réutilisables, adresse de notification de la requête prioritaire.

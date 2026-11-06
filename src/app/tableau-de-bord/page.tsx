@@ -266,6 +266,12 @@ export default async function TableauDeBordPage({
                 + Ajouter un salarié
               </Link>
             )}
+            {/* Sans abonnement : le choix de la formule d'abord (07/11). */}
+            {abonnement?.statut !== "actif" && (
+              <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
+                + Ajouter un salarié
+              </Link>
+            )}
           </div>
           {enCours.length === 0 ? (
             <p className="carte mt-3 p-4 text-sm text-foreground/70">
@@ -277,6 +283,13 @@ export default async function TableauDeBordPage({
                     Ajouter un salarié
                   </Link>{" "}
                   pour que nous établissions ses bulletins.
+                </>
+              )}
+              {abonnement?.statut !== "actif" && (
+                <>
+                  {" "}
+                  Choisissez votre formule, puis ajoutez votre salarié : ses bulletins et ses documents seront dans
+                  « Mes gestions ».
                 </>
               )}
             </p>

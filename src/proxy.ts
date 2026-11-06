@@ -70,7 +70,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/mon-compte") ||
     pathname.startsWith("/tableau-de-bord") ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/documents");
+    pathname.startsWith("/documents") ||
+    // Centre d'aide réservé aux clients inscrits (décision du 07/11/2026).
+    pathname.startsWith("/aide");
   const isAuthRoute =
     pathname.startsWith("/connexion") || pathname.startsWith("/inscription");
 
