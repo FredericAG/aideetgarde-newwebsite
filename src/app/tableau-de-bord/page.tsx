@@ -275,8 +275,25 @@ export default async function TableauDeBordPage({
           </div>
           {enCours.length === 0 ? (
             <p className="carte mt-3 p-4 text-sm text-foreground/70">
-              Aucune gestion en cours.
-              {abonnement?.statut === "actif" && (
+              {enPreparation.length > 0 ? (
+                // Formulaires ouverts (07/11) : ne pas inviter à en créer un autre.
+                enPreparation.some((g) => g.statut === "brouillon") ? (
+                  <>
+                    Aucun salarié suivi pour l&apos;instant. Complétez et envoyez{" "}
+                    {enPreparation.length > 1 ? "les formulaires « En préparation »" : "le formulaire « En préparation »"}{" "}
+                    ci-dessus : une fois validé par Aide &amp; Garde, votre salarié apparaîtra ici avec ses bulletins.
+                  </>
+                ) : (
+                  <>
+                    Aucun salarié suivi pour l&apos;instant : Aide &amp; Garde vérifie{" "}
+                    {enPreparation.length > 1 ? "les formulaires envoyés" : "le formulaire envoyé"}. Votre salarié
+                    apparaîtra ici dès la validation.
+                  </>
+                )
+              ) : (
+                <>Aucune gestion en cours.</>
+              )}
+              {enPreparation.length === 0 && abonnement?.statut === "actif" && (
                 <>
                   {" "}
                   <Link href="/tableau-de-bord/gestions/nouvelle" className="font-medium text-brand-teal underline">
@@ -285,7 +302,7 @@ export default async function TableauDeBordPage({
                   pour que nous établissions ses bulletins.
                 </>
               )}
-              {abonnement?.statut !== "actif" && (
+              {enPreparation.length === 0 && abonnement?.statut !== "actif" && (
                 <>
                   {" "}
                   Choisissez votre formule, puis ajoutez votre salarié : ses bulletins et ses documents seront dans

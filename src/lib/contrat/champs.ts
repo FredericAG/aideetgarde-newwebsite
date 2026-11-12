@@ -309,7 +309,8 @@ export const CHAMPS: ChampContrat[] = [
   { cle: "periode_adaptation_modalites", etape: "contrat", libelle: "Durée et horaires de l'adaptation", type: "texte", si: (v) => oui(v, "periode_adaptation"), largeur: "entier" },
 
   // --- Étape 5 : les horaires (nombre d'heures : formulaire) ---------------------
-  { cle: "jours_presence", etape: "horaires", libelle: "Jours de travail", type: "multi", options: JOURS, obligatoire: true, largeur: "entier" },
+  // Facultatif (07/11) : horaires variables, ou jours pas encore fixés.
+  { cle: "jours_presence", etape: "horaires", libelle: "Jours de travail", type: "multi", options: JOURS, largeur: "entier" },
   // Détail par jour : affiché quand l'abonné coche « Je veux préciser le
   // détail par jour » à côté du nombre d'heures (retour du 27/10). Il
   // remplace alors les heures habituelles et la présence responsable.

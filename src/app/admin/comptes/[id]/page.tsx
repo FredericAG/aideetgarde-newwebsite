@@ -814,7 +814,18 @@ Rouvrir
 
                       {(g.type_contrat || g.statut === "brouillon" || g.statut === "envoyee" || g.statut === "en_cours") && (
                         <section className="mt-3 rounded-lg bg-[var(--carte)] p-3" aria-label="Informations du contrat">
-                          <h3 className="mb-2 text-sm font-bold text-brand-teal">Informations du contrat</h3>
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="text-sm font-bold text-brand-teal">Informations du contrat</h3>
+                            {/* Import dans le logiciel de paie (07/11) : colonnes figées. */}
+                            <a
+                              href={`/admin/gestions/${g.id}/export`}
+                              download
+                              className="text-xs font-bold text-brand-teal underline"
+                              title="Une ligne de titres et une ligne de valeurs, colonnes toujours identiques"
+                            >
+                              Télécharger le formulaire (CSV)
+                            </a>
+                          </div>
                           <RecapGestion gestion={g} />
                           {(g.statut === "en_cours" || g.statut === "terminee") && (
                             <ContratAdmin compteId={id} gestion={g} />

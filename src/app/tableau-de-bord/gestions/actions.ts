@@ -256,3 +256,46 @@ export async function demanderAvenant(_prec: EtatAvenant, fd: FormData): Promise
     message: "Demande envoyée. Aide & Garde prépare l'avenant et vous prévient dès qu'il est disponible.",
   };
 }
+
+/**
+ * L'abonné termine lui-même une gestion en cours (07/11/2026, script
+ * brique3h) : plus de bulletin, place libérée, documents conservés. Alerte
+ * à Aide & Garde, qui peut la rouvrir.
+ */
+export async function terminerMaGestion(fd: FormData) {
+  const { supabase, user, profile } = await requireUser("/tableau-de-bord");
+  const id = texte(fd, "gestion_id");
+  if (!isUuid(id)) redirect("/tableau-de-bord");
+  const dateFin = dateOuNull(fd, "date_fin");
+  const { error } = await supabase.rpc("gestion_terminer", { p_id: id, p_date_fin: dateFin });
+  if (error) {
+    const message =
+      error.code === "PGRST202" || error.code === "42883"
+        ? "Cette fonction n'est pas encore activée (script brique3h à exécuter dans Supabase)."
+        : traduire(error);
+    redirect(`/tableau-de-bord/gestions/${id}?erreur=${encodeURIComponent(message)}#terminer`);
+  }
+
+  // Alerte à Aide & Garde (ne bloque jamais la fin de gestion).
+  const { data: g } = await supabase.from("gestions").select("prenom_salarie, nom_salarie, reference").eq("id", id).maybeSingle();
+  const salarie = g ? `${g.prenom_salarie ?? ""} ${g.nom_salarie ?? ""}`.trim() : "";
+  const employeur = `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim() || user.email || "un abonné";
+  const site = await adresseSite();
+  const fin = dateFin ? dateFin.split("-").reverse().join("/") : "aujourd'hui";
+  const contenu = modeleEmail({
+    titre: "Gestion terminée par l'abonné",
+    paragraphes: [
+      `${employeur} a terminé la gestion de ${salarie}${g?.reference ? ` (${g.reference})` : ""} : dernier jour de travail ${dateFin ? `le ${fin}` : fin}.`,
+      "Vérifiez s'il reste un dernier bulletin ou des documents de fin de contrat à établir, et si la formule d'abonnement doit être ajustée. Vous pouvez rouvrir la gestion depuis la fiche du compte.",
+    ],
+    bouton: { texte: "Ouvrir la fiche du compte", url: `${site}/admin/comptes/${user.id}#gestion-${id}` },
+  });
+  await envoyerEmail({ a: emailAdmin(), sujet: `Gestion terminée : ${employeur} – ${salarie}`, ...contenu });
+
+  revalidatePath("/tableau-de-bord", "layout");
+  redirect(
+    `/tableau-de-bord/gestions/${id}?ok=${encodeURIComponent(
+      "Gestion terminée : sa place est libérée dans votre abonnement et ses documents restent disponibles ici. Nous vérifions s'il reste un dernier bulletin ou des documents de fin de contrat à établir.",
+    )}`,
+  );
+}

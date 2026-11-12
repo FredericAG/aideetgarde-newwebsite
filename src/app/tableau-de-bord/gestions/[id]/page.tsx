@@ -8,7 +8,7 @@ import { IconePoubelle } from "@/components/IconePoubelle";
 import { RecapGestion } from "@/components/RecapGestion";
 import { FormulaireGestion } from "../FormulaireGestion";
 import { placesAbonnement, salariesRemplacables } from "@/lib/places";
-import { annulerEnvoi, supprimerBrouillon } from "../actions";
+import { annulerEnvoi, supprimerBrouillon, terminerMaGestion } from "../actions";
 import { BoutonTelechargement } from "@/components/BoutonTelechargement";
 import { requireUser } from "@/lib/auth";
 import { ActionsGestion, type CleAction } from "./ActionsGestion";
@@ -381,6 +381,45 @@ export default async function DetailGestionPage({
               <RecapGestion gestion={gestion} />
             </div>
           </details>
+        )}
+
+        {/* L'abonné termine lui-même la gestion (07/11, script brique3h). */}
+        {gestion.statut === "en_cours" && (
+          <section id="terminer" className="mt-8 scroll-mt-24 border-t border-brand-gray/20 pt-6" aria-labelledby="titre-terminer">
+            <h2 id="titre-terminer" className="font-bold text-brand-teal">
+              {nomSalarie(gestion) || "Ce salarié"} ne travaille plus pour vous ?
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-foreground/75">
+              Si le contrat prend fin (démission, licenciement, rupture conventionnelle, fin de CDD), prévenez-nous
+              d&apos;abord avec « Prévoir › Une fin de contrat » : nous préparons les documents de fin de contrat.
+              Terminez ensuite la gestion : nous n&apos;établirons plus de bulletin et sa place se libère dans votre
+              abonnement.
+            </p>
+            <form action={terminerMaGestion} className="mt-3 flex flex-wrap items-end gap-3">
+              <input type="hidden" name="gestion_id" value={gestion.id} />
+              <label className="flex flex-col gap-1 text-sm font-bold text-brand-teal">
+                Dernier jour de travail
+                <input
+                  type="date"
+                  name="date_fin"
+                  required
+                  defaultValue={new Date().toISOString().slice(0, 10)}
+                  min={gestion.date_debut}
+                  max={new Date().toISOString().slice(0, 10)}
+                  className="w-48 rounded-md border border-brand-gray/40 bg-white px-3 py-2 text-base font-normal text-foreground outline-none focus:border-brand-teal sm:text-sm"
+                />
+              </label>
+              <BoutonConfirme
+                className="btn btn-secondaire"
+                enCours="En cours…"
+                question={`Terminer la gestion de ${nomSalarie(gestion) || "ce salarié"} ?`}
+                precision="Nous n'établirons plus de bulletin pour ce salarié et sa place sera libérée. Ses documents restent consultables ici. Votre abonnement continue au même tarif : pour changer de formule ou résilier, rendez-vous sur la page Abonnement. Pour rouvrir la gestion, contactez-nous."
+                oui="Oui, terminer"
+              >
+                Terminer la gestion
+              </BoutonConfirme>
+            </form>
+          </section>
         )}
           </>
         )}

@@ -737,3 +737,18 @@ Aucun script SQL. Compte de test sans abonnement ni gestion, puis avec abonnemen
 | N.5 | Abonné sans gestion : onglet Mes gestions | Étape 1 cochée ; « + Ajouter un salarié » ouvre directement le formulaire | |
 | N.6 | Page Abonnement en mode test | Cartes de test affichées : 4970 1150 0000 0228 (acceptée, 3-D Secure), 4970 1000 0000 0071 (refusée), 4970 1000 0000 0667 (refusée aux échéances suivantes) | |
 
+## Fin de gestion, jours facultatifs, export CSV (07/11, lot 38)
+
+**Script SQL à exécuter avant le Push : `supabase/brique3h_terminer_gestion_abonne.sql`** (après 3g).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| O.1 | Abonné avec un brouillon et aucune gestion en cours : Tableau de bord › Mes salariés | « Aucun salarié suivi pour l'instant. Complétez et envoyez le formulaire « En préparation » ci-dessus… » (plus de lien « Ajouter un salarié ») | |
+| O.2 | Même cas après envoi du formulaire | « … Aide & Garde vérifie le formulaire envoyé… » | |
+| O.3 | Gestion en cours › bas de page « … ne travaille plus pour vous ? » › date future | Le calendrier ne propose pas de date future ; forcée, message « ne peut pas être dans le futur » | |
+| O.4 | Terminer la gestion › « Oui, terminer » | Message « Gestion terminée… » ; la gestion est « terminée (du … au …) », place libérée dans l'abonnement, documents visibles ; email « Gestion terminée par l'abonné » reçu par Aide & Garde | |
+| O.5 | Admin › fiche du compte | Gestion terminée, bouton « Rouvrir » disponible | |
+| O.6 | Formulaire de gestion › Horaires sans cocher de jour › Envoyer | L'envoi n'est plus bloqué par « jours de travail » | |
+| O.7 | Admin › fiche du compte › gestion envoyée › « Télécharger le formulaire (CSV) » | Fichier AG000xx-NOM.csv ; ouvert dans Excel : 2 lignes, 138 colonnes, accents corrects, dates JJ/MM/AAAA | |
+| O.8 | Même export sur une autre gestion presque vide | Mêmes 138 colonnes, dans le même ordre (cellules vides) | |
+

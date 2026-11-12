@@ -551,6 +551,15 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 | **« Ajouter un salarié » sans abonnement actif** | Mène à la page Abonnement (choix de la formule), depuis Mes gestions et le tableau de bord ; la page « Créer une gestion » ouverte sans abonnement propose « Choisir ma formule » (au lieu de « Nous contacter »). Après le premier paiement accepté, sans gestion, la page Abonnement propose « + Ajouter mon salarié ». | En place (lot 37) |
 | Écart avec le Cadre stratégique | Le Cadre (décision de Natalia, étape 1 du site) prévoit « inscription directe : brouillon possible avant paiement, aucun envoi sans paiement ». Le site actuel demande la formule avant le brouillon (demande de Frédéric du 07/11). | À arbitrer (Frédéric, Natalia) |
 
+## 4 undecies. Retours du 07/11/2026 : fin de gestion par l'abonné, export pour le logiciel de paie
+
+| Élément | Règle | État |
+|---|---|---|
+| **Tableau de bord, « Mes salariés » vide** | Si des formulaires sont « En préparation », le texte invite à les compléter et les envoyer (brouillon) ou indique qu'Aide & Garde les vérifie (envoyés), au lieu de « Ajouter un salarié ». | En place (lot 38) |
+| **L'abonné termine lui-même une gestion** | En bas de la page d'une gestion en cours : « {Salarié} ne travaille plus pour vous ? », rappel de passer d'abord par « Prévoir › Une fin de contrat » pour les documents de fin de contrat, date du **dernier jour de travail** (aujourd'hui par défaut ; ni dans le futur, ni avant le début du contrat), bouton « Terminer la gestion » avec confirmation (plus de bulletin, place libérée, documents conservés, abonnement inchangé, réouverture par Aide & Garde). Contrôlé par la base (`gestion_terminer`, script **brique3h**). Alerte email à Aide & Garde (dernier bulletin, documents de fin de contrat, formule à ajuster). | En place (lot 38) — script 3h à exécuter |
+| **Jours de travail facultatifs** | La case « Jours de travail » n'est plus obligatoire pour envoyer (horaires variables, jours pas encore fixés). | En place (lot 38) |
+| **Export de la gestion pour le logiciel de paie** | Fiche du compte (admin) › Informations du contrat › « Télécharger le formulaire (CSV) » : une ligne de titres et une ligne de valeurs, **nombre de colonnes figé** (138 aujourd'hui), toutes présentes même vides, dans le même ordre : gestion (référence, statut, emploi et niveau, contrat, heures, salaire, dates…), compte de l'employeur (référence client, civilité, identité, coordonnées), puis chaque champ du formulaire dans l'ordre des étapes, enfants (4 au plus, 3 colonnes chacun) et horaires par jour (7 jours × arrivée, départ, travail effectif, présence responsable) dépliés. Titres = clés techniques stables ; valeurs = codes des choix, dates JJ/MM/AAAA, nombres à virgule ; séparateur « ; », UTF-8, s'ouvre dans Excel. Un champ ajouté au formulaire ajoute une colonne : mettre à jour l'import du logiciel. Fichier `src/lib/contrat/export.ts`. | En place (lot 38) |
+
 ## 8 bis. Page d'accueil et inscription — 23/10/2026
 
 | Élément | Règle | État |
@@ -578,6 +587,7 @@ Le site vend un abonnement en ligne à des particuliers : il doit respecter les 
 
 ## 10. Historique de ce document
 
+- 07/11/2026 (3) — Fin de gestion par l'abonné (script 3h) ; jours de travail facultatifs ; export CSV de la gestion pour le logiciel de paie ; texte du tableau de bord quand des formulaires sont en préparation.
 - 07/11/2026 (2) — « Mes gestions » sans salarié : page explicative avec aperçu de l'espace ; « Ajouter un salarié » mène au choix de la formule sans abonnement ; cartes de test Systempay corrigées sur la page Abonnement.
 - 07/11/2026 — Centre d'aide et simulateur réservés aux clients inscrits ; page publique Contact ; pages de présentation en anglais et en espagnol décidées.
 - 06/11/2026 — Migration des abonnements : vérifié en mode TEST que résilier un abonnement Systempay conserve la carte enregistrée (débit 0 clic accepté après résiliation) ; date anniversaire inchangée après un encaissement tardif.
