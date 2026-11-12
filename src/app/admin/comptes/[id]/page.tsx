@@ -676,20 +676,32 @@ Rouvrir
                             </BoutonConfirme>
                           </form>
                         )}
-                        <form action={supprimerGestion}>
-                          <input type="hidden" name="compte_id" value={id} />
-                          <input type="hidden" name="gestion_id" value={g.id} />
-                          <BoutonConfirme
-                            className="rounded-full p-2 text-red-700 hover:bg-red-50"
-                            enCours="…"
-                            libelle={`Supprimer la gestion de ${nomSalarie(g)}`}
-                            question={`Supprimer définitivement la gestion de ${nomSalarie(g)} ?`}
-                            precision={`Ses ${docsGestion.length} document(s), fichiers PDF compris, et ses déclarations seront effacés. Action irréversible. Pour un salarié qui part, utilisez plutôt « Terminer la gestion ».`}
-                            oui="Oui, supprimer"
+                        {/* Suppression éloignée de « Terminer la gestion » (audit du
+                            12/11) : il faut ouvrir ce menu, puis confirmer. */}
+                        <details className="relative">
+                          <summary
+                            className="cursor-pointer list-none rounded-full px-2.5 py-1 text-lg leading-none text-foreground/70 hover:bg-brand-gray/15 [&::-webkit-details-marker]:hidden"
+                            aria-label={`Autres actions pour la gestion de ${nomSalarie(g)}`}
+                            title="Autres actions"
                           >
-                            <IconePoubelle className="h-5 w-5" />
-                          </BoutonConfirme>
-                        </form>
+                            ⋯
+                          </summary>
+                          <div className="absolute right-0 z-20 mt-1 w-60 rounded-lg border border-brand-gray/30 bg-white p-1 shadow-lg">
+                            <form action={supprimerGestion}>
+                              <input type="hidden" name="compte_id" value={id} />
+                              <input type="hidden" name="gestion_id" value={g.id} />
+                              <BoutonConfirme
+                                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                                enCours="Suppression…"
+                                question={`Supprimer définitivement la gestion de ${nomSalarie(g)} ?`}
+                                precision={`Ses ${docsGestion.length} document(s), fichiers PDF compris, et ses déclarations seront effacés. Action irréversible. Pour un salarié qui part, utilisez plutôt « Terminer la gestion ».`}
+                                oui="Oui, supprimer"
+                              >
+                                <IconePoubelle className="h-4 w-4" /> Supprimer la gestion
+                              </BoutonConfirme>
+                            </form>
+                          </div>
+                        </details>
                       </div>
                     </div>
 

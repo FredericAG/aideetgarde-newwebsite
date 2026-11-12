@@ -368,6 +368,9 @@ export async function ListeComptes({
               <a href="#detail-actions" className="btn btn-secondaire btn-sm">
                 Détail par type
               </a>
+              <Link href="/admin/paie" className="btn btn-secondaire btn-sm">
+                Paie du mois
+              </Link>
             </div>
           )}
         </section>

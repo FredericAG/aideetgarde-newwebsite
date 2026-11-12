@@ -41,7 +41,7 @@ export function PiedDePage() {
   );
   return (
     <>
-      <footer className="mt-auto border-t border-brand-gray/15 px-4 py-5 text-xs text-foreground/60 sm:px-6">
+      <footer className="pied-public mt-auto border-t border-brand-gray/15 px-4 py-5 text-xs text-foreground/60 sm:px-6">
         <nav aria-label="Informations légales" className="mx-auto mb-3 flex w-full max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 sm:hidden">
           {liens}
         </nav>
@@ -71,10 +71,10 @@ export function PiedDePage() {
       </footer>
       {/* Ordinateur : bande fixe en bas de l'écran, et sa place réservée en
           fin de page pour ne rien masquer. */}
-      <div aria-hidden="true" className="hidden h-9 sm:block" />
+      <div aria-hidden="true" className="pied-public hidden h-9 sm:block" />
       <nav
         aria-label="Informations légales"
-        className="fixed inset-x-0 bottom-0 z-30 hidden h-9 border-t border-brand-gray/15 bg-white px-6 text-xs text-foreground/60 shadow-[0_-2px_8px_rgba(0,0,0,0.05)] sm:block"
+        className="pied-public fixed inset-x-0 bottom-0 z-30 hidden h-9 border-t border-brand-gray/15 bg-white px-6 text-xs text-foreground/60 shadow-[0_-2px_8px_rgba(0,0,0,0.05)] sm:block"
       >
         <div className="mx-auto flex h-full w-full max-w-5xl items-center gap-x-5 overflow-x-auto whitespace-nowrap">
           {liens}

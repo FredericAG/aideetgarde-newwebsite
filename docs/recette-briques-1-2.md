@@ -770,3 +770,21 @@ Aucun script SQL. Compte de test sans abonnement ni gestion, puis avec abonnemen
 | Q.8 | Terminer une gestion dans l'admin, revenir à la liste, rouvrir la fiche | L'état affiché est toujours à jour, sans attendre | |
 | Q.9 | Création de compte, mot de passe oublié, nouveau mot de passe | Fonctionnent comme avant | |
 
+## Paie du mois et exports groupés (12/11, lot 41)
+
+Aucun script SQL (la relance groupée utilise le script 9c, déjà en place).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| S.1 | Admin › onglet « Paie » | Mois proposé : le mois précédent jusqu'au 10, sinon le mois en cours ; quatre compteurs dont la somme égale le nombre de gestions listées | |
+| S.2 | Cliquer un compteur, puis « Tout » | La liste se limite à cet état, puis revient complète | |
+| S.3 | Abonné : déclarer le mois pour un salarié ; revenir sur « Paie » | La gestion passe de « Sans déclaration » à « Déclaration à traiter », avec les heures et le commentaire | |
+| S.4 | Déposer le bulletin de ce mois (onglet Dépôt ou fiche du compte) ; revenir sur « Paie » | La gestion passe en « Bulletin en ligne », la barre d'avancement progresse | |
+| S.5 | « ⬇ Déclarations à traiter » puis « ⬇ Tout le mois » | Fichiers paie-AAAA-MM….csv ; dans Excel : une ligne de titres, 24 colonnes, une ligne par gestion, accents corrects | |
+| S.6 | Cliquer le nom d'un employeur dans la liste | Sa fiche s'ouvre sur la bonne gestion, dépliée | |
+| S.7 | « ✉ Relancer n abonnés sans déclaration » › lire le message › « Oui, envoyer » (avec des comptes de test dont vous recevez les emails) | Un email par abonné, au nom du mois affiché ; bilan « n email(s) envoyé(s) » ; le bouton indique ensuite 0 abonné et « n déjà relancé(s) depuis moins de 3 jours » | |
+| S.8 | Mois précédent, mois suivant, « Revenir à … » | Les compteurs changent ; une gestion commencée après le mois n'y apparaît pas | |
+| S.9 | « ⬇ Gestions à valider » et « ⬇ Gestions en cours » | Fichiers de 137 colonnes, une ligne par gestion | |
+| S.10 | Fiche d'un compte : menu « ⋯ » d'une gestion | « Supprimer la gestion » n'apparaît qu'après ouverture du menu ; la confirmation est toujours demandée | |
+| S.11 | N'importe quelle page de l'administration | Plus de pied de page public ; sur téléphone, l'onglet « Paie » remplace « Archivés » | |
+

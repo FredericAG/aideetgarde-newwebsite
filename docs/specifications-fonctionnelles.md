@@ -604,8 +604,26 @@ Audit complet : `Audit_site_12_novembre_2026.md` (projet). Deux premiers lots, s
 | **Pages gardées en mémoire** | Réglage supprimé : chaque page affichée est à jour. | En place (lot 40) |
 | Pages publiques servies depuis le cache | Demande de séparer l'en-tête public de l'en-tête de l'espace client : à faire avec la création des pages publiques et du menu de l'arborescence. | À faire |
 
+## 9 quater. Back-office : « Paie du mois » et exports groupés (lot 41, 12/11/2026)
+
+Suite de l'audit du 12/11 : l'administration était organisée par compte, le travail mensuel se fait par tâche.
+
+| Élément | Règle | État |
+|---|---|---|
+| **Onglet « Paie »** (`/admin/paie`) | Pour un mois, chaque gestion concernée est dans **un seul état** : « Déclaration à traiter » (déclaration reçue, ou correction demandée sur un bulletin en ligne), « Sans déclaration », « Bulletin en ligne », « Clos sans bulletin ». Gestions concernées : en cours ou terminées, commencées (ou reprises, « premier mois à déclarer ») au plus tard en fin de mois et pas terminées avant son premier jour. Mois proposé : le mois précédent jusqu'au 10, le mois en cours ensuite ; flèches vers les mois voisins. | En place (lot 41) |
+| **Avancement** | Quatre compteurs cliquables (ils filtrent la liste) et une barre « n / total bulletins en ligne ». | En place |
+| **Liste** | Référence, employeur (lien direct vers la gestion dans sa fiche), salarié, état, déclaration (heures ou « Heures du contrat », date, commentaire, motif de correction), durée du contrat. Déclarations à traiter en premier, les plus anciennes d'abord. 500 lignes affichées au plus par filtre. | En place |
+| **Exports du mois** | « Déclarations à traiter » et « Tout le mois » : CSV de 24 colonnes fixes, une ligne par gestion (période, état, références, employeur, salarié, emploi, contrat, heures et salaire du contrat, déclaration reçue, heures déclarées, commentaire, date, correction demandée et motif, date du bulletin, statut et dates de la gestion). Même format que l'export d'une gestion (séparateur « ; », UTF-8, libellés, dates JJ/MM/AAAA). | En place |
+| **Relance groupée** | « Relancer n abonnés sans déclaration » : le message exact et le nombre de destinataires sont affichés avant confirmation. Un email par abonné (même avec plusieurs salariés), rappel « Déclaration du mois » au nom du mois affiché. Écartés : les abonnés déjà relancés pour ce motif depuis moins de 3 jours, les gestions terminées, les comptes sans email. 200 emails au plus par clic. Chaque envoi est tracé comme une relance à l'unité. | En place — à recetter |
+| **Exports groupés des gestions** | « Gestions à valider » et « Gestions en cours » : le fichier de 137 colonnes d'une gestion, avec une ligne par gestion. | En place |
+| **Navigation** | Onglet « Paie » après « Comptes ». Sur téléphone, il remplace « Archivés » (5 onglets au plus) ; les comptes archivés restent accessibles depuis « Comptes ». Bouton « Paie du mois » dans le bandeau des actions à effectuer. | En place |
+| **Pied de page public** | Masqué pour l'administrateur (mentions légales, « Résilier votre contrat »…). | En place |
+| **Suppression d'une gestion** | Plus de corbeille à côté de « Terminer la gestion » : menu « ⋯ », puis « Supprimer la gestion », puis confirmation. | En place |
+| Rôle « conseiller », journal des actions, liste des comptes par pages | Constats B3, B4 et B5 de l'audit. | À faire |
+
 ## 10. Historique de ce document
 
+- 12/11/2026 (3) — Lot 41 : onglet « Paie du mois » (état de chaque gestion, exports, relance groupée), exports groupés des gestions, suppression d'une gestion dans un menu, pied de page public masqué dans l'administration.
 - 12/11/2026 (2) — Audit du site ; lot 40 : mise à jour de Next.js, redirection après connexion, en-têtes de sécurité, page d'erreur en français, suivi du traitement quotidien (script 5f), polices et scripts allégés, fin des pages gardées 30 secondes.
 - 12/11/2026 — Centre d'aide réservé aux abonnés (abonnement actif exigé) ; export CSV dans l'ordre du formulaire, avec les libellés ; préalables au dépôt de vrais documents (plan Supabase Pro).
 - 07/11/2026 (3) — Fin de gestion par l'abonné (script 3h) ; jours de travail facultatifs ; export CSV de la gestion pour le logiciel de paie ; texte du tableau de bord quand des formulaires sont en préparation.

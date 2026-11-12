@@ -405,6 +405,11 @@ button:disabled {
   --surface: #1a2e39;
   --ligne-alternee: #182a34;
 }
+/* Le pied de page public (mentions légales, « Résilier votre contrat »…)
+   n'a pas sa place dans l'outil de travail de l'administrateur. */
+:root:has(.theme-admin) .pied-public {
+  display: none !important;
+}
 :root:has(.theme-admin) header {
   background: #0f1c23 !important;
   border-color: rgb(255 255 255 / 0.08) !important;

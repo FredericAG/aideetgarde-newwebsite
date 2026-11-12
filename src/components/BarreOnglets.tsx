@@ -106,11 +106,13 @@ export function BarreOnglets({ isAdmin, actionsAdmin = 0 }: { isAdmin: boolean; 
       actif: (p) => p.startsWith("/admin/depot"),
       icone: icones.depot,
     },
+    // « Paie du mois » remplace « Archivés » sur téléphone (5 onglets au
+    // plus) : les comptes archivés restent accessibles depuis « Comptes ».
     {
-      href: "/admin/archives",
-      libelle: "Archivés",
-      actif: (p) => p.startsWith("/admin/archives"),
-      icone: icones.archives,
+      href: "/admin/paie",
+      libelle: "Paie",
+      actif: (p) => p.startsWith("/admin/paie"),
+      icone: icones.documents,
     },
     {
       href: "/mon-compte",

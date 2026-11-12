@@ -49,6 +49,9 @@ export async function SiteHeader() {
                       </span>
                     )}
                   </OngletEntete>
+                  <OngletEntete href="/admin/paie">
+                    Paie
+                  </OngletEntete>
                   <OngletEntete href="/admin/abonnements">
                     Abonnements
                   </OngletEntete>
