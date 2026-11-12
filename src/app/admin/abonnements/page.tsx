@@ -215,6 +215,16 @@ export default async function AbonnementsPage({
     // Tarifs existants, pour la liste déroulante de la colonne Tarif.
     supabase.from("abonnements").select("tarif_mensuel").limit(1000),
   ]);
+
+  // Dernier passage automatique du traitement quotidien (script brique5f).
+  const suiviRes = await supabase
+    .from("traitements_quotidiens")
+    .select("lance_le, ok, erreur")
+    .eq("origine", "automatique")
+    .order("lance_le", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const suivi: Suivi = suiviRes.error ? "absent" : ((suiviRes.data as PassageQuotidien | null) ?? null);
   const tarifs = [...new Set((tarifsRes.data ?? []).map((t) => Number(t.tarif_mensuel)).filter((t) => t > 0))].sort(
     (a, b) => a - b,
   );
@@ -349,6 +359,7 @@ export default async function AbonnementsPage({
           <div className="mt-3">
             <VerifierConfiguration />
           </div>
+          {paiementsInstalles && <SuiviTraitement suivi={suivi} />}
           {!paiementsInstalles ? (
             <p className="mt-2 text-foreground/70">
               Exécutez le script supabase/brique5a_paiements.sql pour activer le suivi des paiements.
@@ -595,5 +606,52 @@ function CellulePaiement({ p, resilie }: { p: PaiementAbonnement | undefined; re
       À jour
       <span className="block text-foreground/50">prochain {formatDate(p.prochaine_echeance)}</span>
     </span>
+  );
+}
+
+interface PassageQuotidien {
+  lance_le: string;
+  ok: boolean;
+  erreur: string | null;
+}
+/** "absent" : script brique5f pas encore exécuté ; null : aucun passage enregistré. */
+type Suivi = PassageQuotidien | null | "absent";
+
+/**
+ * Dernier passage automatique du traitement quotidien, avec une alerte s'il
+ * a échoué ou n'a pas eu lieu depuis plus de 26 heures (audit du 12/11/2026).
+ */
+function SuiviTraitement({ suivi }: { suivi: Suivi }) {
+  if (suivi === "absent") {
+    return (
+      <p className="mt-2 text-xs text-foreground/70">
+        Pour suivre le traitement automatique de chaque matin, exécutez le script
+        supabase/brique5f_suivi_traitement_quotidien.sql.
+      </p>
+    );
+  }
+  if (!suivi) {
+    return (
+      <p className="mt-2 text-xs text-foreground/70">
+        Traitement automatique : aucun passage enregistré pour l&apos;instant (il a lieu chaque matin, vers 6 h).
+      </p>
+    );
+  }
+  const date = new Date(suivi.lance_le);
+  const quand = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Paris" }).format(date);
+  const enRetard = new Date().getTime() - date.getTime() > 26 * 3600 * 1000;
+  if (suivi.ok && !enRetard) {
+    return <p className="mt-2 text-xs text-foreground/70">Dernier traitement automatique : le {quand}, réussi.</p>;
+  }
+  return (
+    <p role="alert" className="mt-3 rounded-lg border-2 border-red-300 bg-red-50 p-3 text-red-700">
+      <strong>
+        {enRetard ? "Le traitement automatique n'a pas eu lieu depuis plus d'une journée" : "Le dernier traitement automatique a échoué"}
+      </strong>{" "}
+      (dernier passage : le {quand}
+      {suivi.ok ? "" : `, erreur : ${suivi.erreur ?? "inconnue"}`}). Les échéances ne sont peut-être pas prélevées : cliquez sur
+      « Lancer le traitement maintenant ». Si cela se reproduit, vérifiez la tâche planifiée et le secret CRON_SECRET dans
+      Vercel.
+    </p>
   );
 }

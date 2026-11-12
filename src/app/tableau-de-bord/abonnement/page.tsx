@@ -369,7 +369,7 @@ export default async function AbonnementPage({
             ) : (
               <p className="mt-3 text-sm text-foreground/70">
                 La souscription en ligne n&apos;est pas encore ouverte.{" "}
-                <Link href="/aide" className="text-brand-teal underline">
+                <Link href="/contact" className="text-brand-teal underline">
                   Contactez-nous
                 </Link>{" "}
                 pour vous abonner.

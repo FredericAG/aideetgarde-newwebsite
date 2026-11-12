@@ -723,6 +723,8 @@ Aucun script SQL. Tester déconnecté (fenêtre de navigation privée), puis con
 | M.3 | Déconnecté, accueil : bloc « Une question sur votre situation ? » et lien sous les questions fréquentes | Plus de lien vers le centre d'aide ; « Nous écrire » et « Parlez gratuitement à un conseiller » mènent à /contact | |
 | M.4 | Pied de page › Contact ; page introuvable (/xyz) › Contact | Page /contact : bouton d'appel, email, mention du centre d'aide pour les clients | |
 | M.5 | /robots.txt (une fois l'indexation ouverte) | /aide figure dans les pages interdites | |
+| M.6 | Connecté **sans abonnement actif** (compte neuf, ou abonnement résilié) : onglet Aide, puis /aide/conges (lot 39) | Page « Réservé aux abonnés » avec « Choisir ma formule » et le bouton d'appel ; aucun contenu du centre d'aide | |
+| M.7 | Abonné actif, et administrateur : onglet Aide | Centre d'aide affiché normalement | |
 
 ## « Mes gestions » avant le premier salarié (07/11, lot 37)
 
@@ -749,6 +751,22 @@ Aucun script SQL. Compte de test sans abonnement ni gestion, puis avec abonnemen
 | O.4 | Terminer la gestion › « Oui, terminer » | Message « Gestion terminée… » ; la gestion est « terminée (du … au …) », place libérée dans l'abonnement, documents visibles ; email « Gestion terminée par l'abonné » reçu par Aide & Garde | |
 | O.5 | Admin › fiche du compte | Gestion terminée, bouton « Rouvrir » disponible | |
 | O.6 | Formulaire de gestion › Horaires sans cocher de jour › Envoyer | L'envoi n'est plus bloqué par « jours de travail » | |
-| O.7 | Admin › fiche du compte › gestion envoyée › « Télécharger le formulaire (CSV) » | Fichier AG000xx-NOM.csv ; ouvert dans Excel : 2 lignes, 138 colonnes, accents corrects, dates JJ/MM/AAAA | |
-| O.8 | Même export sur une autre gestion presque vide | Mêmes 138 colonnes, dans le même ordre (cellules vides) | |
+| O.7 | Admin › fiche du compte › gestion envoyée › « Télécharger le formulaire (CSV) » | Fichier AG000xx-NOM.csv ; ouvert dans Excel : 2 lignes, 137 colonnes dans l'ordre du formulaire (gestion, compte, emploi, salarié, poste, contrat, horaires, salaire, envoi), accents corrects, dates JJ/MM/AAAA, **libellés** (« Convention collective (conseillé) », « Oui », « Lundi, Mardi ») | |
+| O.8 | Même export sur une autre gestion presque vide | Mêmes 137 colonnes, dans le même ordre (cellules vides) | |
+
+## Sécurité et vitesse (12/11, lot 40)
+
+**Script SQL à exécuter : `supabase/brique5f_suivi_traitement_quotidien.sql`** (après 5a). Ce lot met à jour Next.js : après le Push, vérifier d'abord que le déploiement Vercel réussit.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| Q.1 | Après le Push : Vercel › Deployments | Déploiement réussi (« Ready ») | |
+| Q.2 | Parcours habituel : connexion, tableau de bord, une gestion, téléchargement d'un PDF, déconnexion | Tout fonctionne comme avant ; les titres et les textes ont le même aspect | |
+| Q.3 | Paiement de test complet (page Abonnement, carte 4970 1150 0000 0228) | Formulaire Systempay affiché, 3-D Secure, paiement accepté | |
+| Q.4 | Déconnecté, ouvrir /connexion?next=https://www.google.com puis se connecter | Arrivée sur le tableau de bord, pas sur Google | |
+| Q.5 | Déconnecté, ouvrir /aide/conges, se connecter (abonné) | Arrivée sur la page des congés, comme avant | |
+| Q.6 | Admin › Abonnements, avant le script 5f | Mention « exécutez le script brique5f… » | |
+| Q.7 | Après le script 5f : « Lancer le traitement maintenant », puis le lendemain matin | Le lendemain : « Dernier traitement automatique : le …, réussi. » | |
+| Q.8 | Terminer une gestion dans l'admin, revenir à la liste, rouvrir la fiche | L'état affiché est toujours à jour, sans attendre | |
+| Q.9 | Création de compte, mot de passe oublié, nouveau mot de passe | Fonctionnent comme avant | |
 

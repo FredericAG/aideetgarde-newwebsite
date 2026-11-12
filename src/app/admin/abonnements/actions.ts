@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { clientServeur } from "@/lib/supabase/admin";
 import { appelSystempay, configSystempay } from "@/lib/systempay";
 import { adresseSite } from "@/lib/email";
-import { encaisserEcheances, verifierCommandesEnAttente } from "@/lib/paiement";
+import { traitementQuotidien } from "@/lib/traitement-quotidien";
 
 const LIBELLES: Record<string, string> = {
   payee: "échéance(s) payée(s)",
@@ -37,17 +37,12 @@ export async function lancerTraitementQuotidien(): Promise<string> {
   const db = clientServeur();
   if (!db) return "Impossible : la clé SUPABASE_SECRET_KEY n'est pas renseignée dans Vercel.";
   if (!configSystempay()) return "Impossible : les clés Systempay ne sont pas renseignées dans Vercel.";
-  try {
-    const commandes = await verifierCommandesEnAttente(db);
-    const echeances = await encaisserEcheances(db);
-    const { data: resiliations } = await db.rpc("appliquer_resiliations");
-    revalidatePath("/admin/abonnements");
-    return `Paiements en attente : ${lire(commandes)}. Échéances : ${lire(echeances)}.${
-      resiliations ? ` Résiliations appliquées : ${resiliations}.` : ""
-    }`;
-  } catch (e) {
-    return `Erreur : ${(e as Error).message}`;
-  }
+  const bilan = await traitementQuotidien(db, "manuel");
+  revalidatePath("/admin/abonnements");
+  if (!bilan.ok) return `Erreur : ${bilan.erreur}`;
+  return `Paiements en attente : ${lire(bilan.commandes)}. Échéances : ${lire(bilan.echeances)}.${
+    bilan.resiliations ? ` Résiliations appliquées : ${bilan.resiliations}.` : ""
+  }`;
 }
 
 export interface PointControle {

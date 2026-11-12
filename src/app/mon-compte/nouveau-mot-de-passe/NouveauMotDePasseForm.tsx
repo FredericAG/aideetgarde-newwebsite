@@ -3,7 +3,7 @@
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { clientALaDemande, prechargerClient } from "@/lib/supabase/client-a-la-demande";
 import { authErrorMessage } from "@/lib/auth-errors";
 
 export function NouveauMotDePasseForm() {
@@ -23,7 +23,7 @@ export function NouveauMotDePasseForm() {
     }
 
     setLoading(true);
-    const supabase = createClient();
+    const supabase = await clientALaDemande();
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
@@ -37,7 +37,7 @@ export function NouveauMotDePasseForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+    <form onSubmit={handleSubmit} onFocus={prechargerClient} className="mt-8 flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm font-medium">
         Nouveau mot de passe
         <ChampMotDePasse

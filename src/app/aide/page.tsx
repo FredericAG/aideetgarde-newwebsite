@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { THEMES, indexRecherche } from "@/lib/aide/contenu";
 import { PORTES } from "@/lib/aide/types";
-import { requireUser } from "@/lib/auth";
+import { AideReservee, accesCentreAide } from "./acces";
 import { RechercheAide } from "./RechercheAide";
 import { BlocContact } from "./BlocContact";
 
@@ -18,11 +18,11 @@ export const metadata: Metadata = {
  * Centre d'aide (onglet « Aide », spécifications § 6 bis) : recherche, puis
  * trois portes d'entrée (comprendre mes documents, employer un salarié,
  * utiliser mon espace), les outils et le contact. Réservé aux clients
- * inscrits (décision du 07/11/2026, Cadre stratégique) : le référencement
- * passe par les pages Guides publiques.
+ * connectés qui ont un abonnement actif (décisions des 07 et 12/11/2026) :
+ * le référencement passe par les pages Guides publiques.
  */
 export default async function AidePage() {
-  await requireUser("/aide");
+  if (!(await accesCentreAide("/aide"))) return <AideReservee />;
   return (
     <div className="flex flex-1 justify-center px-4 py-8 sm:px-6 sm:py-12">
       <div className="w-full max-w-3xl">

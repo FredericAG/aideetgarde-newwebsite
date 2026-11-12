@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { themeParSlug } from "@/lib/aide/contenu";
 import { EN_RELECTURE, MIS_A_JOUR, type Bloc } from "@/lib/aide/types";
 import { BlocContact } from "../BlocContact";
-import { requireUser } from "@/lib/auth";
+import { AideReservee, accesCentreAide } from "../acces";
 import { OuvrirAncre } from "./OuvrirAncre";
 
 export async function generateMetadata({ params }: { params: Promise<{ theme: string }> }): Promise<Metadata> {
@@ -103,7 +103,7 @@ function Contenu({ bloc }: { bloc: Bloc }) {
  */
 export default async function ThemeAidePage({ params }: { params: Promise<{ theme: string }> }) {
   const slug = (await params).theme;
-  await requireUser(`/aide/${slug}`);
+  if (!(await accesCentreAide(`/aide/${slug}`))) return <AideReservee />;
   const theme = themeParSlug(slug);
   if (!theme) notFound();
 

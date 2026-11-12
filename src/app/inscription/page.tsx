@@ -4,7 +4,7 @@ import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { clientALaDemande, prechargerClient } from "@/lib/supabase/client-a-la-demande";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { MESSAGE_RESEAU, withTimeout } from "@/lib/with-timeout";
 
@@ -34,7 +34,7 @@ export default function InscriptionPage() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
+      const supabase = await clientALaDemande();
       // Le profil (table `profiles`) est créé automatiquement par un trigger
       // Postgres à partir de ces métadonnées (voir supabase/schema.sql) — pas
       // besoin d'un appel séparé comme avec Firebase/Firestore.
@@ -137,7 +137,7 @@ export default function InscriptionPage() {
           Gratuit. Vous choisirez votre formule ensuite.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} onFocus={prechargerClient} className="mt-6 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Prénom">
               <input

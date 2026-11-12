@@ -71,7 +71,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/tableau-de-bord") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/documents") ||
-    // Centre d'aide réservé aux clients inscrits (décision du 07/11/2026).
+    // Centre d'aide réservé aux abonnés connectés (07 et 12/11/2026) ;
+    // l'abonnement actif est vérifié par la page (src/app/aide/acces.tsx).
     pathname.startsWith("/aide");
   const isAuthRoute =
     pathname.startsWith("/connexion") || pathname.startsWith("/inscription");

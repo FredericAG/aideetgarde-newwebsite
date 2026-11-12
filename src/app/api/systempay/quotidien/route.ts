@@ -1,5 +1,5 @@
 import { clientServeur } from "@/lib/supabase/admin";
-import { encaisserEcheances, verifierCommandesEnAttente } from "@/lib/paiement";
+import { traitementQuotidien } from "@/lib/traitement-quotidien";
 
 /**
  * Traitement quotidien des paiements, lancé chaque matin par Vercel
@@ -25,18 +25,8 @@ export async function GET(request: Request) {
   const db = clientServeur();
   if (!db) return Response.json({ erreur: "SUPABASE_SECRET_KEY absente" }, { status: 500 });
 
-  try {
-    const commandes = await verifierCommandesEnAttente(db);
-    const echeances = await encaisserEcheances(db);
-    // Résiliations demandées arrivées à la fin du mois (brique 5b).
-    const { data: resiliations } = await db.rpc("appliquer_resiliations");
-    // Clics vers les partenaires : lien avec le compte effacé après 13 mois
-    // (brique 10 ; sans le script, l'erreur est simplement ignorée).
-    await db.rpc("anonymiser_clics_partenaires");
-    console.log("Traitement quotidien Systempay", { commandes, echeances, resiliations });
-    return Response.json({ commandes, echeances, resiliations: resiliations ?? 0 });
-  } catch (e) {
-    console.error("Traitement quotidien Systempay :", e);
-    return Response.json({ erreur: (e as Error).message }, { status: 500 });
-  }
+  const bilan = await traitementQuotidien(db, "automatique");
+  await db.rpc("anonymiser_clics_partenaires").then(() => null, () => null);
+  console.log("Traitement quotidien Systempay", bilan);
+  return Response.json(bilan, { status: bilan.ok ? 200 : 500 });
 }

@@ -37,11 +37,11 @@ export default function ContactPage() {
         </section>
 
         <p className="mt-8 text-sm text-foreground/70">
-          Déjà client ? Les réponses aux questions courantes sont dans votre{" "}
+          Déjà abonné ? Les réponses aux questions courantes sont dans votre{" "}
           <Link href="/aide" className="font-medium text-brand-teal underline">
             centre d&apos;aide
           </Link>{" "}
-          (connexion nécessaire).
+          (réservé aux abonnés connectés).
         </p>
       </div>
     </div>

@@ -4,14 +4,17 @@ import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { clientALaDemande, prechargerClient } from "@/lib/supabase/client-a-la-demande";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { MESSAGE_RESEAU, withTimeout } from "@/lib/with-timeout";
 
 function ConnexionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/tableau-de-bord";
+  // Uniquement une adresse interne du site : un lien piégé ne doit pas
+  // pouvoir envoyer l'abonné, une fois connecté, vers un autre site.
+  const demande = searchParams.get("next") ?? "";
+  const next = /^\/(?![/\\])/.test(demande) ? demande : "/tableau-de-bord";
   const lienInvalide = searchParams.get("erreur") === "lien_invalide";
   const versAide = next.startsWith("/aide");
 
@@ -26,7 +29,7 @@ function ConnexionForm() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
+      const supabase = await clientALaDemande();
       const { error: signInError } = await withTimeout(
         supabase.auth.signInWithPassword({ email, password }),
       );
@@ -58,11 +61,11 @@ function ConnexionForm() {
 
         {versAide && (
           <p className="mt-6 rounded-md border border-brand-gray/30 p-3 text-sm text-foreground/80">
-            Le centre d&apos;aide est réservé aux clients Aide &amp; Garde. Connectez-vous, ou{" "}
+            Le centre d&apos;aide est réservé aux abonnés Aide &amp; Garde. Connectez-vous, ou{" "}
             <Link href="/inscription" className="font-medium text-brand-teal underline">
               créez votre compte
             </Link>{" "}
-            pour y accéder. Une question avant ? Appelez gratuitement un conseiller au{" "}
+            pour vous abonner. Une question avant ? Appelez gratuitement un conseiller au{" "}
             <a href="tel:+33188320118" className="font-medium text-brand-teal underline">
               01 88 320 118
             </a>
@@ -79,7 +82,7 @@ function ConnexionForm() {
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} onFocus={prechargerClient} className="mt-8 flex flex-col gap-4">
           <label className="flex flex-col gap-1 text-sm font-medium">
             Email
             <input

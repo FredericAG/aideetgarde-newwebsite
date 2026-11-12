@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { clientALaDemande, prechargerClient } from "@/lib/supabase/client-a-la-demande";
 
 export default function MotDePasseOubliePage() {
   const [email, setEmail] = useState("");
@@ -13,7 +13,7 @@ export default function MotDePasseOubliePage() {
     event.preventDefault();
     setLoading(true);
 
-    const supabase = createClient();
+    const supabase = await clientALaDemande();
     // Le lien envoyé par email pointe vers `/auth/confirm` (voir
     // src/app/auth/confirm/route.ts), qui établit la session puis redirige
     // vers la page de saisie du nouveau mot de passe — à condition que le
@@ -43,7 +43,7 @@ export default function MotDePasseOubliePage() {
             spams.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+          <form onSubmit={handleSubmit} onFocus={prechargerClient} className="mt-8 flex flex-col gap-4">
             <p className="text-sm text-foreground/70">
               Indiquez votre adresse email, nous vous enverrons un lien pour
               choisir un nouveau mot de passe.
