@@ -8,16 +8,18 @@ import { ENTREPRISE } from "@/lib/entreprise";
  * d'abord au choix de la formule.
  */
 export function PremiereGestion({ abonne }: { abonne: boolean }) {
-  const lienAjout = abonne ? "/tableau-de-bord/gestions/nouvelle" : "/tableau-de-bord/abonnement";
+  // Brouillon sans abonnement (13/11/2026) : on commence toujours par le
+  // salarié ; la formule est choisie à l'envoi.
+  const lienAjout = "/tableau-de-bord/gestions/nouvelle";
   const etapes: { titre: string; texte: string; fait?: boolean }[] = [
-    {
-      titre: "Choisissez votre formule",
-      texte: "Selon le nombre de salariés que vous employez. Sans engagement, résiliable en ligne.",
-      fait: abonne,
-    },
     {
       titre: "Ajoutez votre salarié",
       texte: "Quelques minutes : son emploi, son contrat, ses horaires. Vous pouvez enregistrer un brouillon et finir plus tard.",
+    },
+    {
+      titre: "Choisissez votre formule",
+      texte: "Au moment d'envoyer, selon le nombre de salariés. Sans engagement, résiliable en ligne.",
+      fait: abonne,
     },
     {
       titre: "Retrouvez ses documents ici",
@@ -38,8 +40,11 @@ export function PremiereGestion({ abonne }: { abonne: boolean }) {
           + Ajouter un salarié
         </Link>
         {!abonne && (
-          <p className="text-sm text-foreground/70">Vous choisirez d&apos;abord votre formule, puis vous ajouterez votre salarié.</p>
+          <p className="text-sm text-foreground/70">Sans engagement : vous choisirez votre formule au moment d&apos;envoyer.</p>
         )}
+        <Link href="/simulateur" className="text-sm font-bold text-brand-teal underline">
+          Combien me coûte un salarié ? Simuler
+        </Link>
       </div>
 
       <ol className="mt-8 grid gap-3 sm:grid-cols-3">

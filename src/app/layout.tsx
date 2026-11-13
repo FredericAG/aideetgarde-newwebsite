@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { NavigationTelephone } from "@/components/NavigationTelephone";
 import { PiedDePage } from "@/components/PiedDePage";
 import { Consentement } from "@/components/Consentement";
+import { Mesure } from "@/components/Mesure";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <PiedDePage />
         <NavigationTelephone />
         <Consentement />
+        <Mesure />
       </body>
     </html>
   );

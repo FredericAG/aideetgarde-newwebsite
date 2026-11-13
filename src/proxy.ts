@@ -27,6 +27,11 @@ export async function proxy(request: NextRequest) {
   ) {
     return NextResponse.next();
   }
+  // Comptage des visites et signalement des erreurs (13/11/2026) : sans
+  // session, rien à vérifier.
+  if (request.nextUrl.pathname === "/api/mesure" || request.nextUrl.pathname === "/api/erreur") {
+    return NextResponse.next();
+  }
 
   let supabaseResponse = NextResponse.next({ request });
 
@@ -71,6 +76,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/tableau-de-bord") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/documents") ||
+    // Simulateur : comptes connectés (13/11/2026).
+    pathname.startsWith("/simulateur") ||
     // Centre d'aide réservé aux abonnés connectés (07 et 12/11/2026) ;
     // l'abonnement actif est vérifié par la page (src/app/aide/acces.tsx).
     pathname.startsWith("/aide");

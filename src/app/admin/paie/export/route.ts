@@ -3,6 +3,7 @@ import { getSessionCourante } from "@/lib/auth";
 import { TYPES_GESTION, formatPeriode } from "@/lib/data";
 import { versCsv } from "@/lib/contrat/export";
 import { LIBELLES_ETAT_PAIE, lirePaieDuMois, periodeValide, type EtatPaie, type LignePaie } from "@/lib/paie-du-mois";
+import { estEquipe } from "@/lib/user-profile";
 
 function dateFr(v: string | null | undefined): string {
   const t = String(v ?? "");
@@ -50,7 +51,7 @@ const COLONNES: [string, (l: LignePaie, periode: string) => string][] = [
 export async function GET(request: Request) {
   const introuvable = () => new NextResponse("Page introuvable", { status: 404 });
   const { supabase, profile } = await getSessionCourante();
-  if (!supabase || profile?.role !== "admin") return introuvable();
+  if (!supabase || !estEquipe(profile)) return introuvable();
   const url = new URL(request.url);
   const mois = url.searchParams.get("mois");
   if (!periodeValide(mois)) return introuvable();

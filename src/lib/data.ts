@@ -33,6 +33,8 @@ export interface Abonnement {
   mode_paiement?: "manuel" | "systempay";
   carte_masquee?: string | null;
   carte_expiration?: string | null;
+  /** Mois offerts restants (parrainage, brique 14). */
+  mois_offerts?: number | null;
   prochaine_echeance?: string | null;
   statut_paiement?: "a_jour" | "en_retard" | "impaye";
   // Brique 5b : résiliation demandée par l'abonné (effet fin du mois civil).

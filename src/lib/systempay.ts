@@ -157,6 +157,37 @@ export async function creerFormulairePaiement(o: {
   );
 }
 
+/**
+ * Nouvelle carte sans paiement (13/11/2026, carte qui expire) : la banque
+ * vérifie la carte (3-D Secure) et Systempay crée un nouvel alias, renvoyé
+ * dans une transaction de type VERIFICATION, montant 0. À valider en mode
+ * TEST avant la mise en production (recette V).
+ */
+export async function creerFormulaireCarte(o: {
+  orderId: string;
+  email: string;
+  reference: string;
+  prenom?: string;
+  nom?: string;
+  urlNotification: string;
+}): Promise<ResultatApi> {
+  return appelSystempay(
+    "Charge/CreateToken",
+    {
+      currency: "EUR",
+      orderId: o.orderId,
+      customer: {
+        email: o.email,
+        reference: o.reference,
+        billingDetails: { firstName: o.prenom || undefined, lastName: o.nom || undefined, language: "FR" },
+      },
+      ipnTargetUrl: o.urlNotification,
+      metadata: { orderInfo: "Nouvelle carte pour l'abonnement Aide & Garde" },
+    },
+    15000,
+  );
+}
+
 /** Échéance mensuelle : débit sans interaction avec l'alias de la carte. */
 export async function debiterAlias(o: {
   orderId: string;
@@ -264,9 +295,10 @@ export function resumerReponse(answer: Record<string, unknown>): {
   statut: string;
   transaction: Transaction | null;
 } {
-  const brutes = ((answer.transactions as TransactionBrute[] | undefined) ?? []).filter(
-    (t) => !t.operationType || t.operationType === "DEBIT",
-  );
+  const toutes = (answer.transactions as TransactionBrute[] | undefined) ?? [];
+  const debits = toutes.filter((t) => !t.operationType || t.operationType === "DEBIT");
+  // Nouvelle carte sans paiement : seule une VERIFICATION (montant 0).
+  const brutes = debits.length ? debits : toutes.filter((t) => t.operationType === "VERIFICATION");
   const payee = brutes.find((t) => t.status === "PAID");
   const retenue = payee ?? brutes[brutes.length - 1];
   const orderDetails = answer.orderDetails as { orderId?: string } | undefined;

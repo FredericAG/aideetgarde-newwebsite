@@ -13,8 +13,11 @@ export function DocumentsGestion({
   compteId,
   documents,
   notes,
+  suppression = true,
 }: {
   compteId: string;
+  /** Poubelle par ligne : administrateur seulement (pas les conseillers). */
+  suppression?: boolean;
   /** Trace de remplacement par document (« Remplacé le … »). */
   notes?: Record<string, string>;
   /** Documents de la gestion, déjà triés du plus récent au plus ancien. */
@@ -25,7 +28,7 @@ export function DocumentsGestion({
       documents={documents}
       vue="admin"
       notes={notes}
-      action={(d) => (
+      action={(d) => suppression && (
         <form action={supprimerDocument}>
           <input type="hidden" name="compte_id" value={compteId} />
           <input type="hidden" name="document_id" value={d.id} />

@@ -30,7 +30,12 @@ const MOIS = [
 ];
 
 export function contenuRelance(modele: ModeleRelance, aujourdhui = new Date()): ContenuRelance {
-  const mois = `${MOIS[aujourdhui.getMonth()]} ${aujourdhui.getFullYear()}`;
+  // Déclaration : avant le 16, la relance porte sur le mois écoulé (date
+  // limite le 4 du mois suivant, décision du 13/11/2026).
+  const moisDeclare = aujourdhui.getDate() <= 15 ? new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - 1, 20) : aujourdhui;
+  const libelleDeclare = `${MOIS[moisDeclare.getMonth()]} ${moisDeclare.getFullYear()}`;
+  const limite = new Date(moisDeclare.getFullYear(), moisDeclare.getMonth() + 1, 4);
+  const libelleLimite = `4 ${MOIS[limite.getMonth()]} ${limite.getFullYear()}`;
   switch (modele) {
     case "abonnement_sans_gestion":
       return {
@@ -61,10 +66,10 @@ export function contenuRelance(modele: ModeleRelance, aujourdhui = new Date()): 
       return {
         bouton: "Déclaration du mois",
         usage: "Rappel de déclarer les heures du mois.",
-        sujet: `Pensez à déclarer le mois de ${mois}`,
-        titre: `Déclaration du mois de ${mois}`,
+        sujet: `Pensez à déclarer le mois de ${libelleDeclare}`,
+        titre: `Déclaration du mois de ${libelleDeclare}`,
         paragraphes: [
-          `Pour que nous puissions établir le bulletin de paie de ${mois}, indiquez-nous les heures travaillées par votre salarié (ou confirmez qu'elles sont conformes au contrat).`,
+          `Pour que nous puissions établir le bulletin de paie de ${libelleDeclare}, indiquez-nous les heures travaillées par votre salarié (ou confirmez qu'elles sont conformes au contrat), au plus tard le ${libelleLimite}.`,
           "Cela prend quelques secondes depuis votre espace, sur ordinateur comme sur téléphone.",
         ],
         lien: { texte: "Déclarer le mois", chemin: "/tableau-de-bord" },

@@ -12,6 +12,7 @@ import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { IconePoubelle } from "@/components/IconePoubelle";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { estAdministrateur } from "@/lib/user-profile";
 import {
   DATES_SIGNALEMENT,
   MOTIFS_REMPLACEMENT,
@@ -95,7 +96,9 @@ export default async function FicheComptePage({
   // « Déposer l'avenant » (brique 3b) : type de document prérempli.
   const typeCible = one(sp.type) === "avenant" ? "avenant" : "bulletin";
 
-  const { supabase } = await requireAdmin(`/admin/comptes/${id}`);
+  const { supabase, profile: moi } = await requireAdmin(`/admin/comptes/${id}`);
+  // Conseiller (13/11/2026) : ni abonnement (tarif, résiliation) ni suppression.
+  const administrateur = estAdministrateur(moi);
 
   // Toutes les lectures partent en même temps (un seul aller-retour réseau
   // au lieu de deux à la suite).
@@ -369,6 +372,8 @@ export default async function FicheComptePage({
                 </p>
               )}
 
+              {administrateur ? (
+              <>
               <form action={modifierAbonnement} className="mt-4 flex flex-wrap items-end gap-3">
                 <input type="hidden" name="compte_id" value={id} />
                 <input type="hidden" name="abonnement_id" value={actif.id} />
@@ -392,6 +397,19 @@ export default async function FicheComptePage({
                     className={`${inputClass} w-28`}
                   />
                 </label>
+                {"mois_offerts" in actif && (
+                  <label className="flex flex-col gap-1 text-xs font-medium">
+                    Mois offerts à venir
+                    <input
+                      type="number"
+                      name="mois_offerts"
+                      min={0}
+                      max={24}
+                      defaultValue={Number((actif as { mois_offerts?: number | null }).mois_offerts ?? 0)}
+                      className={`${inputClass} w-24`}
+                    />
+                  </label>
+                )}
                 <BoutonEnvoi className={btnLightClass} enCours="Enregistrement…">
 Enregistrer
 </BoutonEnvoi>
@@ -423,12 +441,20 @@ Enregistrer
                   deux actions distinctes.
                 </p>
               </details>
+              </>
+              ) : (
+                <p className="mt-3 text-xs text-foreground/60">
+                  Quota : {actif.quota_gestions} · tarif : {String(actif.tarif_mensuel).replace(".", ",")} €. Modification et
+                  résiliation réservées à l&apos;administrateur.
+                </p>
+              )}
             </>
           ) : (
             <>
               <p className="mt-2 text-sm text-foreground/70">
                 Aucun abonnement actif pour ce compte.
               </p>
+              {administrateur && (
               <form action={creerAbonnement} className="mt-4 flex flex-wrap items-end gap-3">
                 <input type="hidden" name="compte_id" value={id} />
                 <label className="flex flex-col gap-1 text-xs font-medium">
@@ -464,8 +490,22 @@ Enregistrer
 Créer l&apos;abonnement
 </BoutonEnvoi>
               </form>
+              )}
             </>
           )}
+
+          {/* Attestations fiscales (brique 15) : PDF des années écoulées. */}
+          <p className="mt-4 text-xs text-foreground/70">
+            Attestation fiscale :{" "}
+            {[new Date().getFullYear() - 1, new Date().getFullYear() - 2].map((a, i) => (
+              <span key={a}>
+                {i > 0 && " · "}
+                <a href={`/admin/comptes/${id}/attestation/${a}`} className="text-brand-teal underline">
+                  {a}
+                </a>
+              </span>
+            ))}
+          </p>
 
           {anciens.length > 0 && (
             <div className="mt-4 text-xs text-foreground/60">
@@ -678,6 +718,7 @@ Rouvrir
                         )}
                         {/* Suppression éloignée de « Terminer la gestion » (audit du
                             12/11) : il faut ouvrir ce menu, puis confirmer. */}
+                        {administrateur && (
                         <details className="relative">
                           <summary
                             className="cursor-pointer list-none rounded-full px-2.5 py-1 text-lg leading-none text-foreground/70 hover:bg-brand-gray/15 [&::-webkit-details-marker]:hidden"
@@ -702,6 +743,7 @@ Rouvrir
                             </form>
                           </div>
                         </details>
+                        )}
                       </div>
                     </div>
 
@@ -944,7 +986,7 @@ Rouvrir
                         </section>
                       )}
 
-                      <DocumentsGestion compteId={id} documents={docsGestion} notes={notesRemplacement} />
+                      <DocumentsGestion compteId={id} documents={docsGestion} notes={notesRemplacement} suppression={administrateur} />
                       <div id={`depot-${g.id}`} className="scroll-mt-4">
                         <DepotDocument
                           key={`${g.id}-${periodeDepot}-${cible ? typeCible : "bulletin"}`}

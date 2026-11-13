@@ -1,10 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { adresseSite, emailAdmin, envoyerEmail, modeleEmail } from "@/lib/email";
-import { encaisserEcheances, verifierCommandesEnAttente } from "@/lib/paiement";
+import { accorderParrainages, encaisserEcheances, prevenirCartesQuiExpirent, verifierCommandesEnAttente } from "@/lib/paiement";
 
 export type BilanQuotidien =
-  | { ok: true; commandes: Record<string, number>; echeances: Record<string, number>; resiliations: number }
+  | { ok: true; commandes: Record<string, number>; echeances: Record<string, number>; resiliations: number; cartes?: number; parrainages?: number }
   | { ok: false; erreur: string };
 
 /**
@@ -23,7 +23,19 @@ export async function traitementQuotidien(db: SupabaseClient, origine: "automati
     const commandes = await verifierCommandesEnAttente(db);
     const echeances = await encaisserEcheances(db);
     const { data: resiliations } = await db.rpc("appliquer_resiliations");
-    bilan = { ok: true, commandes, echeances, resiliations: Number(resiliations ?? 0) };
+    // Cartes qui expirent : prévenues une fois (brique 5g). Une erreur ici ne
+    // compromet pas les prélèvements déjà faits.
+    const cartes = await prevenirCartesQuiExpirent(db).catch((e) => {
+      console.error("Cartes qui expirent :", e);
+      return 0;
+    });
+    // Parrainages (brique 14) : AVANT le lendemain, pour que le mois offert
+    // s'applique à la prochaine échéance.
+    const parrainages = await accorderParrainages(db).catch((e) => {
+      console.error("Parrainages :", e);
+      return 0;
+    });
+    bilan = { ok: true, commandes, echeances, resiliations: Number(resiliations ?? 0), cartes, parrainages };
   } catch (e) {
     console.error("Traitement quotidien Systempay :", e);
     bilan = { ok: false, erreur: (e as Error).message.slice(0, 500) };

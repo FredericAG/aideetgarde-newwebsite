@@ -4,6 +4,7 @@ import { DeconnexionButton } from "@/components/DeconnexionButton";
 import { OngletEntete } from "@/components/OngletEntete";
 import { getSessionCourante } from "@/lib/auth";
 import { compterActionsAdmin } from "@/lib/actions-admin";
+import { estEquipe } from "@/lib/user-profile";
 
 /** En-tête commun à toutes les pages. */
 export async function SiteHeader() {
@@ -11,7 +12,7 @@ export async function SiteHeader() {
   // src/lib/auth.ts). Avant que Supabase soit configuré, user vaut null et
   // l'en-tête affiche simplement la navigation "déconnecté".
   const { supabase, user, profile } = await getSessionCourante();
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = estEquipe(profile);
   // Pastille « actions à effectuer » sur le lien Administration.
   const actions = isAdmin && supabase ? (await compterActionsAdmin(supabase)).total : 0;
 
@@ -63,6 +64,9 @@ export async function SiteHeader() {
                   </OngletEntete>
                   <OngletEntete href="/admin/partenaires">
                     Partenaires
+                  </OngletEntete>
+                  <OngletEntete href="/admin/tunnel">
+                    Tunnel
                   </OngletEntete>
                   <OngletEntete href="/mon-compte">
                     Mon compte

@@ -113,6 +113,18 @@ export default function CgvPage() {
           Paiement par carte bancaire (Systempay) : le premier mois à la souscription, puis chaque mois à la même
           date (le 28 pour une souscription un 29, 30 ou 31).
         </p>
+        <p>
+          <strong>Attestation fiscale.</strong> Les frais de mandat ouvrent droit au crédit d&apos;impôt pour
+          l&apos;emploi d&apos;un salarié à domicile. L&apos;attestation des sommes versées dans l&apos;année est
+          disponible dans votre espace à partir du 1er janvier suivant.
+        </p>
+        <p>
+          <strong>Parrainage.</strong> Un abonné peut parrainer un proche avec son lien ou son code personnel. Quand le
+          filleul a réglé son premier mois et que son délai de rétractation de 14 jours est écoulé sans rétractation, le
+          mois suivant lui est offert, ainsi qu&apos;au parrain si son abonnement est actif (12 mois offerts au plus
+          par parrain et par année civile). Un mois offert n&apos;est ni remboursable ni convertible et
+          n&apos;entre pas dans l&apos;attestation fiscale.
+        </p>
       </Section>
 
       <Section id="duree" titre="5. Durée et résiliation">

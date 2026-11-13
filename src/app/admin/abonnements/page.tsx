@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { estAdministrateur } from "@/lib/user-profile";
 import { formatDate, formatEuros } from "@/lib/data";
 import { configSystempay } from "@/lib/systempay";
 import { BoutonTraitement } from "./BoutonTraitement";
@@ -130,7 +131,8 @@ export default async function AbonnementsPage({
         ? "desc"
         : "asc";
 
-  const { supabase } = await requireAdmin("/admin/abonnements");
+  const { supabase, profile: moi } = await requireAdmin("/admin/abonnements");
+  const administrateur = estAdministrateur(moi);
 
   const colonnes =
     "id, reference_client, prenom, nom, email, abonnement_statut, quota, tarif_mensuel, abonnement_debut, abonnement_fin, nb_en_cours, nb_envoyees, categorie, quota_depasse";
@@ -313,7 +315,12 @@ export default async function AbonnementsPage({
   return (
     <div className="flex flex-1 justify-center px-4 py-10 sm:px-6">
       <div className="w-full max-w-6xl">
-        <h1 className="font-display font-black text-2xl text-brand-teal">Abonnements</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-display font-black text-2xl text-brand-teal">Abonnements</h1>
+          <Link href="/admin/attestations" className="btn btn-secondaire btn-sm">
+            Attestations fiscales
+          </Link>
+        </div>
 
         {listeRes.error && (
           <p className="mt-6 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -354,11 +361,13 @@ export default async function AbonnementsPage({
                 <span className="ml-2 rounded-full bg-brand-violet px-2 py-0.5 text-xs text-white">mode test</span>
               )}
             </h2>
-            {paiementsInstalles && <BoutonTraitement />}
+            {paiementsInstalles && administrateur && <BoutonTraitement />}
           </div>
-          <div className="mt-3">
-            <VerifierConfiguration />
-          </div>
+          {administrateur && (
+            <div className="mt-3">
+              <VerifierConfiguration />
+            </div>
+          )}
           {paiementsInstalles && <SuiviTraitement suivi={suivi} />}
           {!paiementsInstalles ? (
             <p className="mt-2 text-foreground/70">

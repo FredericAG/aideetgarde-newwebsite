@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { scriptsManquants } from "@/lib/scripts-manquants";
 import { formatDate } from "@/lib/data";
 import {
   DetailActions,
@@ -120,6 +121,9 @@ export async function ListeComptes({
   const enRecherche = Boolean(recherche) || filtreActif;
 
   const { supabase } = await requireAdmin(cheminBase);
+  // Scripts SQL manquants (registre, brique13) : visible dès la mise en
+  // ligne d'une version qui en attend un nouveau.
+  const manquants = await scriptsManquants(supabase);
 
   let requete = supabase
     .from("admin_comptes")
@@ -302,6 +306,15 @@ export async function ListeComptes({
         <h1 className="font-display font-black text-2xl text-brand-teal">
           {archives ? "Comptes archivés" : "Comptes"}
         </h1>
+        {(manquants === null || manquants.length > 0) && (
+          <p role="alert" className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            <strong>Script(s) SQL à exécuter</strong> dans Supabase &gt; SQL Editor, dans cet ordre :{" "}
+            {manquants === null
+              ? "brique13_registre_et_erreurs (il reconnaît ceux déjà exécutés et dira s'il en manque d'autres)"
+              : manquants.join(", ")}
+            . Sans eux, certaines fonctions du site ne marchent pas.
+          </p>
+        )}
         {archives && (
           <nav aria-label="Comptes à part" className="mt-4 flex flex-wrap gap-2">
             {(

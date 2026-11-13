@@ -7,6 +7,7 @@ import { TYPES_GESTION, isUuid, type TypeGestion } from "@/lib/data";
 import { champsManquants, nettoyerValeurs, type ContexteChamps } from "@/lib/contrat/champs";
 import { categorie, categorieDeLaGestion } from "@/lib/contrat/classification";
 import { adresseSite, emailAdmin, envoyerEmail, modeleEmail } from "@/lib/email";
+import { lireComplementProfil, profilIncomplet } from "@/lib/user-profile";
 
 /**
  * Actions de l'abonné sur ses gestions (brique 3). Les règles (qui peut
@@ -141,7 +142,30 @@ export async function enregistrerGestion(
     }
   }
 
+  if (envoyer && !remplacement) {
+    // Coordonnées d'employeur (contrat, courriers, Urssaf) : demandées à
+    // l'envoi, plus avant le formulaire (13/11/2026).
+    const { data: ligneProfil } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    if (profile && ligneProfil && profilIncomplet(profile, lireComplementProfil(ligneProfil)).length) {
+      revalidatePath(`/tableau-de-bord/gestions/${gestionId}`);
+      redirect(`/tableau-de-bord/gestions/${gestionId}?coordonnees=1#coordonnees`);
+    }
+  }
+
   if (envoyer) {
+    // Brouillon sans abonnement (13/11/2026) : le salarié est enregistré, on
+    // passe au choix de la formule ; la gestion s'envoie juste après.
+    const { data: aboActif } = await supabase
+      .from("abonnements")
+      .select("id")
+      .eq("employeur_id", user.id)
+      .eq("statut", "actif")
+      .maybeSingle();
+    if (!aboActif && !remplacement) {
+      revalidatePath("/tableau-de-bord");
+      redirect(`/tableau-de-bord/abonnement?gestion=${gestionId}`);
+    }
+
     const { error: errEnvoi } = await supabase.rpc("gestion_envoyer", { p_id: gestionId });
     if (errEnvoi) {
       // Le brouillon est enregistré ; on reste sur le formulaire avec le
@@ -152,21 +176,14 @@ export async function enregistrerGestion(
     }
 
     // Alerte à Aide & Garde (ne bloque jamais l'envoi).
-    const salarie = `${texte(fd, "prenom_salarie")} ${texte(fd, "nom_salarie")}`.trim();
-    const employeur = `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim() || user.email || "un abonné";
-    const site = await adresseSite();
-    const contenu = modeleEmail({
-      titre: "Nouvelle gestion à valider",
-      paragraphes: [
-        `${employeur} vient d'envoyer une gestion : ${salarie} (${TYPES_GESTION[typeGestion] ?? "emploi"}).`,
-        ...(remplacement
-          ? [`C'est un CDD de remplacement (${motif === "conge_maternite" ? "congé maternité" : "arrêt maladie"}), hors quota : vérifiez le salarié remplacé et le motif.`]
-          : []),
-        "Vérifiez les informations du contrat, puis validez la gestion ou renvoyez-la à l'abonné pour qu'il la complète.",
-      ],
-      bouton: { texte: "Ouvrir la fiche du compte", url: `${site}/admin/comptes/${user.id}#gestion-${gestionId}` },
+    await prevenirGestionAValider({
+      employeur: `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim() || user.email || "un abonné",
+      employeurId: user.id,
+      salarie: `${texte(fd, "prenom_salarie")} ${texte(fd, "nom_salarie")}`.trim(),
+      typeGestion,
+      motifRemplacement: remplacement ? motif : null,
+      gestionId,
     });
-    await envoyerEmail({ a: emailAdmin(), sujet: `Gestion à valider : ${employeur} – ${salarie}`, ...contenu });
 
     revalidatePath("/tableau-de-bord");
     redirect(
@@ -177,6 +194,65 @@ export async function enregistrerGestion(
   revalidatePath("/tableau-de-bord");
   redirect(
     `/tableau-de-bord/gestions/${gestionId}?ok=${encodeURIComponent("Brouillon enregistré. Vous pourrez le compléter et l'envoyer quand vous voulez.")}${suiteEtape}`,
+  );
+}
+
+/** E-mail « Gestion à valider » à Aide & Garde. */
+async function prevenirGestionAValider(g: {
+  employeur: string;
+  employeurId: string;
+  salarie: string;
+  typeGestion: string;
+  motifRemplacement: string | null;
+  gestionId: string;
+}) {
+  const site = await adresseSite();
+  const contenu = modeleEmail({
+    titre: "Nouvelle gestion à valider",
+    paragraphes: [
+      `${g.employeur} vient d'envoyer une gestion : ${g.salarie} (${TYPES_GESTION[g.typeGestion as TypeGestion] ?? "emploi"}).`,
+      ...(g.motifRemplacement
+        ? [`C'est un CDD de remplacement (${g.motifRemplacement === "conge_maternite" ? "congé maternité" : "arrêt maladie"}), hors quota : vérifiez le salarié remplacé et le motif.`]
+        : []),
+      "Vérifiez les informations du contrat, puis validez la gestion ou renvoyez-la à l'abonné pour qu'il la complète.",
+    ],
+    bouton: { texte: "Ouvrir la fiche du compte", url: `${site}/admin/comptes/${g.employeurId}#gestion-${g.gestionId}` },
+  });
+  await envoyerEmail({ a: emailAdmin(), sujet: `Gestion à valider : ${g.employeur} – ${g.salarie}`, ...contenu });
+}
+
+/**
+ * Envoi d'un brouillon déjà complet, juste après la souscription (brouillon
+ * sans abonnement, 13/11/2026) : bouton « Envoyer la gestion de … » de la
+ * page Mon abonnement.
+ */
+export async function envoyerBrouillon(fd: FormData) {
+  const { supabase, user, profile } = await requireUser("/tableau-de-bord/abonnement");
+  const id = texte(fd, "gestion_id");
+  if (!isUuid(id)) redirect("/tableau-de-bord");
+  const { data: g } = await supabase
+    .from("gestions")
+    .select("id, prenom_salarie, nom_salarie, type_gestion, motif_remplacement")
+    .eq("id", id)
+    .eq("employeur_id", user.id)
+    .eq("statut", "brouillon")
+    .maybeSingle();
+  if (!g) redirect(`/tableau-de-bord/gestions/${id}`);
+  const { error } = await supabase.rpc("gestion_envoyer", { p_id: id });
+  if (error) {
+    redirect(`/tableau-de-bord/gestions/${id}?erreur=${encodeURIComponent(`Pas encore envoyée : ${traduire(error)}`)}`);
+  }
+  await prevenirGestionAValider({
+    employeur: `${profile?.prenom ?? ""} ${profile?.nom ?? ""}`.trim() || user.email || "un abonné",
+    employeurId: user.id,
+    salarie: `${g.prenom_salarie ?? ""} ${g.nom_salarie ?? ""}`.trim(),
+    typeGestion: g.type_gestion as string,
+    motifRemplacement: (g.motif_remplacement as string | null) ?? null,
+    gestionId: id,
+  });
+  revalidatePath("/tableau-de-bord");
+  redirect(
+    `/tableau-de-bord/gestions/${id}?ok=${encodeURIComponent("Gestion envoyée à Aide & Garde. Vous serez prévenu dès qu'elle sera validée.")}`,
   );
 }
 

@@ -1,6 +1,7 @@
 import { BarreOnglets } from "@/components/BarreOnglets";
 import { getSessionCourante } from "@/lib/auth";
 import { compterActionsAdmin } from "@/lib/actions-admin";
+import { estEquipe } from "@/lib/user-profile";
 
 /**
  * Barre d'onglets du téléphone, affichée seulement à une personne connectée,
@@ -10,7 +11,7 @@ import { compterActionsAdmin } from "@/lib/actions-admin";
 export async function NavigationTelephone() {
   const { supabase, user, profile } = await getSessionCourante();
   if (!user) return null;
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = estEquipe(profile);
   const actions = isAdmin && supabase ? (await compterActionsAdmin(supabase)).total : 0;
   return (
     <>

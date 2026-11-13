@@ -68,14 +68,19 @@ const GROUPES_ADRESSE: [string, string, string][] = [
   ["employeur_adresse", "employeur_code_postal", "employeur_ville"],
 ];
 
-function BoutonsEnvoi({ dernier }: { dernier: boolean }) {
+function BoutonsEnvoi({ dernier, sansAbonnement }: { dernier: boolean; sansAbonnement: boolean }) {
   const { pending, data } = useFormStatus();
   const intention = data?.get("intention");
   return (
     <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-end">
       {dernier && (
         <button type="submit" name="intention" value="envoyer" disabled={pending} className="btn btn-primaire btn-lg w-full sm:w-auto">
-          {pending && intention === "envoyer" ? "Envoi en cours…" : "Envoyer à Aide & Garde"}
+          {pending && intention === "envoyer"
+            ? "Envoi en cours…"
+            : // Brouillon sans abonnement (13/11/2026) : la formule d'abord.
+              sansAbonnement
+              ? "Continuer : choisir ma formule"
+              : "Envoyer à Aide & Garde"}
         </button>
       )}
       <button type="submit" name="intention" value="brouillon" disabled={pending} className="btn btn-secondaire btn-lg w-full sm:w-auto">
@@ -870,7 +875,7 @@ export function FormulaireGestion({
             </button>
           )}
         </div>
-        <BoutonsEnvoi dernier={etape === ETAPES.length - 1} />
+        <BoutonsEnvoi dernier={etape === ETAPES.length - 1} sansAbonnement={!quota} />
         <p className="text-xs text-foreground/60">
           <strong>Brouillon</strong> : rien n&apos;est transmis, vous y revenez quand vous voulez. Une gestion envoyée
           occupe une place de votre abonnement, sauf un CDD de remplacement.

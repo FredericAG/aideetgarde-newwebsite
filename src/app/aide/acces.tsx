@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { ENTREPRISE } from "@/lib/entreprise";
+import { estEquipe } from "@/lib/user-profile";
 
 /**
  * Accès au centre d'aide (décision de Frédéric du 12/11/2026) : réservé aux
@@ -9,7 +10,7 @@ import { ENTREPRISE } from "@/lib/entreprise";
  */
 export async function accesCentreAide(chemin: string): Promise<boolean> {
   const { supabase, user, profile } = await requireUser(chemin);
-  if (profile?.role === "admin") return true;
+  if (estEquipe(profile)) return true;
   const { count } = await supabase
     .from("abonnements")
     .select("id", { count: "exact", head: true })

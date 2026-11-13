@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { estAdministrateur } from "@/lib/user-profile";
 import {
   BUCKET,
   TYPES_DOCUMENT,
@@ -87,8 +88,20 @@ async function contexte(fd: FormData) {
   return { supabase, compteId };
 }
 
+/**
+ * Comme contexte(), pour les actions réservées à l'administrateur (rôle
+ * conseiller du 13/11/2026) : abonnements, suppressions.
+ */
+async function contexteAdministrateur(fd: FormData) {
+  const compteId = texte(fd, "compte_id");
+  if (!isUuid(compteId)) redirect("/admin");
+  const { supabase, profile } = await requireAdmin(`/admin/comptes/${compteId}`);
+  if (!estAdministrateur(profile)) retour(compteId, "erreur", "Action réservée à l'administrateur.");
+  return { supabase, compteId };
+}
+
 export async function creerAbonnement(fd: FormData) {
-  const { supabase, compteId } = await contexte(fd);
+  const { supabase, compteId } = await contexteAdministrateur(fd);
   const quota = Math.trunc(nombre(fd, "quota_gestions"));
   const tarif = nombre(fd, "tarif_mensuel");
   if (!(quota >= 1)) retour(compteId, "erreur", "Le quota doit être d'au moins 1 gestion.");
@@ -105,15 +118,20 @@ export async function creerAbonnement(fd: FormData) {
 }
 
 export async function modifierAbonnement(fd: FormData) {
-  const { supabase, compteId } = await contexte(fd);
+  const { supabase, compteId } = await contexteAdministrateur(fd);
   const quota = Math.trunc(nombre(fd, "quota_gestions"));
   const tarif = nombre(fd, "tarif_mensuel");
   if (!(quota >= 1)) retour(compteId, "erreur", "Le quota doit être d'au moins 1 gestion.");
   if (!(tarif >= 0)) retour(compteId, "erreur", "Tarif invalide.");
 
+  // Mois offerts (parrainage, brique 14) : modifiables à la main, par
+  // exemple pour un abonnement de l'ancien site (champ absent sans le script).
+  const moisTexte = texte(fd, "mois_offerts");
+  const mois = Math.trunc(Number(moisTexte));
+  if (moisTexte && !(mois >= 0 && mois <= 24)) retour(compteId, "erreur", "Mois offerts : entre 0 et 24.");
   const { error } = await supabase
     .from("abonnements")
-    .update({ quota_gestions: quota, tarif_mensuel: tarif })
+    .update({ quota_gestions: quota, tarif_mensuel: tarif, ...(moisTexte ? { mois_offerts: mois } : {}) })
     .eq("id", texte(fd, "abonnement_id"))
     .eq("employeur_id", compteId);
   if (error) retour(compteId, "erreur", messageErreur(error));
@@ -125,7 +143,7 @@ export async function modifierAbonnement(fd: FormData) {
  * (décision 4). Les gestions en cours ne sont PAS modifiées ici.
  */
 export async function resilierAbonnement(fd: FormData) {
-  const { supabase, compteId } = await contexte(fd);
+  const { supabase, compteId } = await contexteAdministrateur(fd);
   const { error } = await supabase
     .from("abonnements")
     .update({
@@ -233,7 +251,7 @@ async function supprimerFichiers(
  * ne reste orphelin dans le stockage.
  */
 export async function supprimerGestion(fd: FormData) {
-  const { supabase, compteId } = await contexte(fd);
+  const { supabase, compteId } = await contexteAdministrateur(fd);
   const gestionId = texte(fd, "gestion_id");
 
   const { data: docs } = await supabase
@@ -557,7 +575,7 @@ export async function enregistrerDocument(
 
 /** Supprime le fichier PDF puis la fiche du document. */
 export async function supprimerDocument(fd: FormData) {
-  const { supabase, compteId } = await contexte(fd);
+  const { supabase, compteId } = await contexteAdministrateur(fd);
   const documentId = texte(fd, "document_id");
 
   const { data: doc } = await supabase

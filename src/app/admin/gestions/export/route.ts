@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionCourante } from "@/lib/auth";
 import type { Gestion } from "@/lib/data";
 import { exportGestion, versCsv, type EmployeurExport } from "@/lib/contrat/export";
+import { estEquipe } from "@/lib/user-profile";
 
 const STATUTS = { envoyee: "a-valider", en_cours: "en-cours" } as const;
 
@@ -14,7 +15,7 @@ const STATUTS = { envoyee: "a-valider", en_cours: "en-cours" } as const;
 export async function GET(request: Request) {
   const introuvable = () => new NextResponse("Page introuvable", { status: 404 });
   const { supabase, profile } = await getSessionCourante();
-  if (!supabase || profile?.role !== "admin") return introuvable();
+  if (!supabase || !estEquipe(profile)) return introuvable();
   const demande = new URL(request.url).searchParams.get("statut") ?? "envoyee";
   if (!(demande in STATUTS)) return introuvable();
   const statut = demande as keyof typeof STATUTS;

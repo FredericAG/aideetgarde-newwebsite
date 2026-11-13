@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionCourante } from "@/lib/auth";
 import { clientServeur } from "@/lib/supabase/admin";
 import { PARTENAIRES, PROVENANCES, type ClePartenaire } from "@/lib/partenaires";
+import { estEquipe } from "@/lib/user-profile";
 
 /**
  * Lien suivi vers un partenaire (ASC, Ircem, SPSTN) ou vers la fiche PDF du
@@ -24,7 +25,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ part
   try {
     const { user, profile } = await getSessionCourante();
     const db = clientServeur();
-    if (db && !robot && profile?.role !== "admin") {
+    if (db && !robot && !estEquipe(profile)) {
       await db.from("clics_partenaires").insert({ partenaire, depuis, employeur_id: user?.id ?? null });
     }
   } catch (e) {

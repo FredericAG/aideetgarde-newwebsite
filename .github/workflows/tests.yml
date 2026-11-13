@@ -1,0 +1,52 @@
+# Tests automatiques, à chaque Push et sur chaque proposition de mise à jour
+# (Dependabot) : si l'un échoue, GitHub l'affiche en rouge et envoie un
+# e-mail. Ne bloque pas la mise en ligne par Vercel : regarder le résultat
+# avant de fusionner une mise à jour.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  site:
+    name: Code et calculs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Vérification des types
+        run: npx tsc --noEmit
+      - name: Règles de style
+        run: npm run lint
+      - name: Calculs (dates, simulateur, paiements, export, origines)
+        run: |
+          npx -y npm@11.6.2 install --no-save vitest@4.1.12
+          npx vitest run
+
+  base:
+    name: Base de données (scripts SQL et paiements)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: tests
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: tests
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tous les scripts dans l'ordre (deux fois), puis les tests
+        run: bash tests/sql/lancer.sh

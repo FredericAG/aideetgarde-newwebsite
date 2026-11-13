@@ -121,4 +121,4 @@ export const HEBERGEURS = [
 ];
 
 /** Version des CGV acceptée à la souscription (à changer à chaque modification). */
-export const VERSION_CGV = "2026-10-22";
+export const VERSION_CGV = "2026-11-13";

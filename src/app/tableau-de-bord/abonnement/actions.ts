@@ -10,6 +10,7 @@ import { formatEuros } from "@/lib/data";
 import { clientServeur } from "@/lib/supabase/admin";
 import {
   configSystempay,
+  creerFormulaireCarte,
   creerFormulairePaiement,
   emailAccepteParSystempay,
   lireCommande,
@@ -23,7 +24,7 @@ export type EtatPaiement =
   | { etape: "formulaire"; formToken: string; orderId: string; montant: number; libelle: string };
 
 /** Référence de commande lisible dans le Back Office Systempay. */
-function referenceCommande(prefixe: "S" | "R", referenceClient: string): string {
+function referenceCommande(prefixe: "S" | "R" | "C", referenceClient: string): string {
   const d = new Date();
   const horodatage = d.toISOString().replace(/\D/g, "").slice(0, 14);
   const alea = randomBytes(2).toString("hex");
@@ -78,7 +79,8 @@ export async function preparerPaiement(
     }
   }
 
-  const type = formData.get("type") === "regularisation" ? "regularisation" : "souscription";
+  const type =
+    formData.get("type") === "regularisation" ? "regularisation" : formData.get("type") === "carte" ? "carte" : "souscription";
   // Référence client C00012 (brique 2g) : retrouvée telle quelle dans le
   // Back Office Systempay pour chaque paiement.
   const { data: refData } = await supabase
@@ -144,6 +146,21 @@ export async function preparerPaiement(
       execution_immediate: true,
       mandat_declaration: true,
     };
+  } else if (type === "carte") {
+    // Nouvelle carte sans paiement (brique 5g) : abonnement prélevé par le
+    // site seulement.
+    const { data: abo } = await supabase
+      .from("abonnements")
+      .select("id, mode_paiement")
+      .eq("employeur_id", user.id)
+      .eq("statut", "actif")
+      .maybeSingle();
+    if (!abo || abo.mode_paiement !== "systempay") {
+      return { etape: "choix", erreur: "Votre abonnement n'est pas prélevé par carte sur ce site : contactez-nous." };
+    }
+    montant = 0;
+    libelle = "Nouvelle carte";
+    ligne = { type, montant: 0 };
   } else {
     const echeanceId = String(formData.get("echeance") ?? "");
     // Lecture avec la session de l'abonné : il ne voit que ses échéances.
@@ -161,7 +178,7 @@ export async function preparerPaiement(
     ligne = { type, echeance_id: e.id, montant };
   }
 
-  const orderId = referenceCommande(type === "souscription" ? "S" : "R", reference);
+  const orderId = referenceCommande(type === "souscription" ? "S" : type === "carte" ? "C" : "R", reference);
   const { error } = await db.from("commandes").insert({
     ...ligne,
     order_id: orderId,
@@ -171,16 +188,26 @@ export async function preparerPaiement(
   if (error) return indisponible(`enregistrement de la commande refusé par la base : ${error.message}`);
 
   const site = await adresseSite();
-  const res = await creerFormulairePaiement({
-    orderId,
-    montant,
-    email: emailPaiement,
-    reference,
-    prenom: profile.prenom,
-    nom: profile.nom,
-    urlNotification: `${site}/api/systempay/ipn`,
-    description: `${libelle} (${formatEuros(montant)})`,
-  });
+  const res =
+    type === "carte"
+      ? await creerFormulaireCarte({
+          orderId,
+          email: emailPaiement,
+          reference,
+          prenom: profile.prenom,
+          nom: profile.nom,
+          urlNotification: `${site}/api/systempay/ipn`,
+        })
+      : await creerFormulairePaiement({
+          orderId,
+          montant,
+          email: emailPaiement,
+          reference,
+          prenom: profile.prenom,
+          nom: profile.nom,
+          urlNotification: `${site}/api/systempay/ipn`,
+          description: `${libelle} (${formatEuros(montant)})`,
+        });
   if (!res.ok) {
     await db.from("commandes").update({ statut: "abandonnee", message: res.erreur.slice(0, 300) }).eq("order_id", orderId);
     return indisponible(`Systempay a refusé la création du formulaire : ${res.erreur}`);

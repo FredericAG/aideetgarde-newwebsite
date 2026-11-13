@@ -24,7 +24,6 @@ const DUREES = {
   sansAbonnement: "2 ans sans connexion, puis suppression ; 3 mois si l'adresse email n'a jamais été confirmée",
   preuves: "5 ans après la fin de l'abonnement",
   paiements: "10 ans (pièces comptables)",
-  recommandations: "jamais conservée : elle ne sert qu'à l'envoi demandé",
   techniques: "12 mois au plus",
 };
 
@@ -46,7 +45,7 @@ export default function ConfidentialitePage() {
   const e = ENTREPRISE;
   const td = "px-3 py-2 align-top";
   return (
-    <PageLegale titre="Confidentialité et cookies" majLe="22/10/2026" sommaire={sommaire}>
+    <PageLegale titre="Confidentialité et cookies" majLe="13/11/2026" sommaire={sommaire}>
       <Section id="responsable" titre="1. Responsable du traitement">
         <p>
           <ACompleter valeur={e.denomination} quoi="dénomination sociale" /> ({e.nomCommercial}),{" "}
@@ -79,9 +78,11 @@ export default function ConfidentialitePage() {
                 ["Acceptation des CGV, rétractation, résiliation : date, heure et contenu", "Prouver vos choix et y donner suite", "Obligation légale"],
                 ["Notifications sur votre téléphone ou ordinateur : adresse technique de l'appareil", "Vous prévenir d'un nouveau document", "Consentement (activation dans « Mon compte », désactivable à tout moment)"],
                 ["Emails de service et de relance (copies des notifications désactivables)", "Vous informer de la vie de votre dossier", "Exécution du contrat ; intérêt légitime"],
-                ["Recommandation : prénom et email de la personne à qui vous écrivez, votre message", "Lui envoyer votre message, une seule fois (l'adresse n'est pas conservée)", "Intérêt légitime (envoi demandé par vous)"],
+                ["Parrainage : votre code personnel, le lien entre parrain et filleul, la date du mois offert", "Accorder les mois offerts prévus par les conditions générales de vente", "Exécution du contrat"],
               ["Clics vers nos partenaires (ASC loisirs, Ircem, SPSTN) : date, destination, page d'origine et, si vous êtes connecté, votre compte", "Mesurer combien de personnes nous orientons vers eux (seuls des totaux leur sont communiqués)", "Intérêt légitime"],
               ["Journaux techniques (adresse IP, date et heure de connexion)", "Sécurité du site et des comptes", "Intérêt légitime"],
+              ["Mesure d'audience : page vue et origine de la visite (moteur de recherche, annonce, réseau social…), en totaux par jour, sans cookie, sans adresse IP ni identifiant", "Savoir comment le site est trouvé et utilisé", "Intérêt légitime"],
+              ["Réponse facultative à « Comment nous avez-vous connus ? » et origine de votre première visite, gardées avec votre compte", "Savoir quels canaux nous font connaître", "Intérêt légitime"],
               ...(PIXEL
                 ? [["Pages publiques visitées, identifiant de cookie Meta", "Mesurer l'efficacité de nos publicités", "Consentement (bandeau cookies)"]]
                 : []),
@@ -138,7 +139,7 @@ export default function ConfidentialitePage() {
           <li>Compte créé sans abonnement : {DUREES.sansAbonnement}.</li>
           <li>Acceptation des CGV, rétractation, résiliation : {DUREES.preuves}.</li>
           <li>Données de paiement et factures : {DUREES.paiements}.</li>
-          <li>Adresse email d&apos;une personne à qui vous recommandez {e.nomCommercial} : {DUREES.recommandations}.</li>
+          <li>Parrainage : le temps de votre compte. Le site n&apos;envoie aucun message à la personne que vous parrainez : c&apos;est vous qui lui transmettez votre lien.</li>
           <li>Clics vers nos partenaires : 13 mois avec le lien vers votre compte, puis seuls les totaux restent.</li>
           <li>Journaux techniques : {DUREES.techniques}.</li>
         </ul>
@@ -186,8 +187,9 @@ export default function ConfidentialitePage() {
           </>
         ) : (
           <p>
-            Aucun outil de mesure d&apos;audience ni de publicité n&apos;est utilisé. Si cela changeait, un bandeau
-            vous demanderait votre accord, modifiable à tout moment.
+            Aucun outil de publicité n&apos;est utilisé. La mesure d&apos;audience est faite par le site lui-même, sans
+            cookie ni identifiant : rien n&apos;est lu ni enregistré sur votre appareil, seuls des totaux par jour sont
+            gardés. Si un traceur publicitaire était un jour utilisé, un bandeau vous demanderait votre accord.
           </p>
         )}
       </Section>

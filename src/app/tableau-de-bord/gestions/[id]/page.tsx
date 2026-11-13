@@ -17,6 +17,8 @@ import { NavGestions } from "@/components/NavGestions";
 import { listerMesGestions } from "@/lib/mes-gestions";
 import { contexteCourrier } from "@/lib/courriers/contexte";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
+import { estEquipe, lireComplementProfil, profilIncomplet } from "@/lib/user-profile";
+import { ProfileForm } from "@/app/mon-compte/ProfileForm";
 import {
   LIBELLES_STATUT_GESTION,
   LIBELLES_TRI,
@@ -58,6 +60,7 @@ export default async function DetailGestionPage({
   const messageErreur = Array.isArray(sp.erreur) ? sp.erreur[0] : sp.erreur;
   const actionDemandee = Array.isArray(sp.action) ? sp.action[0] : sp.action;
   const etapeDemandee = Number(Array.isArray(sp.etape) ? sp.etape[0] : sp.etape) || 0;
+  const demandeCoordonnees = Boolean(sp.coordonnees);
   const tri: TriDocuments =
     triDemande && triDemande in LIBELLES_TRI ? (triDemande as TriDocuments) : "recent";
 
@@ -73,12 +76,20 @@ export default async function DetailGestionPage({
     .eq("employeur_id", user.id)
     .maybeSingle<Gestion>();
 
+  // Coordonnées d'employeur manquantes, demandées au moment de l'envoi.
+  const { data: ligneProfil } =
+    demandeCoordonnees && gestion?.statut === "brouillon"
+      ? await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle()
+      : { data: null };
+  const manquantes = profile && ligneProfil ? profilIncomplet(profile, lireComplementProfil(ligneProfil)) : [];
+  const coordonneesAFaire = manquantes.length ? manquantes : null;
+
   if (!gestion) {
     // Lien reçu par email ou notification, mais ouvert avec un autre compte
     // (cas fréquent : l'administrateur clique le lien d'un email de test).
     // L'administrateur est conduit à la fiche du compte concerné ; un
     // abonné voit une explication plutôt qu'une page introuvable.
-    if (profile?.role === "admin") {
+    if (estEquipe(profile)) {
       const { data: autre } = await supabase
         .from("gestions")
         .select("employeur_id")
@@ -223,6 +234,17 @@ export default async function DetailGestionPage({
         {/* Brouillon : l'abonné complète et envoie (brique 3) */}
         {gestion.statut === "brouillon" && (
           <>
+            {coordonneesAFaire && profile && ligneProfil && (
+              <div id="coordonnees" className="carte mt-6 scroll-mt-4 border-2 border-brand-jaune p-4 sm:p-5">
+                <p className="text-xs font-bold uppercase tracking-wide text-brand-violet">Avant d&apos;envoyer, une seule fois</p>
+                <h2 className="mt-1 font-display text-lg font-bold">Vos coordonnées d&apos;employeur</h2>
+                <p className="mt-1 text-sm text-foreground/70">
+                  Elles figurent sur le contrat, les courriers et les déclarations Urssaf. Complétez-les (
+                  {coordonneesAFaire.join(", ")}), puis cliquez à nouveau sur le bouton d&apos;envoi en bas du formulaire.
+                </p>
+                <ProfileForm profile={profile} complement={lireComplementProfil(ligneProfil)} exiger libelleBouton="Enregistrer mes coordonnées" />
+              </div>
+            )}
             {gestion.motif_retour && (
               <div className="mt-6 rounded-xl border-2 border-brand-jaune bg-brand-jaune/25 p-4 text-sm">
                 <p className="font-bold text-brand-violet">Aide &amp; Garde vous demande de compléter :</p>

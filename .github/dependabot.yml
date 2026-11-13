@@ -1,0 +1,21 @@
+# Mises à jour proposées par GitHub (Dependabot) : une demande par semaine
+# au plus pour les mises à jour ordinaires ; les failles de sécurité sont
+# proposées dès leur publication (réglage « Dependabot security updates »
+# du dépôt). Chaque proposition passe les tests et reçoit une préversion
+# Vercel.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      dependances:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

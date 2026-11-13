@@ -6,6 +6,8 @@ import { EncartRecommander } from "@/components/EncartRecommander";
 import { NouveauxDocuments } from "@/components/NouveauxDocuments";
 import { LienTelechargement } from "@/components/LienTelechargement";
 import { requireUser } from "@/lib/auth";
+import { lireAttestation } from "@/lib/attestation-fiscale";
+import { estEquipe } from "@/lib/user-profile";
 import {
   MOTIFS_REMPLACEMENT,
   TYPES_GESTION,
@@ -40,8 +42,15 @@ export default async function TableauDeBordPage({
   const sp = await searchParams;
   const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
   const { supabase, user, profile } = await requireUser("/tableau-de-bord");
+  // Attestation fiscale de l'année écoulée : mise en avant de janvier à avril
+  // (à joindre à la déclaration de revenus), brique 15.
+  const maintenant = new Date();
+  const attestation =
+    maintenant.getMonth() <= 3
+      ? await lireAttestation(supabase, user.id, maintenant.getFullYear() - 1).catch(() => null)
+      : null;
   // L'administrateur n'a pas d'espace abonné : on l'envoie à l'administration.
-  if (profile?.role === "admin") redirect("/admin");
+  if (estEquipe(profile)) redirect("/admin");
 
   const moisCourant = moisADeclarerParDefaut();
 
@@ -208,13 +217,28 @@ export default async function TableauDeBordPage({
             <span>
               {abonnement
                 ? `Votre abonnement a pris fin le ${formatDate(abonnement.date_fin)}.`
-                : "Choisissez votre formule pour confier la paie de vos salariés à Aide & Garde."}
+                : "Commencez par votre salarié : vous choisirez votre formule au moment d'envoyer."}
             </span>
-            <Link href="/tableau-de-bord/abonnement" className="btn btn-primaire btn-sm">
-              {abonnement ? "Me réabonner" : "Choisir ma formule"}
+            <Link
+              href={abonnement ? "/tableau-de-bord/abonnement" : "/tableau-de-bord/gestions/nouvelle"}
+              className="btn btn-primaire btn-sm"
+            >
+              {abonnement ? "Me réabonner" : "+ Ajouter mon salarié"}
             </Link>
           </div>
         ) : null}
+
+        {attestation && attestation.total > 0 && (
+          <p className="mt-6 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-teal/40 bg-brand-teal/10 px-4 py-3 text-sm">
+            <span>
+              <strong>Votre attestation fiscale {attestation.annee} est disponible</strong> : {formatEuros(attestation.total)}{" "}
+              versés à Aide &amp; Garde, à déclarer pour le crédit d&apos;impôt.
+            </span>
+            <a href={`/tableau-de-bord/attestation-fiscale/${attestation.annee}`} className="btn btn-primaire btn-sm">
+              Télécharger
+            </a>
+          </p>
+        )}
 
         <NouveauxDocuments
           documents={(nouveauxRes.data ?? []) as DocumentRow[]}
@@ -259,6 +283,9 @@ export default async function TableauDeBordPage({
         <section className="mt-8" aria-labelledby="titre-salaries">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 id="titre-salaries" className="font-bold text-brand-teal">Mes salariés</h2>
+            <Link href="/simulateur" className="ml-auto text-xs font-bold text-brand-teal underline">
+              Simuler un coût
+            </Link>
             {/* Abonnement complet : l'ajout reste possible pour un CDD de
                 remplacement (hors quota), le formulaire l'explique. */}
             {abonnement?.statut === "actif" && (!quotaAtteint || enCours.length > 0) && (
@@ -266,9 +293,9 @@ export default async function TableauDeBordPage({
                 + Ajouter un salarié
               </Link>
             )}
-            {/* Sans abonnement : le choix de la formule d'abord (07/11). */}
+            {/* Sans abonnement : le salarié d'abord, la formule à l'envoi (13/11). */}
             {abonnement?.statut !== "actif" && (
-              <Link href="/tableau-de-bord/abonnement" className="btn btn-secondaire btn-sm">
+              <Link href="/tableau-de-bord/gestions/nouvelle" className="btn btn-secondaire btn-sm">
                 + Ajouter un salarié
               </Link>
             )}

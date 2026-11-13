@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { gestionParDefaut, listerMesGestions } from "@/lib/mes-gestions";
 import { placesAbonnement } from "@/lib/places";
 import { PremiereGestion } from "./PremiereGestion";
+import { estEquipe } from "@/lib/user-profile";
 
 export const metadata = { title: "Mes gestions — Aide & Garde" };
 // Dépend de la session : jamais préparée à l'avance.
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function MesGestionsPage() {
   const { supabase, user, profile } = await requireUser("/tableau-de-bord/gestions");
-  if (profile?.role === "admin") redirect("/admin");
+  if (estEquipe(profile)) redirect("/admin");
   const choisie = gestionParDefaut(await listerMesGestions(supabase, user.id));
   if (choisie) redirect(`/tableau-de-bord/gestions/${choisie.id}`);
   const places = await placesAbonnement(supabase, user.id);

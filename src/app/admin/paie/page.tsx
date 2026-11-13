@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dateCourte, dateLimiteDeclaration } from "@/lib/delais";
 import { requireAdmin } from "@/lib/auth";
 import { TYPES_GESTION, formatDate, formatHeures, libelleMois } from "@/lib/data";
 import {
@@ -56,7 +57,8 @@ export default async function PaieDuMoisPage({
   const n = compterParEtat(lignes);
   const total = lignes.length;
   const { aRelancer, dejaRelances, sansEmail } = await comptesARelancer(supabase, lignes);
-  const message = contenuRelance("declaration_mois", new Date(2000 + Number(periode.slice(0, 2)), Number(periode.slice(2, 4)) - 1, 15));
+  const message = contenuRelance("declaration_mois", new Date(2000 + Number(periode.slice(0, 2)), Number(periode.slice(2, 4)) - 1, 28));
+  const limite = dateLimiteDeclaration(periode);
 
   const nomEmployeur = (l: LignePaie) => `${l.employeur.nom} ${l.employeur.prenom}`.trim().toLowerCase();
   const visibles = lignes
@@ -92,6 +94,11 @@ export default async function PaieDuMoisPage({
             </Link>
           )}
         </div>
+        {limite && (
+          <p className="mt-2 text-sm text-foreground/70">
+            Date limite des déclarations : <strong>le {dateCourte(limite)}</strong>. Relancez quelques jours avant.
+          </p>
+        )}
 
         {total === 0 ? (
           <p className="carte mt-6 p-4 text-sm text-foreground/75">Aucune gestion n&apos;est concernée par ce mois.</p>

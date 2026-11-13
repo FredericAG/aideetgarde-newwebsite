@@ -811,3 +811,45 @@ Aucun script SQL (la relance groupée utilise le script 9c, déjà en place).
 | U.15 | Admin › fiche du compte › Rouvrir cette gestion | Gestion en cours ; la demande est close ; l'abonné reçoit « Votre gestion est rouverte » | |
 | U.16 | Formulaire d'une gestion › Salarié | Lien « Puis-je employer un salarié étranger ? » sous la nationalité ; lien « Pas encore de numéro ni de carte Vitale : que faire ? » sous le numéro de sécurité sociale tant qu'il est vide | |
 
+## Décisions du 13/11 : conseiller, brouillon, carte, simulateur, tunnel, erreurs (lots 43 à 45)
+
+**Scripts SQL à exécuter avant le Push, dans cet ordre** : `brique11_role_conseiller`, `brique3j_brouillon_sans_abonnement`, `brique5g_changement_carte`, `brique12_mesure_tunnel`, `brique13_registre_et_erreurs`.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| V.1 | Administration › Comptes, juste après la mise en ligne | Aucun bandeau rouge « Script(s) SQL à exécuter » (sinon, exécuter ceux qu'il cite) | |
+| V.2 | Abonnements › Vérifier la configuration | Ligne « Scripts SQL exécutés » au vert | |
+| V.3 | Donner le rôle conseiller à un compte de test (SQL de l'en-tête de brique11), s'y connecter | Onglets d'administration ; fiche d'un compte : pas de « Résilier », pas de modification du tarif, pas de « ⋯ › Supprimer », pas de poubelle sur les documents ; « Valider et démarrer » présent | |
+| V.4 | Conseiller › Abonnements | Ni « Lancer le traitement maintenant » ni « Vérifier la configuration » | |
+| V.5 | Compte de test sans abonnement › tableau de bord | « Commencez par votre salarié… » et « + Ajouter mon salarié » ; le bouton mène au formulaire, pas aux formules | |
+| V.6 | Remplir le formulaire jusqu'au bout | Dernier bouton : « Continuer : choisir ma formule » ; arrivée sur « Mon abonnement » avec « … est bien enregistré » | |
+| V.7 | Payer la formule (carte de test 0228) | Message « Paiement accepté » et bouton « Envoyer la gestion de … » ; un clic l'envoie, e-mail « Gestion à valider » | |
+| V.8 | Gestion › Déclarer le mois | « À envoyer au plus tard le 4 [mois suivant] » | |
+| V.9 | Paie du mois | « Date limite des déclarations : le 4 … » ; e-mail de relance qui cite le mois écoulé et la date limite | |
+| V.10 | Tableau de bord › Simuler un coût (ordinateur et téléphone) | Trois chiffres (par mois après aides, sur un an après crédit d'impôt, par heure) qui changent à chaque saisie ; détail repliable | |
+| V.11 | Simulateur : comparer 2 ou 3 cas avec l'Excel | Mêmes montants (sauf « Reste à payer sur les cotisations », corrigé) | |
+| V.12 | **Mode TEST** : abonné prélevé par carte › Mon abonnement › Enregistrer une nouvelle carte (carte 0071 refusée, puis 0228) | Refus : message, rien ne change. Acceptée : « Nouvelle carte enregistrée », la carte affichée change, e-mail de confirmation, **aucun débit** dans le Back Office Systempay | |
+| V.13 | SQL : mettre `carte_expiration` d'un abonnement de test au dernier jour du mois prochain, puis Abonnements › Lancer le traitement maintenant | Bilan « Abonnés prévenus d'une carte qui expire : 1 » ; e-mail reçu ; relancer : plus d'e-mail | |
+| V.14 | Visiter le site depuis une recherche Google, puis depuis un lien `?utm_source=test&utm_medium=cpc` | Onglet Tunnel : visites « Moteur de recherche » et « Annonce payante » | |
+| V.15 | Créer un compte en répondant « Un proche… » | Tunnel › Comptes du mois par origine déclarée : une ligne de plus | |
+| V.16 | Sur le site, ouvrir la console du navigateur (F12) et taper : `fetch("/api/erreur",{method:"POST",body:JSON.stringify({chemin:"/essai",message:"Essai d'alerte"})})` | Un e-mail « Aide & Garde : erreur sur /essai » ; la même commande dans l'heure ne renvoie rien | |
+| V.17 | GitHub › onglet Actions après le Push | « Tests » au vert (deux parties : « Code et calculs », « Base de données ») | |
+
+## Parrainage, attestation fiscale, coordonnées à l'envoi (13/11, lots 46 et 47)
+
+**Scripts SQL à exécuter avant le Push** : `brique14_parrainage`, puis `brique15_attestations_fiscales`.
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| W.1 | Abonné › tableau de bord › Parrainer un proche | Lien et code personnels ; Copier, WhatsApp, SMS, E-mail ouvrent le message prérempli ; conditions affichées | |
+| W.2 | Ouvrir le lien dans une fenêtre privée | Inscription avec le code déjà rempli et « Vous êtes parrainé » | |
+| W.3 | Créer le compte filleul, souscrire (mode TEST), puis en SQL : `update abonnements set date_debut = current_date - 15 where employeur_id = '<filleul>'` ; Abonnements › Lancer le traitement maintenant | Bilan « Parrainages accordés : 1 » ; e-mails au filleul et au parrain ; « Mon abonnement » des deux : prochain prélèvement « offert (parrainage) » | |
+| W.4 | Relancer le traitement | Plus rien d'accordé | |
+| W.5 | Filleul qui exerce sa rétractation avant 14 jours | Aucun mois offert | |
+| W.6 | Fiche du compte (administrateur) | Champ « Mois offerts à venir », modifiable | |
+| W.7 | Admin › Abonnements › Attestations fiscales › coller `C000xx;154,80` (une référence réelle de recette et une inventée) › Vérifier | 1 reconnu, 1 inconnu ; Enregistrer ; la ligne apparaît avec un lien PDF | |
+| W.8 | Ouvrir le PDF de cette ligne | Attestation de l'année : organisme, déclaration SAP, abonné, montant, détail, salariés ; à comparer avec le modèle actuel | |
+| W.9 | Se connecter avec ce compte › Mon abonnement | Section « Attestations fiscales » avec l'année et le bouton de téléchargement | |
+| W.10 | Compte sans coordonnées complètes : remplir une gestion et l'envoyer | Brouillon enregistré, encadré « Vos coordonnées d'employeur » ; après les avoir enregistrées, le bouton d'envoi fonctionne | |
+| W.11 | Nouvelle gestion | Le formulaire du salarié s'ouvre directement, sans étape des coordonnées | |
+

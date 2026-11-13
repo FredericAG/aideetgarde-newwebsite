@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { envoyerBrouillon } from "../gestions/actions";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { formatDate, formatEuros, type Abonnement } from "@/lib/data";
 import { LIBELLES_STATUT_PAIEMENT } from "@/lib/formules";
 import { configSystempay } from "@/lib/systempay";
-import { Regularisation, Souscription } from "./Paiement";
+import { ChangerCarte, Regularisation, Souscription } from "./Paiement";
+import { anneesProposees, lireAttestation } from "@/lib/attestation-fiscale";
 import { annulerMaResiliation, exercerMaRetractation, resilierMonAbonnement } from "./actions";
 import { BoutonConfirme } from "@/components/BoutonConfirme";
+import { estEquipe } from "@/lib/user-profile";
 
 export const metadata = { title: "Mon abonnement — Aide & Garde" };
 
@@ -22,6 +25,15 @@ function limiteRetractation(dateDebut: string | null | undefined): string | null
   const aujourdhui = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(new Date());
   return aujourdhui <= iso ? iso : null;
 }
+
+/** Nouvelle carte sans paiement (brique 5g). */
+const MESSAGES_CARTE: Record<string, { texte: string; ok: boolean }> = {
+  payee: { texte: "Nouvelle carte enregistrée : elle sera utilisée pour vos prochains prélèvements.", ok: true },
+  en_attente: { texte: "Vérification de la carte en cours. Rechargez la page dans un instant.", ok: true },
+  refusee: { texte: "La carte n'a pas pu être enregistrée. Vous pouvez réessayer, avec la même carte ou une autre.", ok: false },
+  abandonnee: { texte: "L'enregistrement de la carte n'a pas été finalisé. Vous pouvez recommencer.", ok: false },
+  a_verifier: { texte: "Votre carte est vérifiée ; Aide & Garde termine l'enregistrement et revient vers vous.", ok: true },
+};
 
 const MESSAGES_COMMANDE: Record<string, { texte: string; ok: boolean }> = {
   payee: { texte: "Paiement accepté : votre abonnement est à jour. Merci !", ok: true },
@@ -89,11 +101,11 @@ export default async function AbonnementPage({
   const messageOk = Array.isArray(sp.ok) ? sp.ok[0] : sp.ok;
   const messageErreur = Array.isArray(sp.erreur) ? sp.erreur[0] : sp.erreur;
   const { supabase, user, profile } = await requireUser("/tableau-de-bord/abonnement");
-  if (profile?.role === "admin") redirect("/admin/abonnements");
+  if (estEquipe(profile)) redirect("/admin/abonnements");
 
   const config = configSystempay();
 
-  const [aboRes, placesRes, echeancesRes, paiementsRes, commandeRes] = await Promise.all([
+  const [aboRes, placesRes, echeancesRes, paiementsRes, commandeRes, brouillonsRes] = await Promise.all([
     supabase
       .from("abonnements")
       .select("*")
@@ -121,21 +133,45 @@ export default async function AbonnementPage({
     commandeRetour
       ? supabase
           .from("commandes")
-          .select("statut")
+          .select("statut, type")
           .eq("order_id", commandeRetour)
           .eq("employeur_id", user.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    // Brouillons préparés avant de souscrire (13/11/2026) : à envoyer juste
+    // après le paiement.
+    supabase
+      .from("gestions")
+      .select("id, prenom_salarie, nom_salarie")
+      .eq("employeur_id", user.id)
+      .eq("statut", "brouillon")
+      .order("created_at")
+      .limit(5),
   ]);
+  const brouillons = (brouillonsRes.data ?? []) as { id: string; prenom_salarie: string | null; nom_salarie: string | null }[];
+  const nomBrouillon = (b: (typeof brouillons)[number]) => `${b.prenom_salarie ?? ""} ${b.nom_salarie ?? ""}`.trim() || "votre salarié";
+  const gestionEnAttente = typeof sp.gestion === "string" ? brouillons.find((b) => b.id === sp.gestion) : undefined;
 
   const abonnement = aboRes.data as Abonnement | null;
+  // Attestations fiscales des années écoulées (brique 15).
+  const attestations = (
+    await Promise.all(anneesProposees().map((a) => lireAttestation(supabase, user.id, a).catch(() => null)))
+  ).filter((d): d is NonNullable<typeof d> => Boolean(d && d.total > 0));
   const placesUtilisees = placesRes.count ?? 0;
   // echeancesRes/paiementsRes en erreur = script brique5a pas encore exécuté.
   const enDefaut = (echeancesRes.data ?? []).filter(
     (e) => e.statut === "impayee" || (e.statut === "a_payer" && e.tentatives > 0),
   );
   const paiements = paiementsRes.data ?? [];
-  const message = commandeRes.data ? MESSAGES_COMMANDE[commandeRes.data.statut as string] : null;
+  const message = commandeRes.data
+    ? (commandeRes.data.type === "carte" ? MESSAGES_CARTE : MESSAGES_COMMANDE)[commandeRes.data.statut as string]
+    : null;
+  // Carte qui expire avant la fin du mois prochain (même règle que l'e-mail).
+  const finMoisProchain = (() => {
+    const d = new Date();
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 2, 0)).toISOString().slice(0, 10);
+  })();
+  const carteExpireBientot = Boolean(abonnement?.carte_expiration && abonnement.carte_expiration <= finMoisProchain);
 
   return (
     <div className="flex flex-1 justify-center px-6 py-12">
@@ -161,13 +197,44 @@ export default async function AbonnementPage({
             }`}
           >
             {message.texte}
+            {/* Brouillons préparés avant de souscrire : on les envoie (13/11). */}
+            {commandeRes.data?.statut === "payee" && commandeRes.data.type !== "carte" && brouillons.length > 0 && (
+              <span className="mt-3 flex flex-wrap gap-2">
+                {brouillons.map((b) => (
+                  <form key={b.id} action={envoyerBrouillon}>
+                    <input type="hidden" name="gestion_id" value={b.id} />
+                    <button type="submit" className="btn btn-primaire btn-sm">
+                      Envoyer la gestion de {nomBrouillon(b)}
+                    </button>
+                  </form>
+                ))}
+              </span>
+            )}
             {/* Premier abonnement : on enchaîne sur l'ajout du salarié (07/11). */}
-            {commandeRes.data?.statut === "payee" && placesUtilisees === 0 && (
+            {commandeRes.data?.statut === "payee" && commandeRes.data.type !== "carte" && placesUtilisees === 0 && brouillons.length === 0 && (
               <Link href="/tableau-de-bord/gestions/nouvelle" className="btn btn-primaire btn-sm mt-3 flex w-fit">
                 + Ajouter mon salarié
               </Link>
             )}
           </p>
+        )}
+
+        {gestionEnAttente && !abonnement && (
+          <p role="status" className="mt-6 rounded-lg border-2 border-brand-jaune bg-brand-jaune/30 p-4 text-sm">
+            <strong>{nomBrouillon(gestionEnAttente)} est bien enregistré.</strong> Dernière étape : choisissez votre
+            formule ci-dessous. Juste après le paiement, vous enverrez sa gestion à Aide &amp; Garde en un clic.
+          </p>
+        )}
+        {gestionEnAttente && abonnement && (
+          <form action={envoyerBrouillon} className="mt-6 rounded-lg border-2 border-brand-jaune bg-brand-jaune/30 p-4 text-sm">
+            <input type="hidden" name="gestion_id" value={gestionEnAttente.id} />
+            <p>
+              <strong>Votre abonnement est actif.</strong> Envoyez maintenant la gestion de {nomBrouillon(gestionEnAttente)}.
+            </p>
+            <button type="submit" className="btn btn-primaire btn-sm mt-3">
+              Envoyer la gestion de {nomBrouillon(gestionEnAttente)}
+            </button>
+          </form>
         )}
 
         {messageOk && (
@@ -251,7 +318,9 @@ export default async function AbonnementPage({
                       {abonnement.fin_prevue &&
                       (!abonnement.prochaine_echeance || abonnement.prochaine_echeance > abonnement.fin_prevue)
                         ? "aucun (résiliation)"
-                        : `${formatDate(abonnement.prochaine_echeance)}${abonnement.fin_prevue ? " (dernier)" : ""}`}
+                        : `${formatDate(abonnement.prochaine_echeance)}${abonnement.fin_prevue ? " (dernier)" : ""}${
+                            (abonnement.mois_offerts ?? 0) > 0 ? " : offert (parrainage)" : ""
+                          }`}
                     </dd>
                   </div>
                   <div>
@@ -271,11 +340,45 @@ export default async function AbonnementPage({
                 </div>
               )}
             </dl>
+            {abonnement.mode_paiement === "systempay" && config && (
+              <div id="carte" className="mt-4 scroll-mt-4 border-t border-brand-gray/15 pt-4">
+                {carteExpireBientot && (
+                  <p className="rounded-md border border-brand-jaune bg-brand-jaune/25 p-3 text-sm">
+                    <strong>Votre carte expire bientôt.</strong> Enregistrez la nouvelle avant votre prochain
+                    prélèvement : cela prend une minute et rien n&apos;est débité.
+                  </p>
+                )}
+                <ChangerCarte clePublique={config.clePublique} expireBientot={carteExpireBientot} />
+              </div>
+            )}
             <p className="mt-4 text-xs text-foreground/60">
               Pour changer de formule, contactez-nous (cette démarche en ligne arrive prochainement).
             </p>
           </section>
         ) : null}
+
+        {attestations.length > 0 && (
+          <section id="attestation-fiscale" className="carte mt-6 scroll-mt-4 p-5 text-sm">
+            <h2 className="font-bold text-brand-teal">Attestations fiscales</h2>
+            <p className="mt-1 text-foreground/70">
+              Les sommes versées à Aide &amp; Garde ouvrent droit au crédit d&apos;impôt pour l&apos;emploi d&apos;un salarié à
+              domicile. Chaque attestation est disponible à partir du 1er janvier suivant.
+            </p>
+            <ul className="mt-3 flex flex-col gap-2">
+              {attestations.map((d) => (
+                <li key={d.annee} className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    Année {d.annee} : <strong>{formatEuros(d.total)}</strong>
+                  </span>
+                  {/* Lien classique : téléchargement d'un PDF. */}
+                  <a href={`/tableau-de-bord/attestation-fiscale/${d.annee}`} className="btn btn-secondaire btn-sm">
+                    Télécharger l&apos;attestation {d.annee}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* --- Rétractation en ligne (14 jours après une souscription en ligne,
             obligatoire depuis le 19/06/2026 : « Renoncer au contrat ici »). --- */}

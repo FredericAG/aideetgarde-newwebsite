@@ -958,3 +958,13 @@ export async function genererCourrier(
   const lettre = LETTRES[cle](contexte, valeurs);
   return { octets: await mettreEnPage(lettre, modele.titre), fichier };
 }
+
+/**
+ * Mise en page d'un document simple (lettre, attestation) avec la même
+ * présentation que les courriers : utilisé par l'attestation fiscale
+ * (src/lib/attestation-fiscale.ts).
+ */
+export type DocumentSimple = Lettre;
+export async function documentEnPdf(lettre: DocumentSimple, titrePdf: string): Promise<Uint8Array> {
+  return mettreEnPage(lettre, titrePdf);
+}

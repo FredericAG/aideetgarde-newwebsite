@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { getUserProfile, type UserProfile } from "@/lib/user-profile";
+import { estEquipe, getUserProfile, type UserProfile } from "@/lib/user-profile";
 
 /**
  * Identité de la personne connectée, calculée UNE SEULE FOIS par affichage
@@ -51,7 +51,7 @@ export async function requireUser(nextPath: string): Promise<{
 }
 
 /**
- * Réservé aux administrateurs. Un non-administrateur reçoit une page 404
+ * Réservé à l'équipe (administrateur ou conseiller, 13/11/2026). Les autres reçoivent une page 404
  * (et non "accès refusé") : on ne révèle pas l'existence de l'espace admin.
  */
 export async function requireAdmin(nextPath: string): Promise<{
@@ -59,7 +59,7 @@ export async function requireAdmin(nextPath: string): Promise<{
   profile: UserProfile;
 }> {
   const { supabase, profile } = await requireUser(nextPath);
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !estEquipe(profile)) {
     notFound();
   }
   return { supabase, profile };

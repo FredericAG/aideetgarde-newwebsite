@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
+import { estAdministrateur } from "@/lib/user-profile";
+import { scriptsManquants } from "@/lib/scripts-manquants";
 import { clientServeur } from "@/lib/supabase/admin";
 import { appelSystempay, configSystempay } from "@/lib/systempay";
 import { adresseSite } from "@/lib/email";
@@ -33,7 +35,8 @@ function lire(b: Record<string, number>): string {
  * par Vercel) : utile en recette, ou après une panne.
  */
 export async function lancerTraitementQuotidien(): Promise<string> {
-  await requireAdmin("/admin/abonnements");
+  const { profile } = await requireAdmin("/admin/abonnements");
+  if (!estAdministrateur(profile)) return "Action réservée à l'administrateur.";
   const db = clientServeur();
   if (!db) return "Impossible : la clé SUPABASE_SECRET_KEY n'est pas renseignée dans Vercel.";
   if (!configSystempay()) return "Impossible : les clés Systempay ne sont pas renseignées dans Vercel.";
@@ -42,6 +45,8 @@ export async function lancerTraitementQuotidien(): Promise<string> {
   if (!bilan.ok) return `Erreur : ${bilan.erreur}`;
   return `Paiements en attente : ${lire(bilan.commandes)}. Échéances : ${lire(bilan.echeances)}.${
     bilan.resiliations ? ` Résiliations appliquées : ${bilan.resiliations}.` : ""
+  }${bilan.cartes ? ` Abonnés prévenus d'une carte qui expire : ${bilan.cartes}.` : ""}${
+    bilan.parrainages ? ` Parrainages accordés : ${bilan.parrainages}.` : ""
   }`;
 }
 
@@ -58,7 +63,8 @@ export interface PointControle {
  * notification. Aucune valeur secrète n'est affichée.
  */
 export async function verifierConfiguration(): Promise<PointControle[]> {
-  await requireAdmin("/admin/abonnements");
+  const { profile } = await requireAdmin("/admin/abonnements");
+  if (!estAdministrateur(profile)) return [{ libelle: "Accès", ok: false, detail: "Action réservée à l'administrateur." }];
   const points: PointControle[] = [];
 
   // 1. Clé secrète Supabase
@@ -126,5 +132,20 @@ export async function verifierConfiguration(): Promise<PointControle[]> {
     ok: Boolean(process.env.BREVO_API_KEY),
     detail: process.env.BREVO_API_KEY ? "Clé présente." : "BREVO_API_KEY absente : aucun email ne partirait.",
   });
+
+  // 6. Scripts SQL (registre, brique13)
+  if (db) {
+    const manquants = await scriptsManquants(db);
+    points.push({
+      libelle: "Scripts SQL exécutés",
+      ok: manquants !== null && manquants.length === 0,
+      detail:
+        manquants === null
+          ? "Registre absent : exécutez supabase/brique13_registre_et_erreurs.sql (il reconnaît ceux déjà exécutés)."
+          : manquants.length
+            ? `À exécuter dans cet ordre (Supabase > SQL Editor) : ${manquants.join(", ")}.`
+            : "Tous les scripts attendus par cette version du site sont en place.",
+    });
+  }
   return points;
 }

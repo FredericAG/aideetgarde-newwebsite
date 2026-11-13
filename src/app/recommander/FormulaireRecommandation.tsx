@@ -1,136 +1,72 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
-import { envoyerRecommandation, type EtatRecommandation } from "./actions";
+import { useState } from "react";
 
-function BoutonEnvoyer() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending} className="btn btn-primaire w-full sm:w-auto">
-      {pending ? "Envoi…" : "Envoyer ma recommandation"}
-    </button>
-  );
+/**
+ * Partage du lien de parrainage (décision du 13/11/2026). Le site n'envoie
+ * rien : c'est l'abonné qui envoie, depuis son téléphone ou sa messagerie
+ * (avec une récompense, un e-mail envoyé par le site relèverait de la
+ * prospection commerciale, CNIL). Le nom du fichier est gardé ; l'ancien
+ * formulaire d'e-mail est retiré.
+ */
+export function messageParDefaut(lien: string): string {
+  return `J'utilise Aide & Garde pour la paie de mon salarié à domicile : contrat, bulletins chaque mois, déclarations à l'Urssaf. Je n'ai plus à m'en occuper. Avec mon lien, un mois vous est offert : ${lien}`;
 }
 
-/** Message proposé, modifiable par l'abonné (signé de son nom). */
-export function messageParDefaut(signature: string): string {
-  return [
-    "J'utilise Aide & Garde pour la gestion de mon salarié à domicile : le contrat, les bulletins de paie chaque mois et les déclarations à l'Urssaf. Je n'ai plus à m'en occuper, et tous mes documents sont disponibles en ligne.",
-    "Je pense que cela pourrait vous simplifier la vie, vous aussi. Le lien ci-dessous explique comment cela fonctionne.",
-    signature,
-  ].join("\n\n");
-}
+export function FormulaireRecommandation({ lien, code }: { lien: string; code: string }) {
+  const [copie, setCopie] = useState<"" | "lien" | "message">("");
+  const message = messageParDefaut(lien);
 
-export function FormulaireRecommandation({ signature }: { signature: string }) {
-  const [email, setEmail] = useState("");
-  const [prenom, setPrenom] = useState("");
-  const [message, setMessage] = useState(() => messageParDefaut(signature));
-  // Après un envoi réussi, le bouton disparaît jusqu'à une nouvelle
-  // recommandation (demande du 27/10) : plus de doute sur l'envoi.
-  const [envoye, setEnvoye] = useState(false);
-  const [etat, action] = useActionState<EtatRecommandation, FormData>(async (avant, fd) => {
-    const res = await envoyerRecommandation(avant, fd);
-    // Après un envoi réussi : formulaire vidé pour un autre contact, le
-    // message reste celui de l'abonné.
-    if (res.ok) {
-      setEmail("");
-      setPrenom("");
-      setEnvoye(true);
+  async function copier(texte: string, quoi: "lien" | "message") {
+    try {
+      await navigator.clipboard.writeText(texte);
+      setCopie(quoi);
+    } catch {
+      // Copie refusée par le navigateur : le texte reste sélectionnable.
+      setCopie("");
     }
-    return res;
-  }, {});
-  const champEmail = useRef<HTMLInputElement>(null);
+  }
 
+  const enc = encodeURIComponent(message);
   return (
-    <form action={action} className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          Email de votre contact
+    <div className="flex flex-col gap-4">
+      <div>
+        <p className="text-sm font-medium">Votre lien personnel</p>
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row">
           <input
-            ref={champEmail}
-            name="email"
-            type="email"
-            required
-            autoComplete="off"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setEnvoye(false);
-            }}
-            className="rounded-md border border-brand-gray/40 px-3 py-2 text-base font-normal"
-            placeholder="prenom.nom@exemple.fr"
+            id="lien-parrainage"
+            readOnly
+            value={lien}
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-full rounded-md border border-brand-gray/40 bg-background px-3 py-2.5 text-sm"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          <span>
-            Son prénom <span className="font-normal text-foreground/60">(facultatif)</span>
-          </span>
-          <input
-            name="prenom"
-            autoComplete="off"
-            maxLength={60}
-            value={prenom}
-            onChange={(e) => setPrenom(e.target.value)}
-            className="rounded-md border border-brand-gray/40 px-3 py-2 text-base font-normal"
-          />
-        </label>
+          <button type="button" onClick={() => copier(lien, "lien")} className="btn btn-primaire shrink-0">
+            {copie === "lien" ? "Lien copié" : "Copier le lien"}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-foreground/60">
+          Ou votre code, à indiquer à l&apos;inscription : <strong className="tracking-wider">{code}</strong>
+        </p>
       </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        <span>
-          Votre message <span className="font-normal text-foreground/60">(modifiable)</span>
-        </span>
-        <span className="text-xs font-normal text-foreground/60">
-          Il commencera par « Bonjour {prenom.trim() || "…"}, » et se terminera par un bouton « Découvrir Aide &amp;
-          Garde ».
-        </span>
-        <textarea
-          name="message"
-          required
-          rows={9}
-          maxLength={2000}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="rounded-md border border-brand-gray/40 px-3 py-2 text-base font-normal leading-relaxed"
-        />
-      </label>
-      <button
-        type="button"
-        onClick={() => setMessage(messageParDefaut(signature))}
-        className="self-start text-xs text-brand-teal underline"
-      >
-        Revenir au message proposé
-      </button>
-
-      {etat.erreur && (
-        <p role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-          {etat.erreur}
-        </p>
-      )}
-      {etat.ok && envoye ? (
-        <p role="status" className="rounded-md border border-brand-teal/30 bg-brand-sky-tint/40 p-3 text-sm text-brand-teal">
-          {etat.ok}{" "}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => {
-              setEnvoye(false);
-              champEmail.current?.focus();
-            }}
-          >
-            Recommander à quelqu&apos;un d&apos;autre
+      <div>
+        <p className="text-sm font-medium">L&apos;envoyer</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <a href={`https://wa.me/?text=${enc}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondaire btn-sm">
+            WhatsApp
+          </a>
+          <a href={`sms:?&body=${enc}`} className="btn btn-secondaire btn-sm">
+            SMS
+          </a>
+          <a href={`mailto:?subject=${encodeURIComponent("Aide & Garde, pour la paie de votre salarié à domicile")}&body=${enc}`} className="btn btn-secondaire btn-sm">
+            E-mail
+          </a>
+          <button type="button" onClick={() => copier(message, "message")} className="btn btn-secondaire btn-sm">
+            {copie === "message" ? "Message copié" : "Copier le message"}
           </button>
-        </p>
-      ) : (
-        <div>
-          <BoutonEnvoyer />
         </div>
-      )}
-      <p className="text-xs text-foreground/60">
-        Le message part de la part de vous, avec votre nom ; votre contact peut vous répondre directement. Son adresse
-        sert uniquement à cet envoi : Aide &amp; Garde ne la conserve pas.
-      </p>
-    </form>
+        <p className="mt-2 rounded-md bg-[var(--carte)] p-3 text-sm text-foreground/80">{message}</p>
+      </div>
+    </div>
   );
 }

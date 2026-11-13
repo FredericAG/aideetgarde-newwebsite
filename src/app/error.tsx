@@ -9,6 +9,15 @@ import { useEffect } from "react";
 export default function Erreur({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error("Erreur d'affichage :", error);
+    // Erreur du navigateur (sans référence) : alerte à Aide & Garde. Celles
+    // du serveur (avec référence) sont déjà signalées par le serveur.
+    if (!error.digest) {
+      void fetch("/api/erreur", {
+        method: "POST",
+        body: JSON.stringify({ chemin: window.location.pathname, message: String(error.message || error) }),
+        keepalive: true,
+      }).catch(() => null);
+    }
   }, [error]);
 
   return (

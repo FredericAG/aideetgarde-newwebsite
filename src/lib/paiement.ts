@@ -30,6 +30,38 @@ export async function traiterReponseCommande(
   // Paiement encore en cours (3-D Secure…) : la notification finale suivra.
   if (statut === "RUNNING" || !statut) return "en_cours";
 
+  // Nouvelle carte, sans paiement (brique 5g).
+  const { data: typeCmd } = await db.from("commandes").select("type, employeur_id").eq("order_id", orderId).maybeSingle();
+  if (typeCmd?.type === "carte") {
+    const { data: r, error: e } = await db.rpc("systempay_resultat_carte", {
+      p_order_id: orderId,
+      p_transaction: transaction?.uuid ?? null,
+      p_statut: statut,
+      p_token: transaction?.token ?? null,
+      p_carte: transaction?.carte ?? null,
+      p_expiration: transaction?.expiration ?? null,
+    });
+    if (e) throw new Error(`Enregistrement de la carte ${orderId} : ${e.message}`);
+    if (r === "carte_enregistree") {
+      // Sécurité : l'abonné est prévenu de tout changement de carte.
+      await prevenirAbonne(
+        db,
+        typeCmd.employeur_id as string,
+        { title: "Nouvelle carte enregistrée", body: "Vos prochains prélèvements utiliseront cette carte.", url: "/tableau-de-bord/abonnement", tag: "carte" },
+        {
+          sujet: "Votre nouvelle carte est enregistrée",
+          titre: "Nouvelle carte enregistrée",
+          paragraphes: [
+            `La carte ${transaction?.carte ? `se terminant par ${transaction.carte.slice(-4)} ` : ""}est désormais utilisée pour les prélèvements de votre abonnement Aide & Garde.`,
+            "Si vous n'êtes pas à l'origine de ce changement, contactez-nous sans attendre.",
+          ],
+          bouton: "Voir mon abonnement",
+        },
+      ).catch((err) => console.error("Message nouvelle carte :", err));
+    }
+    return r as string;
+  }
+
   const { data, error } = await db.rpc("systempay_resultat_commande", {
     p_order_id: orderId,
     p_transaction: transaction?.uuid ?? null,
@@ -326,4 +358,101 @@ export async function verifierCommandesEnAttente(db: SupabaseClient): Promise<Re
     }
   }
   return bilan;
+}
+
+/**
+ * Cartes qui expirent (13/11/2026) : chaque matin, l'abonné dont la carte
+ * expire avant la fin du mois prochain est prévenu, une seule fois par
+ * carte (colonne carte_alerte_pour, script brique5g). Sans le script, ne
+ * fait rien. Renvoie le nombre d'abonnés prévenus.
+ */
+export async function prevenirCartesQuiExpirent(db: SupabaseClient): Promise<number> {
+  const d = new Date();
+  const finMoisProchain = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 2, 0)).toISOString().slice(0, 10);
+  const { data, error } = await db
+    .from("abonnements")
+    .select("id, employeur_id, carte_masquee, carte_expiration, carte_alerte_pour, prochaine_echeance")
+    .eq("statut", "actif")
+    .eq("mode_paiement", "systempay")
+    .not("carte_expiration", "is", null)
+    .lte("carte_expiration", finMoisProchain)
+    .limit(200);
+  if (error) return 0; // script brique5g pas encore exécuté
+  let n = 0;
+  for (const a of data ?? []) {
+    if (a.carte_alerte_pour === a.carte_expiration) continue;
+    const expiree = (a.carte_expiration as string) < d.toISOString().slice(0, 10);
+    const fin = formatDate(a.carte_expiration as string).slice(3); // MM/AAAA
+    const fin4 = a.carte_masquee ? ` se terminant par ${(a.carte_masquee as string).slice(-4)}` : "";
+    try {
+      await prevenirAbonne(
+        db,
+        a.employeur_id as string,
+        {
+          title: expiree ? "Votre carte a expiré" : "Votre carte expire bientôt",
+          body: "Enregistrez votre nouvelle carte pour vos prochains prélèvements.",
+          url: "/tableau-de-bord/abonnement#carte",
+          tag: "carte",
+        },
+        {
+          sujet: expiree ? "Votre carte bancaire a expiré" : "Votre carte bancaire arrive à expiration",
+          titre: expiree ? "Votre carte a expiré" : "Votre carte arrive à expiration",
+          paragraphes: [
+            `La carte${fin4} enregistrée pour votre abonnement Aide & Garde ${expiree ? "a expiré" : "expire"} fin ${fin}.`,
+            a.prochaine_echeance
+              ? `Pour que votre prélèvement du ${formatDate(a.prochaine_echeance as string)} passe sans incident, enregistrez votre nouvelle carte : cela prend une minute et rien n'est débité.`
+              : "Enregistrez votre nouvelle carte : cela prend une minute et rien n'est débité.",
+          ],
+          bouton: "Enregistrer ma nouvelle carte",
+        },
+      );
+      await db.from("abonnements").update({ carte_alerte_pour: a.carte_expiration }).eq("id", a.id);
+      n++;
+    } catch (e) {
+      console.error("Alerte carte qui expire :", e);
+    }
+  }
+  return n;
+}
+
+/**
+ * Parrainages arrivés à terme (brique 14) : mois offert au filleul et au
+ * parrain, chacun prévenu. Sans le script, ne fait rien. Renvoie le nombre
+ * de parrainages accordés.
+ */
+export async function accorderParrainages(db: SupabaseClient): Promise<number> {
+  const { data, error } = await db.rpc("accorder_parrainages");
+  if (error) return 0;
+  const lignes = (data ?? []) as { filleul_id: string; parrain_id: string; parrain_credite: boolean }[];
+  for (const l of lignes) {
+    await prevenirAbonne(
+      db,
+      l.filleul_id,
+      { title: "Un mois offert", body: "Grâce à votre parrainage, votre prochain mois est offert.", url: "/tableau-de-bord/abonnement", tag: "parrainage" },
+      {
+        sujet: "Un mois offert sur votre abonnement",
+        titre: "Votre prochain mois est offert",
+        paragraphes: [
+          "Vous avez rejoint Aide & Garde grâce à un proche : comme promis, votre prochain mois est offert. Il n'y aura pas de prélèvement à la prochaine échéance.",
+        ],
+        bouton: "Voir mon abonnement",
+      },
+    ).catch((e) => console.error("Message parrainage (filleul) :", e));
+    if (l.parrain_credite) {
+      await prevenirAbonne(
+        db,
+        l.parrain_id,
+        { title: "Merci pour votre parrainage", body: "Votre prochain mois est offert.", url: "/recommander", tag: "parrainage" },
+        {
+          sujet: "Merci : un mois offert sur votre abonnement",
+          titre: "Merci pour votre parrainage",
+          paragraphes: [
+            "La personne que vous avez parrainée a rejoint Aide & Garde. Merci ! Votre prochain mois est offert : il n'y aura pas de prélèvement à la prochaine échéance.",
+          ],
+          bouton: "Voir mes parrainages",
+        },
+      ).catch((e) => console.error("Message parrainage (parrain) :", e));
+    }
+  }
+  return lignes.length;
 }

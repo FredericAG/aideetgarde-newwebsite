@@ -1,5 +1,6 @@
 "use client";
 
+import { dateCourte, dateLimiteDeclaration } from "@/lib/delais";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { formatDate, formatHeures, type Declaration } from "@/lib/data";
@@ -47,6 +48,9 @@ export function DeclarationMois({
     <form action={action} className="flex flex-col gap-3">
       <p className="text-sm text-foreground/70">
         Indiquez les heures travaillées et validez : nous établissons le bulletin.
+        {!existante && dateLimiteDeclaration(periode) && (
+          <> À envoyer au plus tard le <strong>{dateCourte(dateLimiteDeclaration(periode)!)}</strong>.</>
+        )}
       </p>
       <input type="hidden" name="gestion_id" value={gestionId} />
       <input type="hidden" name="periode" value={periode} />

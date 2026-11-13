@@ -128,3 +128,22 @@ export function fenetreNotification(dateEntretien: string): { debut: string; fin
 export function dateEnClair(iso: string): string {
   return new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(versDate(iso));
 }
+
+/**
+ * Date limite de la déclaration d'un mois (décision du 13/11/2026) : le 4 du
+ * mois suivant. `periode` au format AAMM ; renvoie AAAA-MM-JJ, ou null.
+ */
+export function dateLimiteDeclaration(periode: string): string | null {
+  if (!/^\d{4}$/.test(periode)) return null;
+  const annee = 2000 + Number(periode.slice(0, 2));
+  const mois = Number(periode.slice(2, 4));
+  if (mois < 1 || mois > 12) return null;
+  const suivant = mois === 12 ? { a: annee + 1, m: 1 } : { a: annee, m: mois + 1 };
+  return `${suivant.a}-${String(suivant.m).padStart(2, "0")}-04`;
+}
+
+/** « 4 décembre 2026 » (sans le jour de la semaine). */
+export function dateCourte(iso: string): string {
+  const [a, m, j] = iso.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, j)).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}

@@ -45,10 +45,13 @@ function FormulaireCarte({
   formToken,
   orderId,
   clePublique,
+  sansPaiement = false,
 }: {
   formToken: string;
   orderId: string;
   clePublique: string;
+  /** Nouvelle carte, rien n'est débité (brique 5g). */
+  sansPaiement?: boolean;
 }) {
   const router = useRouter();
   const [etat, setEtat] = useState<"chargement" | "pret" | "confirmation" | "erreur">("chargement");
@@ -106,7 +109,7 @@ function FormulaireCarte({
       )}
       {etat === "confirmation" && (
         <p className="text-sm font-medium text-brand-teal" role="status">
-          Paiement accepté, activation en cours…
+          {sansPaiement ? "Carte vérifiée, enregistrement en cours…" : "Paiement accepté, activation en cours…"}
         </p>
       )}
       {etat === "erreur" && (
@@ -263,5 +266,41 @@ export function Regularisation({
       )}
       <BoutonContinuer texte={`Régler ${formatEuros(montant)} avec une carte`} />
     </form>
+  );
+}
+
+/**
+ * Nouvelle carte, sans paiement (13/11/2026) : carte qui expire, perdue ou
+ * remplacée. La banque la vérifie ; rien n'est débité.
+ */
+export function ChangerCarte({ clePublique, expireBientot }: { clePublique: string; expireBientot: boolean }) {
+  const [etat, action] = useActionState<EtatPaiement, FormData>(preparerPaiement, { etape: "choix" });
+  if (etat.etape === "formulaire") {
+    return (
+      <div className="mt-4">
+        <p className="mb-3 text-sm text-foreground/70">Saisissez votre nouvelle carte : rien n&apos;est débité.</p>
+        <FormulaireCarte formToken={etat.formToken} orderId={etat.orderId} clePublique={clePublique} sansPaiement />
+      </div>
+    );
+  }
+  return (
+    <form action={action} className="mt-4">
+      <input type="hidden" name="type" value="carte" />
+      {etat.erreur && (
+        <p role="alert" className="mb-3 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {etat.erreur}
+        </p>
+      )}
+      <BoutonCarte expireBientot={expireBientot} />
+    </form>
+  );
+}
+
+function BoutonCarte({ expireBientot }: { expireBientot: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className={`btn ${expireBientot ? "btn-primaire" : "btn-secondaire"} btn-sm`}>
+      {pending ? "Préparation…" : "Enregistrer une nouvelle carte"}
+    </button>
   );
 }

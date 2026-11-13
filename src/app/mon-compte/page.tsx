@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EncartRecommander } from "@/components/EncartRecommander";
 import { requireUser } from "@/lib/auth";
-import { lireComplementProfil, type UserProfile } from "@/lib/user-profile";
+import { estEquipe, lireComplementProfil, type UserProfile } from "@/lib/user-profile";
 import { ProfileForm } from "./ProfileForm";
 import { NotificationsPush } from "@/components/NotificationsPush";
 import { DeconnexionButton } from "@/components/DeconnexionButton";
@@ -61,9 +61,9 @@ export default async function MonComptePage() {
           email={user.email ?? ""}
         />
 
-        {profile?.role !== "admin" && <EncartRecommander className="mt-8" />}
+        {!estEquipe(profile) && <EncartRecommander className="mt-8" />}
         {/* Téléphone : la barre d'onglets de l'administration est pleine. */}
-        {profile?.role === "admin" && (
+        {estEquipe(profile) && (
           <p className="mt-8 text-sm">
             <Link href="/admin/partenaires" className="font-medium text-brand-teal underline">
               Statistiques des visites envoyées aux partenaires ›

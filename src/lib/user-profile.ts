@@ -15,7 +15,22 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * la base de données elle-même refuse toute tentative de contournement du
  * code, même en cas de bug applicatif.
  */
-export type UserRole = "employeur" | "salarie" | "admin";
+export type UserRole = "employeur" | "salarie" | "admin" | "conseiller";
+
+/**
+ * Membre de l'équipe Aide & Garde : administrateur ou conseiller (rôle du
+ * 13/11/2026, script brique11). Les conseillers voient tout, valident,
+ * déposent et relancent ; seul l'administrateur supprime, crée ou modifie un
+ * abonnement (tarif, résiliation) et lance les traitements de paiement.
+ */
+export function estEquipe(profile: { role?: string } | null | undefined): boolean {
+  return profile?.role === "admin" || profile?.role === "conseiller";
+}
+
+/** Administrateur seul (pas un conseiller). */
+export function estAdministrateur(profile: { role?: string } | null | undefined): boolean {
+  return profile?.role === "admin";
+}
 
 export interface UserProfile {
   id: string;

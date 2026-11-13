@@ -3,10 +3,11 @@
 import { ChampMotDePasse } from "@/components/ChampMotDePasse";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { clientALaDemande, prechargerClient } from "@/lib/supabase/client-a-la-demande";
 import { authErrorMessage } from "@/lib/auth-errors";
 import { MESSAGE_RESEAU, withTimeout } from "@/lib/with-timeout";
+import { classerOrigine, ORIGINES_DECLAREES } from "@/lib/origine";
 
 export default function InscriptionPage() {
   const router = useRouter();
@@ -15,6 +16,16 @@ export default function InscriptionPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accepteCgu, setAccepteCgu] = useState(false);
+  // Mesure du tunnel (13/11/2026) : réponse facultative, et origine de la
+  // page d'arrivée si le visiteur arrive directement ici (annonce…).
+  const [origine, setOrigine] = useState("");
+  // Parrainage (13/11/2026) : code repris du lien /inscription?parrain=CODE.
+  const [parrain, setParrain] = useState("");
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("parrain");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lecture unique de l'adresse au chargement
+    if (code) setParrain(code.toUpperCase().slice(0, 12));
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +54,13 @@ export default function InscriptionPage() {
           email,
           password,
           options: {
-            data: { prenom, nom },
+            data: {
+              prenom,
+              nom,
+              ...(origine ? { origine } : {}),
+              ...(parrain.trim() ? { parrain: parrain.trim().toUpperCase() } : {}),
+              arrivee: classerOrigine(window.location.search, document.referrer, window.location.hostname),
+            },
             // Le lien de confirmation renverra sur CE site (production ou
             // prévisualisation), à condition que l'adresse figure dans
             // Supabase > Authentication > URL Configuration > Redirect URLs.
@@ -136,6 +153,11 @@ export default function InscriptionPage() {
         <p className="mt-2 text-sm text-foreground/70">
           Gratuit. Vous choisirez votre formule ensuite.
         </p>
+        {parrain && (
+          <p className="mt-3 rounded-md border border-brand-jaune bg-brand-jaune/20 px-3 py-2 text-sm">
+            <strong>Vous êtes parrainé :</strong> un mois vous sera offert une fois votre premier mois réglé.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} onFocus={prechargerClient} className="mt-6 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
@@ -183,6 +205,27 @@ export default function InscriptionPage() {
             />
           </Field>
 
+          <Field label="Code de parrainage" aide="Facultatif : si un proche vous a donné son code.">
+            <input
+              id="parrain"
+              type="text"
+              autoComplete="off"
+              value={parrain}
+              onChange={(e) => setParrain(e.target.value.toUpperCase().slice(0, 12))}
+              className={`${inputClass} uppercase tracking-wider`}
+            />
+          </Field>
+
+          <Field label="Comment nous avez-vous connus ?" aide="Facultatif : cela nous aide à mieux nous faire connaître.">
+            <select id="origine" value={origine} onChange={(e) => setOrigine(e.target.value)} className={inputClass}>
+              <option value="">Choisir…</option>
+              {Object.entries(ORIGINES_DECLAREES).map(([cle, libelle]) => (
+                <option key={cle} value={cle}>
+                  {libelle}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <label className="flex items-start gap-2 text-sm text-foreground/70">
             <input
