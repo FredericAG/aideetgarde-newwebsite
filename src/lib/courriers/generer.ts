@@ -651,7 +651,8 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
   const E = c.employeur;
   const S = c.salarie;
 
-  choisir("accident", (e) => e === "travail");
+  const trajet = v.type_accident === "trajet";
+  choisir("accident", (e) => e === (trajet ? "trajet" : "travail"));
   texte("Nom et prénom ou raison sociale de lemployeur", nomComplet(E, false).replace(BLANC, ""));
   texte("Adresse", E.adresse);
   texte("Code postal", chiffres(E.code_postal));
@@ -674,7 +675,8 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
   const lieu = { habituel: "lieu habituel travail", occasionnel: "lieu occasionnel travail", deplacement: "deplacement pour employeur" }[
     v.lieu_type as "habituel" | "occasionnel" | "deplacement"
   ];
-  if (lieu) choisir("lieu", (e) => e === lieu);
+  if (trajet) choisir("lieu", (e) => e === "trajet domicile travail");
+  else if (lieu) choisir("lieu", (e) => e === lieu);
   texte("activité victime", v.activite ?? "");
   texte("nature accident", v.nature ?? "");
   texte("Siège des lésions", v.siege_lesions ?? "");
@@ -687,7 +689,7 @@ async function remplirDeclarationAccident(c: ContexteCourrier, v: Valeurs): Prom
   texte("date declaration", jjmmaaaa(v.fait_le));
 
   form.updateFieldAppearances(police);
-  doc.setTitle("Déclaration d'accident du travail (cerfa 14463*03)");
+  doc.setTitle(trajet ? "Déclaration d'accident de trajet (cerfa 14463*03)" : "Déclaration d'accident du travail (cerfa 14463*03)");
   return doc.save();
 }
 
@@ -937,7 +939,9 @@ export async function genererCourrier(
     feuille_accident: "Feuille-accident-travail",
     autorisation_travail: "Demande-autorisation-travail-15186",
   }[cle];
-  const fichier = `${base}_${salarie}.pdf`;
+  // Accident de trajet : le nom du fichier le dit (même formulaire officiel).
+  const nomBase = cle === "declaration_accident" && valeurs.type_accident === "trajet" ? "Declaration-accident-trajet" : base;
+  const fichier = `${nomBase}_${salarie}.pdf`;
 
   if (cle === "atthon_maladie" || cle === "atthon_accident") {
     return { octets: await remplirAtthon(contexte, valeurs, cle === "atthon_accident"), fichier };

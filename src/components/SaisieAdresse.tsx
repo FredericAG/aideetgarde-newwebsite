@@ -264,12 +264,15 @@ export function SaisieVille({
   valeur,
   onChange,
   classeChamp = classeDefaut,
+  codePostalInitial = "",
 }: {
   valeur: string;
   onChange: (ville: string) => void;
   classeChamp?: string;
+  /** Code postal affiché d'office (celui de l'employeur, par exemple). */
+  codePostalInitial?: string;
 }) {
-  const [cp, setCp] = useState("");
+  const [cp, setCp] = useState(codePostalInitial);
   const [communes, setCommunes] = useState<string[]>([]);
   return (
     <div className="flex items-center gap-2">

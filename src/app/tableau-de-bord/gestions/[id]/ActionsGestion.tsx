@@ -17,41 +17,57 @@ export type CleAction =
   | "attestation"
   | "arret"
   | "accident"
+  | "trajet"
   | "maternite"
+  | "paternite"
   | "fin"
   | "courriers";
 
 
 /**
- * Actions rangées par verbe (demande du 25/10) : la ligne « Déclarer » vient
- * en premier, avec « Le mois » mis en avant (l'action de chaque mois).
+ * Actions rangées par verbe (demandes des 25/10 et 12/11) : « Demander le
+ * bulletin du mois » en premier (l'action de chaque mois), puis les
+ * absences, les naissances, les documents et la fin de contrat.
  */
-const GROUPES: { verbe: string; actions: { cle: CleAction; libelle: string; court: string }[] }[] = [
-  {
-    verbe: "Déclarer",
-    actions: [
-      { cle: "declarer", libelle: "Le mois", court: "Le mois" },
-      { cle: "arret", libelle: "Un arrêt maladie", court: "Arrêt maladie" },
-      { cle: "accident", libelle: "Un accident du travail", court: "Accident du travail" },
-      { cle: "maternite", libelle: "Un congé maternité", court: "Congé maternité" },
-    ],
-  },
+const GROUPES: { verbe: string; actions: { cle: CleAction; libelle: string }[] }[] = [
   {
     verbe: "Demander",
     actions: [
-      { cle: "avenant", libelle: "Un avenant", court: "Avenant" },
-      { cle: "corriger", libelle: "Une correction de bulletin", court: "Correction de bulletin" },
+      { cle: "declarer", libelle: "Le bulletin du mois" },
+      { cle: "corriger", libelle: "Une correction" },
+      { cle: "avenant", libelle: "Un avenant" },
     ],
   },
   {
-    verbe: "Rédiger",
+    verbe: "Déclarer",
     actions: [
-      { cle: "attestation", libelle: "Une attestation d'emploi", court: "Attestation d'emploi" },
-      { cle: "courriers", libelle: "Un autre courrier", court: "Autre courrier" },
+      { cle: "arret", libelle: "Un arrêt maladie" },
+      { cle: "accident", libelle: "Un accident du travail" },
+      { cle: "trajet", libelle: "Un accident de trajet" },
     ],
   },
-  { verbe: "Prévoir", actions: [{ cle: "fin", libelle: "Une fin de contrat", court: "Fin de contrat" }] },
+  {
+    verbe: "Déclarer",
+    actions: [
+      { cle: "maternite", libelle: "Un congé maternité" },
+      { cle: "paternite", libelle: "Un congé paternité" },
+    ],
+  },
+  {
+    verbe: "Obtenir",
+    actions: [
+      { cle: "attestation", libelle: "Une attestation d'emploi" },
+      { cle: "courriers", libelle: "Un autre courrier" },
+    ],
+  },
+  { verbe: "Prévoir", actions: [{ cle: "fin", libelle: "Une fin de contrat" }] },
 ];
+
+/** Dernière date indiquée en prévenant Aide & Garde, pour préremplir. */
+function dateSignalee(signalements: Signalement[], type: Signalement["type"]): string {
+  const s = signalements.find((x) => x.type === type && x.statut === "envoyee") ?? signalements.find((x) => x.type === type);
+  return s?.date_evenement ?? "";
+}
 
 const MODES_FIN: { cle: Exclude<ModeFinContrat, "retraite">; libelle: string }[] = [
   { cle: "licenciement", libelle: "Licenciement" },
@@ -121,7 +137,9 @@ export function ActionsGestion({
     avenant: Boolean(avenantEnAttente),
     arret: enAttente(["arret_maladie"]),
     accident: enAttente(["accident_travail"]),
+    trajet: enAttente(["accident_trajet"]),
     maternite: enAttente(["conge_maternite"]),
+    paternite: enAttente(["conge_paternite"]),
     fin: enAttente(["fin_contrat"]),
   };
   const garde = contexte.gestion.type_gestion === "garde_enfants";
@@ -134,17 +152,81 @@ export function ActionsGestion({
     <FormulaireCourrier key={cle} gestionId={gestionId} cle={cle} contexte={contexte} replie={replie} />
   );
 
+  // Accident du travail ou de trajet (demande du 12/11) : un seul formulaire
+  // pour les trois documents, date de l'accident reprise de « Prévenir ».
+  const panneauAccident = (trajet: boolean) => {
+    const type = trajet ? "accident_trajet" : "accident_travail";
+    return (
+      <div className="flex flex-col gap-4">
+        <ol className="flex flex-col gap-5">
+          <Etape n={1} titre="Prévenez-nous : l'attestation de salaire est obligatoire">
+            <PrevenirAideEtGarde
+              gestionId={gestionId}
+              type={type}
+              signalements={signalements}
+              titre={trajet ? "Accident de trajet de votre salarié" : "Accident du travail de votre salarié"}
+              texte="Nous préparons l'attestation de salaire « accident du travail ou de trajet » (cerfa 11137*03, formulaire S6202), à envoyer à la CPAM de votre salarié."
+              placeholder={trajet ? "ex. chute en venant au travail, arrêt prescrit jusqu'au…" : "ex. chute dans l'escalier, arrêt de travail prescrit jusqu'au…"}
+            />
+          </Etape>
+          <Etape n={2} titre="Préparez les documents : un seul formulaire pour les trois">
+            <ul className="list-disc space-y-1 pl-5 text-foreground/75">
+              <li>
+                <strong>La déclaration</strong> : à envoyer en recommandé avec avis de réception à la CPAM du lieu de
+                résidence de votre salarié, au plus tard 48 heures après avoir appris l&apos;accident (dimanches et jours
+                fériés non compris).
+              </li>
+              <li>
+                <strong>La feuille d&apos;accident</strong> : à remettre à votre salarié ; il est soigné sans avancer les
+                frais.
+              </li>
+              <li>
+                <strong>L&apos;attestation sur l&apos;honneur</strong> : à remettre aussi à votre salarié, qui la complète
+                et l&apos;envoie à sa CPAM.
+              </li>
+            </ul>
+            <FormulaireCourrier
+              key={type}
+              gestionId={gestionId}
+              cle="declaration_accident"
+              contexte={contexte}
+              replie
+              titre={trajet ? "Accident de trajet : les trois documents" : "Accident du travail : les trois documents"}
+              description="Déclaration (cerfa 14463*03), feuille d'accident (cerfa 11383*02) et attestation sur l'honneur, préremplies."
+              initiales={{
+                type_accident: trajet ? "trajet" : "travail",
+                date_accident: dateSignalee(signalements, type),
+                ...(trajet ? { lieu_accident: "" } : {}),
+              }}
+              documents={[
+                { cle: "declaration_accident", bouton: "La déclaration", pour: "Pour la CPAM, en recommandé (imprimez la 1re page en 4 exemplaires)." },
+                { cle: "feuille_accident", bouton: "La feuille d'accident", pour: "Pour votre salarié." },
+                { cle: "atthon_accident", bouton: "L'attestation sur l'honneur", pour: "Pour votre salarié." },
+              ]}
+            />
+          </Etape>
+        </ol>
+        <LienAide href="/aide/arret-de-travail#accident-du-travail">En savoir plus sur l&apos;accident du travail</LienAide>
+      </div>
+    );
+  };
+
   return (
     <section id="declaration" aria-labelledby="titre-actions" className="carte mt-6 scroll-mt-24 p-4 sm:p-5">
       <h2 id="titre-actions" className="text-sm font-bold text-brand-violet">
         Que souhaitez-vous faire ?
       </h2>
 
-      <div role="tablist" aria-label="Actions" className="mt-2 flex flex-col gap-2.5 sm:grid sm:grid-cols-[5.5rem_1fr] sm:items-baseline sm:gap-x-2 sm:gap-y-2">
-        {groupes.map((g) => (
-          <div key={g.verbe} className="flex flex-col gap-1 sm:contents">
-            <span className="text-xs font-bold uppercase tracking-wide text-foreground/55">{g.verbe}</span>
-            <div className="flex flex-wrap gap-1.5">
+      {/* Une carte par verbe (présentation du 12/11) ; « Le bulletin du
+          mois » est l'action mise en avant. */}
+      <div role="tablist" aria-label="Actions" className="mt-3 grid gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3">
+        {groupes.map((g, i) => (
+          <div
+            key={`${g.verbe}-${i}`}
+            className={`rounded-xl border bg-white px-3 py-2.5 sm:py-3 ${i === 0 ? "border-2 border-brand-violet/50" : "border-brand-gray/25"}`}
+          >
+            <p className="text-xs font-bold uppercase tracking-wide text-brand-violet">{g.verbe}</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-2">
               {g.actions.map((a) => {
                 const actif = a.cle === action;
                 const principal = a.cle === "declarer";
@@ -156,19 +238,18 @@ export function ActionsGestion({
                     aria-selected={actif}
                     aria-controls="panneau-action"
                     onClick={() => setAction(a.cle)}
-                    className={`relative rounded-full border px-2.5 py-1 text-sm leading-snug sm:px-3 transition-colors ${
+                    className={`relative rounded-full border px-3 py-1 text-sm leading-snug transition-colors sm:py-1.5 ${
                       actif
                         ? "border-brand-violet bg-brand-violet font-bold text-white"
                         : principal
                           ? "border-2 border-brand-violet bg-white font-bold text-brand-violet hover:bg-brand-violet/5"
                           : "border-brand-gray/35 bg-white text-brand-teal hover:border-brand-violet/50"
-                    } ${pastille[a.cle] ? "pr-6 sm:pr-7" : ""}`}
+                    } ${pastille[a.cle] ? "pr-7" : ""}`}
                   >
-                    <span className="sm:hidden">{a.court}</span>
-                    <span className="hidden sm:inline">{a.libelle}</span>
+                    {a.libelle}
                     {pastille[a.cle] && (
                       <span
-                        className={`absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${actif ? "bg-brand-jaune" : "bg-brand-violet"}`}
+                        className={`absolute right-2.5 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${actif ? "bg-brand-jaune" : "bg-brand-violet"}`}
                         title="Demande en cours"
                         aria-label="Demande en cours"
                       />
@@ -189,6 +270,7 @@ export function ActionsGestion({
             options={declaration.options}
             parDefaut={declaration.parDefaut}
             declarations={declarations}
+            enfants={garde ? contexte.details.enfants : undefined}
           />
         )}
 
@@ -218,7 +300,13 @@ export function ActionsGestion({
                   Formulaire de l&apos;Assurance Maladie pour les salariés de particuliers employeurs : il le complète, le
                   signe et l&apos;envoie à sa CPAM.
                 </p>
-                {courrier("atthon_maladie", true)}
+                <FormulaireCourrier
+                  gestionId={gestionId}
+                  cle="atthon_maladie"
+                  contexte={contexte}
+                  replie
+                  initiales={{ debut_arret: dateSignalee(signalements, "arret_maladie") }}
+                />
               </Etape>
               <Etape n={3} titre="Besoin d'un remplaçant ?">
                 <p className="text-foreground/70">
@@ -233,40 +321,7 @@ export function ActionsGestion({
           </div>
         )}
 
-        {action === "accident" && (
-          <div className="flex flex-col gap-4">
-            <ol className="flex flex-col gap-5">
-              <Etape n={1} titre="Prévenez-nous : l'attestation de salaire est obligatoire">
-                <PrevenirAideEtGarde
-                  gestionId={gestionId}
-                  type="accident_travail"
-                  signalements={signalements}
-                  titre="Accident du travail de votre salarié"
-                  texte="Nous préparons l'attestation de salaire « accident du travail » (cerfa 11137*03, formulaire S6202), à envoyer à la CPAM de votre salarié."
-                  placeholder="ex. chute dans l'escalier, arrêt de travail prescrit jusqu'au…"
-                />
-              </Etape>
-              <Etape n={2} titre="Déclarez l'accident dans les 48 heures">
-                <p className="text-foreground/70">
-                  À envoyer en recommandé avec avis de réception à la CPAM du lieu de résidence de votre salarié, au plus
-                  tard 48 heures après avoir appris l&apos;accident (dimanches et jours fériés non compris).
-                </p>
-                {courrier("declaration_accident", true)}
-              </Etape>
-              <Etape n={3} titre="Remettez à votre salarié la feuille d'accident">
-                <p className="text-foreground/70">
-                  Elle lui permet d&apos;être soigné sans avancer les frais. Il la garde et la présente à chaque médecin,
-                  pharmacien ou kinésithérapeute.
-                </p>
-                {courrier("feuille_accident", true)}
-              </Etape>
-              <Etape n={4} titre="Remettez-lui aussi l'attestation sur l'honneur">
-                {courrier("atthon_accident", true)}
-              </Etape>
-            </ol>
-            <LienAide href="/aide/arret-de-travail#accident-du-travail">En savoir plus sur l&apos;accident du travail</LienAide>
-          </div>
-        )}
+        {(action === "accident" || action === "trajet") && panneauAccident(action === "trajet")}
 
         {action === "maternite" && (
           <div className="flex flex-col gap-4">
@@ -300,6 +355,30 @@ export function ActionsGestion({
           </div>
         )}
 
+        {action === "paternite" && (
+          <div className="flex flex-col gap-4">
+            <ol className="flex flex-col gap-5">
+              <Etape n={1} titre="Prévenez-nous : nous préparons l'attestation de salaire">
+                <PrevenirAideEtGarde
+                  gestionId={gestionId}
+                  type="conge_paternite"
+                  signalements={signalements}
+                  titre="Congé paternité de votre salarié"
+                  texte="Indiquez la date de début du congé dès que votre salarié vous l'a communiquée. Aide & Garde prépare l'attestation de salaire (cerfa 11135*04, formulaire S3201) qui lui permet d'être indemnisé par l'Assurance Maladie."
+                  placeholder="ex. naissance prévue le…, congé pris en deux fois"
+                />
+              </Etape>
+              <Etape n={2} titre="Pendant le congé">
+                <p className="text-foreground/70">
+                  Votre salarié est indemnisé par l&apos;Assurance Maladie : pas de salaire à verser pour ces jours.
+                  Signalez simplement son absence dans votre déclaration du mois.
+                </p>
+              </Etape>
+            </ol>
+            <LienAide href="/aide/conges#evenements-familiaux">Les congés pour naissance et événements familiaux</LienAide>
+          </div>
+        )}
+
         {action === "fin" && (
           <div className="flex flex-col gap-4">
             <div role="radiogroup" aria-label="Mode de fin de contrat" className="flex flex-wrap gap-2">
@@ -328,14 +407,15 @@ export function ActionsGestion({
                   </Etape>
                   <Etape n={2} titre="Tenez l'entretien">
                     <p className="text-foreground/70">
-                      Au plus tôt le 5e jour ouvrable après la remise de la convocation. Exposez les motifs et écoutez
-                      votre salarié ; ne confirmez pas le licenciement pendant l&apos;entretien.
+                      Au plus tôt le 4e jour ouvrable après la remise de la convocation ou sa première présentation par le
+                      facteur (la date est calculée dans la convocation). Exposez les motifs et écoutez votre salarié ; ne
+                      confirmez pas le licenciement pendant l&apos;entretien.
                     </p>
                   </Etape>
                   <Etape n={3} titre="Envoyez la lettre de licenciement">
                     <p className="text-foreground/70">
-                      En recommandé, entre le 5e et le 30e jour ouvrable après l&apos;entretien. Le préavis est calculé
-                      d&apos;après l&apos;ancienneté.
+                      En recommandé, du 4e au 30e jour ouvrable après l&apos;entretien (les dates sont calculées dans la
+                      lettre). Le préavis est calculé d&apos;après l&apos;ancienneté.
                     </p>
                     {courrier("notification_licenciement", true)}
                     {garde && (

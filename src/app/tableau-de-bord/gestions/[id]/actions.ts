@@ -167,6 +167,11 @@ export async function signalerEvenement(_etat: EtatSignalement, fd: FormData): P
     if (error.code === "PGRST202" || error.code === "42883") {
       return { statut: "erreur", message: "Ce service n'est pas encore activé (script brique3e à exécuter dans Supabase)." };
     }
+    // Nouveaux types (accident de trajet, congé paternité, réouverture) :
+    // refusés tant que le script brique3i n'a pas été exécuté.
+    if (error.code === "23514" || /Type de signalement inconnu/.test(error.message)) {
+      return { statut: "erreur", message: "Ce service n'est pas encore activé (script brique3i à exécuter dans Supabase)." };
+    }
     return {
       statut: "erreur",
       message: error.code === "P0001" ? error.message : "L'envoi n'a pas abouti. Réessayez dans un instant.",
@@ -195,6 +200,8 @@ export async function signalerEvenement(_etat: EtatSignalement, fd: FormData): P
     message:
       type === "fin_contrat"
         ? "C'est noté : nous préparons les documents de fin de contrat et revenons vers vous."
-        : "C'est noté : nous établissons l'attestation de salaire et vous prévenons dès qu'elle est prête.",
+        : type === "reouverture"
+          ? "C'est noté : Aide & Garde examine votre demande et vous répond rapidement."
+          : "C'est noté : nous établissons l'attestation de salaire et vous prévenons dès qu'elle est prête.",
   };
 }

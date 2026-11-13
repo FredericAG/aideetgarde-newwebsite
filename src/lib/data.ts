@@ -89,14 +89,25 @@ export type Civilite = "" | "Madame" | "Monsieur";
 // Événements signalés à Aide & Garde (brique 3e)
 // ---------------------------------------------------------------------------
 
-export type TypeSignalement = "fin_contrat" | "accident_travail" | "arret_maladie" | "conge_maternite";
+export type TypeSignalement =
+  | "fin_contrat"
+  | "accident_travail"
+  | "accident_trajet"
+  | "arret_maladie"
+  | "conge_maternite"
+  | "conge_paternite"
+  /** L'abonné demande de rouvrir une gestion terminée (script brique3i). */
+  | "reouverture";
 export type ModeFinContrat = "licenciement" | "rupture_conventionnelle" | "demission" | "retraite";
 
 export const TYPES_SIGNALEMENT: Record<TypeSignalement, string> = {
   fin_contrat: "Fin de contrat",
   accident_travail: "Accident du travail",
+  accident_trajet: "Accident de trajet",
   arret_maladie: "Arrêt maladie",
   conge_maternite: "Congé maternité",
+  conge_paternite: "Congé paternité",
+  reouverture: "Demande de réouverture",
 };
 
 export const MODES_FIN_CONTRAT: Record<ModeFinContrat, string> = {
@@ -110,8 +121,11 @@ export const MODES_FIN_CONTRAT: Record<ModeFinContrat, string> = {
 export const DATES_SIGNALEMENT: Record<TypeSignalement, string> = {
   fin_contrat: "Dernier jour du contrat (prévu)",
   accident_travail: "Date de l'accident",
+  accident_trajet: "Date de l'accident",
   arret_maladie: "Premier jour d'arrêt",
   conge_maternite: "Début du congé maternité",
+  conge_paternite: "Début du congé paternité",
+  reouverture: "Date de la demande",
 };
 
 export interface Signalement {

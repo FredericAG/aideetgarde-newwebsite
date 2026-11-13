@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { formatDate, formatHeures, type Declaration } from "@/lib/data";
+import { alertesAgeEnfants } from "@/lib/cmg-age";
 import { envoyerDeclaration, type EtatDeclaration } from "./actions";
 
 export const champ =
@@ -18,11 +20,14 @@ export function DeclarationMois({
   options,
   parDefaut,
   declarations,
+  enfants,
 }: {
   gestionId: string;
   options: { valeur: string; libelle: string }[];
   parDefaut: string;
   declarations: Declaration[];
+  /** Enfants gardés (JSON de la gestion) : alertes d'âge pour le CMG. */
+  enfants?: string;
 }) {
   const [etat, action, enCours] = useActionState<EtatDeclaration, FormData>(envoyerDeclaration, { statut: "idle" });
   const [periode, setPeriode] = useState(parDefaut);
@@ -77,6 +82,18 @@ export function DeclarationMois({
         </label>
       </div>
       <p id="aide-heures" className="-mt-1 text-xs text-foreground/60">Heures : facultatif. Laissées vides, ce sont celles du contrat.</p>
+      {/* Âge des enfants et aide de la CAF (demande du 12/11/2026). */}
+      {alertesAgeEnfants(enfants, periode).map((a) => (
+        <p key={`${a.prenom}-${a.age}`} className="rounded-md border-l-4 border-brand-teal bg-brand-sky-tint/30 p-3 text-sm">
+          <strong className="text-brand-teal">
+            {a.prenom} {a.ceMois ? "a" : "aura"} {a.age} ans le {formatDate(a.date)}.
+          </strong>{" "}
+          {a.texte}{" "}
+          <Link href="/aide/aides-caf#montant-cmg" className="font-medium text-brand-teal underline">
+            En savoir plus
+          </Link>
+        </p>
+      ))}
       {existante && (
         <p className="rounded-md bg-brand-jaune/40 p-3 text-sm text-brand-black">
           Déclaration de {libelle} envoyée le {formatDate(existante.envoyee_le)} ({formatHeures(existante.heures)}) : nous

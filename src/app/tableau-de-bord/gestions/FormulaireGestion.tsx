@@ -177,7 +177,21 @@ function ChampSaisie({
     </span>
   );
   const texteAide = aideDe(c, contexte);
-  const aideTexte = texteAide ? <span className={aide}>{texteAide}</span> : null;
+  // Lien vers le centre d'aide (nouvel onglet : le formulaire reste ouvert).
+  const lien =
+    c.lienAide && (!c.lienAide.siVide || !valeur.trim()) ? (
+      <Link href={c.lienAide.href} target="_blank" className="font-medium text-brand-teal underline">
+        {c.lienAide.texte}
+      </Link>
+    ) : null;
+  const aideTexte =
+    texteAide || lien ? (
+      <span className={aide}>
+        {texteAide}
+        {texteAide && lien ? " " : null}
+        {lien}
+      </span>
+    ) : null;
   const options = optionsDe(c, contexte);
 
   if (c.type === "oui_non" || (c.type === "choix" && options.length <= 3 && options.every((o) => o.libelle.length < 60))) {

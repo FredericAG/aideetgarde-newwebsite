@@ -788,3 +788,26 @@ Aucun script SQL (la relance groupée utilise le script 9c, déjà en place).
 | S.10 | Fiche d'un compte : menu « ⋯ » d'une gestion | « Supprimer la gestion » n'apparaît qu'après ouverture du menu ; la confirmation est toujours demandée | |
 | S.11 | N'importe quelle page de l'administration | Plus de pied de page public ; sur téléphone, l'onglet « Paie » remplace « Archivés » | |
 
+## Actions de la gestion, accidents, licenciement, réouverture (12/11, lot 42)
+
+**Script SQL à exécuter avant le Push : `supabase/brique3i_trajet_paternite_reouverture.sql`** (après 3h).
+
+| # | Scénario | Résultat attendu | Statut |
+|---|---|---|---|
+| U.1 | Gestion en cours › « Que souhaitez-vous faire ? » (ordinateur et téléphone) | Cinq cartes : Demander, Déclarer (arrêt, accident du travail, accident de trajet), Déclarer (congés maternité et paternité), Obtenir, Prévoir ; « Le bulletin du mois » ouvert d'office | |
+| U.2 | Garde d'enfants avec un enfant qui a 3 ou 6 ans ce mois-ci ou le suivant (date de naissance dans la gestion) | Encadré « … a / aura 3 (ou 6) ans le … » sous les heures, qui change avec le mois choisi | |
+| U.3 | Déclarer › Un accident du travail › Prévenir Aide & Garde (date) | « Aide & Garde est prévenue » ; email à Aide & Garde | |
+| U.4 | Étape 2 › Préparer | Un seul formulaire, date de l'accident déjà remplie, intertitres « … : en plus », trois boutons | |
+| U.5 | Télécharger les trois documents | Déclaration (case « accident du travail »), feuille d'accident, attestation sur l'honneur, sans ressaisie | |
+| U.6 | Même chose avec « Un accident de trajet » | Le type « Accident de trajet » est choisi ; la question « Où a eu lieu l'accident ? » disparaît ; la déclaration coche « accident de trajet » et « trajet domicile – travail » ; fichier « Declaration-accident-trajet_… » | |
+| U.7 | Déclarer › Un arrêt maladie › Prévenir (premier jour d'arrêt), puis préparer l'attestation sur l'honneur | Premier jour d'arrêt déjà rempli | |
+| U.8 | « Fait à » d'un courrier, profil avec adresse complète | Code postal de l'employeur affiché à côté de sa ville | |
+| U.9 | Un congé paternité › Prévenir Aide & Garde | Demande enregistrée ; elle apparaît dans les actions à traiter de l'administration | |
+| U.10 | Prévoir › Une fin de contrat › Licenciement › Convocation › « Je la remets en main propre », date de remise un mardi | Entretien proposé le lundi suivant (4e jour ouvrable reporté du samedi au lundi) | |
+| U.11 | « Je l'envoie en recommandé », date d'envoi un lundi | Présentation estimée le jeudi, entretien au plus tôt le mardi suivant (sans jour férié dans la semaine) ; avertissement sur le suivi La Poste | |
+| U.12 | Choisir soi-même une date d'entretien trop tôt | Message rouge « Trop tôt… » ; « Retenir cette date » remet la date calculée | |
+| U.13 | Lettre de licenciement › date de l'entretien | « Lettre à envoyer à partir du … et au plus tard le … » | |
+| U.14 | Gestion terminée › « Demander de rouvrir cette gestion » › Envoyer | « Demande de réouverture envoyée » ; email et action à traiter côté administration | |
+| U.15 | Admin › fiche du compte › Rouvrir cette gestion | Gestion en cours ; la demande est close ; l'abonné reçoit « Votre gestion est rouverte » | |
+| U.16 | Formulaire d'une gestion › Salarié | Lien « Puis-je employer un salarié étranger ? » sous la nationalité ; lien « Pas encore de numéro ni de carte Vitale : que faire ? » sous le numéro de sécurité sociale tant qu'il est vide | |
+

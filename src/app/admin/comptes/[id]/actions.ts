@@ -188,6 +188,31 @@ export async function rouvrirGestion(fd: FormData) {
     .select("id");
   if (error) retour(compteId, "erreur", messageErreur(error), gestionId);
   if (!data?.length) retour(compteId, "erreur", "La gestion n'a pas pu être rouverte (introuvable ou déjà modifiée). Rechargez la page.", gestionId);
+
+  // Demande de réouverture de l'abonné (script brique3i) : close, et
+  // l'abonné est prévenu.
+  const { data: demandes } = await supabase
+    .from("signalements")
+    .update({ statut: "traitee", traitee_le: new Date().toISOString(), reponse_admin: "Gestion rouverte." })
+    .eq("gestion_id", gestionId)
+    .eq("employeur_id", compteId)
+    .eq("type", "reouverture")
+    .eq("statut", "envoyee")
+    .select("id");
+  if (demandes?.length) {
+    const bilan = await prevenirAbonne(
+      supabase,
+      compteId,
+      { title: "Gestion rouverte", body: "Aide & Garde a rouvert la gestion de votre salarié.", url: `/tableau-de-bord/gestions/${gestionId}`, tag: `reouverture-${gestionId}` },
+      {
+        sujet: "Votre gestion est rouverte",
+        titre: "Gestion rouverte",
+        paragraphes: ["Comme vous l'avez demandé, Aide & Garde a rouvert la gestion de votre salarié : elle est de nouveau en cours."],
+        bouton: "Ouvrir la gestion",
+      },
+    );
+    retour(compteId, "ok", `Gestion rouverte ; demande de l'abonné close — ${bilan}.`, gestionId);
+  }
   retour(compteId, "ok", "Gestion rouverte.", gestionId);
 }
 

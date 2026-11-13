@@ -124,7 +124,7 @@ function Apercu() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          {["Déclarer le mois", "Demander un avenant", "Rédiger un courrier", "Prévoir une fin de contrat"].map((a) => (
+          {["Demander le bulletin du mois", "Déclarer un arrêt maladie", "Obtenir une attestation", "Prévoir une fin de contrat"].map((a) => (
             <span key={a} className="rounded-full border border-brand-teal/40 px-3 py-1 font-medium text-brand-teal">
               {a}
             </span>

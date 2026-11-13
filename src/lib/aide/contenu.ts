@@ -165,10 +165,10 @@ export const THEMES: Theme[] = [
       },
       {
         slug: "situation-irreguliere",
-        question: "Puis-je employer une personne en situation irrégulière ?",
+        question: "Puis-je employer un salarié étranger ?",
         resume:
-          "Non : il est interdit d'employer une personne qui n'a pas de titre l'autorisant à travailler en France. C'est l'employeur qui en porte le risque pendant toute la durée du travail. Votre salarié peut en revanche demander sa régularisation par le travail.",
-        motsCles: ["sans papiers", "titre de séjour", "autorisation de travail", "régularisation", "cerfa 15186", "préfecture", "admission exceptionnelle"],
+          "Oui, s'il a le droit de travailler en France. Un ressortissant de l'Union européenne, de l'Espace économique européen ou de la Suisse n'a pas besoin d'autorisation. Les autres doivent avoir un titre qui les autorise à travailler : il est interdit d'employer une personne en situation irrégulière, et c'est l'employeur qui en porte le risque pendant toute la durée du travail. Votre salarié peut en revanche demander sa régularisation par le travail.",
+        motsCles: ["étranger", "nationalité", "titre de séjour", "situation irrégulière", "sans papiers", "autorisation de travail", "régularisation", "cerfa 15186", "préfecture", "admission exceptionnelle"],
         corps: [
           {
             p: "En cas de problème ou d'accident, vous risquez en outre de ne pas être couvert par les assurances.",
@@ -202,7 +202,7 @@ export const THEMES: Theme[] = [
       },
       {
         slug: "sans-numero-securite-sociale",
-        question: "Mon salarié n'a pas de numéro de sécurité sociale : que faire ?",
+        question: "Mon salarié n'a pas de numéro de sécurité sociale ni de carte Vitale : que faire ?",
         resume:
           "Ce n'est pas bloquant pour l'embaucher et le déclarer : il est déclaré avec son état civil (nom, date et lieu de naissance) et l'Urssaf lui attribue un numéro provisoire en attendant son immatriculation.",
         motsCles: ["NIR", "numéro de sécurité sociale", "immatriculation", "numéro provisoire", "carte Vitale", "AME", "salarié étranger"],
@@ -904,7 +904,7 @@ export const THEMES: Theme[] = [
           "Sur le tableau de bord, cliquez sur « Déclarer » en face du salarié, indiquez les heures et les événements du mois (absences, heures en plus), puis envoyez. Nous établissons le bulletin et vous prévenons quand il est en ligne.",
         motsCles: ["déclaration", "heures", "absences", "envoyer"],
         corps: [
-          { p: "Vous pouvez aussi déclarer depuis la gestion du salarié (« Mes gestions » › « Déclarer le mois ») : tous les mois sans bulletin depuis le début du contrat y sont proposés. Une erreur sur un bulletin en ligne ? Choisissez « Corriger un bulletin » : nous le corrigeons." },
+          { p: "Vous pouvez aussi déclarer depuis la gestion du salarié (« Mes gestions » › « Demander : le bulletin du mois ») : tous les mois sans bulletin depuis le début du contrat y sont proposés. Une erreur sur un bulletin en ligne ? Choisissez « Demander : une correction » : nous le corrigeons." },
         ],
         lien: { href: "/tableau-de-bord", libelle: "Aller au tableau de bord" },
       },

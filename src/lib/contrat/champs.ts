@@ -75,6 +75,11 @@ export interface ChampContrat {
   largeur?: "demi" | "entier";
   /** Saisie d'adresse avec suggestions (groupe adresse / code postal / ville). */
   adresse?: "rue" | "code_postal" | "ville";
+  /**
+   * Lien vers une réponse du centre d'aide, affiché sous le champ (demande
+   * du 12/11/2026). `siVide` : seulement tant que le champ est vide.
+   */
+  lienAide?: { texte: string; href: string; siVide?: boolean };
 }
 
 export const ETAPES: { cle: CleEtape; titre: string; court: string }[] = [
@@ -161,6 +166,7 @@ export const CHAMPS: ChampContrat[] = [
       { valeur: "autre", libelle: "Autre" },
     ],
     obligatoire: true,
+    lienAide: { texte: "Puis-je employer un salarié étranger ?", href: "/aide/contrat#situation-irreguliere" },
   },
   { cle: "nationalite_pays", etape: "salarie", libelle: "Pays de nationalité", type: "texte", si: (v) => v.nationalite === "autre" || v.nationalite === "ue", obligatoire: (_c, v) => v.nationalite === "autre" },
   {
@@ -212,6 +218,11 @@ export const CHAMPS: ChampContrat[] = [
     placeholder: "15 chiffres",
     aide:
       "Sur sa carte Vitale. Pas encore de numéro (salarié arrivé de l'étranger, par exemple) ? Ce n'est pas bloquant : laissez vide. Il est déclaré avec son état civil et l'Urssaf lui attribue un numéro provisoire. Le numéro de la carte AME n'est pas un numéro de sécurité sociale.",
+    lienAide: {
+      texte: "Pas encore de numéro ni de carte Vitale : que faire ?",
+      href: "/aide/contrat#sans-numero-securite-sociale",
+      siVide: true,
+    },
   },
 
   // --- Étape 3 : le poste ------------------------------------------------------

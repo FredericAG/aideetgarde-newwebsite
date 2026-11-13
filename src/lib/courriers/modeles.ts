@@ -76,6 +76,8 @@ export interface ChampCourrier {
   connu?: boolean;
   /** Champ affiché seulement si un autre champ a cette valeur. */
   si?: { champ: string; valeur: string };
+  /** Lien vers le centre d'aide, affiché sous le champ tant qu'il est vide. */
+  lienSiVide?: { texte: string; href: string };
   /**
    * Liste « Modèle de texte » : choisir une option remplace le contenu de ce
    * champ texte par le texte proposé (modifiable ensuite).
@@ -174,7 +176,7 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
         nom: "date_entretien",
         libelle: "Date de l'entretien",
         type: "date",
-        aide: "Au plus tôt le 5e jour ouvrable après la remise de la lettre ou sa première présentation par la poste (hors dimanches et jours fériés).",
+        aide: "Au plus tôt le 4e jour ouvrable après la remise de la lettre ou sa première présentation par la poste (dimanches et jours fériés non compris ; un délai qui tombe un samedi est reporté au lundi).",
       },
       { nom: "heure_entretien", libelle: "Heure", type: "time" },
       {
@@ -188,7 +190,7 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
   notification_licenciement: {
     cle: "notification_licenciement",
     titre: "Lettre de licenciement",
-    description: "À envoyer en recommandé, au plus tôt le 5e jour ouvrable après l'entretien.",
+    description: "À envoyer en recommandé, du 4e au 30e jour ouvrable après l'entretien.",
     auteur: "employeur",
     adresseSalarie: true,
     avertissement:
@@ -342,11 +344,22 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
     auteur: "employeur",
     adresseSalarie: true,
     champs: [
+      {
+        nom: "type_accident",
+        libelle: "Type d'accident",
+        type: "select",
+        options: [
+          { valeur: "travail", libelle: "Accident du travail" },
+          { valeur: "trajet", libelle: "Accident de trajet (entre le domicile et le travail)" },
+        ],
+        defaut: () => "travail",
+      },
       { nom: "date_accident", libelle: "Date de l'accident", type: "date" },
       { nom: "heure_accident", libelle: "Heure", type: "time" },
       {
         nom: "lieu_type",
         libelle: "Où a eu lieu l'accident ?",
+        si: { champ: "type_accident", valeur: "travail" },
         type: "select",
         options: [
           { valeur: "habituel", libelle: "Sur le lieu de travail habituel" },
@@ -403,6 +416,7 @@ export const MODELES_COURRIER: Record<CleCourrier, ModeleCourrier> = {
         libelle: "Numéro de sécurité sociale du salarié",
         type: "text",
         defaut: (c) => c.details.numero_securite_sociale ?? "",
+        lienSiVide: { texte: "Pas encore de numéro ni de carte Vitale : que faire ?", href: "/aide/contrat#sans-numero-securite-sociale" },
       },
       {
         nom: "numero_declarant",

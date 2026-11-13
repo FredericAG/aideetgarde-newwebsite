@@ -6,6 +6,7 @@ import { BoutonConfirme } from "@/components/BoutonConfirme";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { IconePoubelle } from "@/components/IconePoubelle";
 import { RecapGestion } from "@/components/RecapGestion";
+import { DemandeReouverture } from "./DemandeReouverture";
 import { FormulaireGestion } from "../FormulaireGestion";
 import { placesAbonnement, salariesRemplacables } from "@/lib/places";
 import { annulerEnvoi, supprimerBrouillon, terminerMaGestion } from "../actions";
@@ -155,7 +156,7 @@ export default async function DetailGestionPage({
   );
   // (liste ici : une constante d'un fichier « use client » n'est pas lisible
   // côté serveur)
-  const CLES_ACTIONS: CleAction[] = ["declarer", "corriger", "avenant", "attestation", "arret", "accident", "maternite", "fin", "courriers"];
+  const CLES_ACTIONS: CleAction[] = ["declarer", "corriger", "avenant", "attestation", "arret", "accident", "trajet", "maternite", "paternite", "fin", "courriers"];
   const actionInitiale: CleAction = CLES_ACTIONS.includes(actionDemandee as CleAction) ? (actionDemandee as CleAction) : "declarer";
 
   return (
@@ -278,6 +279,9 @@ export default async function DetailGestionPage({
         {(gestion.statut === "en_cours" || gestion.statut === "terminee") && (
           <>
         <NouveauxDocuments documents={documents} />
+
+        {/* Gestion terminée : demande de réouverture (12/11, script 3i). */}
+        {gestion.statut === "terminee" && <DemandeReouverture gestionId={gestion.id} signalements={signalements} />}
 
         {(() => {
           const r = reponseAvenantRecente((avenants ?? []) as DemandeAvenantType[]);
